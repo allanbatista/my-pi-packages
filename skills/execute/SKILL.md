@@ -8,19 +8,25 @@ description: Coordena a execução de uma feature a partir de `manifest.md`, `sp
 
 ## Pi Runtime
 
-Leia `references/PI_ADAPTATION.md` do pacote quando o runtime Pi não oferecer `spawn_agent`, `fork_context` ou model pinning. **Prefira subagent quando disponível**; caso contrário, execute inline com isolamento de contexto e invoque skills filhas via `/skill:<name>`. Não bloqueie o workflow só por indisponibilidade de subagent.
+No Pi, a delegação padrão é **inline** com isolamento de contexto (ver `references/PI_ADAPTATION.md`). Use `spawn_agent`/`fork_context` apenas quando o runtime oferecer paridade Codex. Invoque skills filhas via `/skill:<name>`. Não bloqueie o workflow por indisponibilidade de subagent.
+## Delegação
+
+Siga `references/PI_ADAPTATION.md`:
+- **Padrão Pi**: execução inline na sessão atual, contexto mínimo (pedido, paths, `AGENTS.md`, docs da feature).
+- **Opcional**: subagent via `spawn_agent` quando disponível; `fork_context: false` e model pinning são opcionais.
+- **Guardian**: passo separado (inline ou subagent) que aplica rubrica sem editar arquivos.
+- **Paralelo**: batch paralelo quando suportado; senão serialize com write sets verificados.
+
 
 Use esta skill para transformar a sessão atual em manager de execução. O manager coordena, registra progresso e delega; não implementa código nem valida a própria implementação.
 
-O manager pode editar documentos de workflow da feature. Código de produto, testes, configs e migrations só podem ser alterados por subagents workers.
+O manager pode editar documentos de workflow da feature. Código de produto, testes, configs e migrations só podem ser alterados pelo papel **worker** (inline ou subagent).
 
 Não use achismo: investigue antes de delegar ou concluir, exija evidência concreta de workers/validadores e registre blocker qualquer premissa que não puder confirmar por arquivo, comando, log, teste, browser ou resposta do usuário.
 
 Pronto não significa "o código parece certo". Pronto significa validação prática com evidência de funcionamento no caminho afetado.
 
-Todos os subagents criados por esta skill devem usar `model: gpt-5.4-mini` e `reasoning_effort: high`.
-
-Todos os subagents desta skill devem usar `fork_context: false` e receber apenas contexto mínimo da task/fase, paths, spec/plan/manifest e evidência necessária.
+Workers e validadores recebem apenas contexto mínimo (task/fase, paths, spec/plan/manifest, evidência). Model pinning (`gpt-5.*`, `reasoning_effort`) é opcional — ignore quando não suportado. Delegação inline por padrão no Pi (ver `references/PI_ADAPTATION.md`).
 
 ## Workflow
 
@@ -29,10 +35,10 @@ Todos os subagents desta skill devem usar `fork_context: false` e receber apenas
 3. Revise `manifest.md`, `spec.md`, `plan.md` e slices aplicáveis de `ux.md`/`arch.md` (ou confirme `not-applicable` no manifesto): status, blockers, perguntas pendentes, DoD, arquivos alvo, paralelismo, harness e evidência faltante.
 4. Não execute se `spec.md` não estiver `ready`, se `plan.md` não tiver task executável, ou se houver decisão pendente que mude escopo/contrato/persistência/harness.
 5. Atualize `manifest.md` e `plan.md` antes de delegar: task/fase `running`, owner/subagent, resume point e evidência exigida.
-6. Delegue implementação a subagent `worker` com `model: gpt-5.4-mini`, `reasoning_effort: high` e `fork_context: false`, escopo fechado: task, arquivos/responsabilidade, DoD, evidência prática exigida, o slice relevante de `arch.md`/`ux.md`, testes automáticos focados permitidos e regra para não reverter mudanças paralelas.
-7. Para cada batch paralelo declarado em `plan.md`, faça spawn de todos os workers independentes antes de aguardar resultados.
+6. Delegue implementação ao papel **worker** (inline ou subagent — ver `references/PI_ADAPTATION.md`), escopo fechado: task, arquivos/responsabilidade, DoD, evidência prática exigida, o slice relevante de `arch.md`/`ux.md`, testes automáticos focados permitidos e regra para não reverter mudanças paralelas.
+7. Para cada batch paralelo em `plan.md`, inicie todos os workers independentes antes de aguardar (paralelo quando suportado; senão serialize).
 8. Aguarde o batch somente quando os resultados forem necessários para validar, sincronizar ou liberar o próximo batch.
-9. Depois de cada worker, delegue validação a outro subagent. O validador é guardião da entrega: valida evidência prática e não executa suítes de testes automáticos.
+9. Depois de cada worker, delegue validação a papel **validador** separado (inline ou subagent). O validador é guardião da entrega: valida evidência prática e não executa suítes de testes automáticos.
 10. Se a validação falhar, registre blocker/falha e delegue correção a worker. Não corrija diretamente.
 11. Ao fechar uma fase, delegue a worker o gate final previsto no plano: suíte ampla/final validation quando aplicável, correções mínimas e evidência produzida. Não rode suíte completa a cada task por hábito.
 12. Marque task/fase como `done` só quando o validador aprovar evidência prática. Marque a feature como `done` só quando todas as fases estiverem aprovadas e o manifesto apontar evidência suficiente.
@@ -80,8 +86,8 @@ Responda com aprovado/reprovado, achados concretos, evidência conferida e corre
 ## Rules
 
 - Toda implementação passa por worker e todo aceite passa por validador separado.
-- Todo `spawn_agent` desta skill deve passar `model: gpt-5.4-mini` e `reasoning_effort: high`, inclusive workers de implementação, validadores e correções.
-- Todo `spawn_agent` desta skill deve passar `fork_context: false`; nunca use histórico completo da sessão manager como contexto do subagent.
+- Quando usar `spawn_agent`, passe contexto mínimo; model pinning é opcional.
+- Worker e validador são papéis separados (inline por padrão no Pi); nunca use histórico completo da sessão manager como contexto.
 - Execute batches paralelos como batches: spawn primeiro, wait depois; não serialize tasks independentes.
 - Workers podem rodar testes automáticos focados no escopo da task; suíte completa fica para gate final de fase ou exigência explícita.
 - Validadores não executam testes automáticos. Eles conferem evidência prática e bloqueiam entrega fraca.
@@ -113,7 +119,7 @@ Antes de **cada** spawn de worker/validador ou de ceder o turno, grave em `plan.
 
 ## Context Isolation
 
-- Passar a cada subagent somente a task/fase, paths necessários, write set, DoD, evidência exigida, slice de `arch.md`/`ux.md` e documentos da feature.
+- Passar a cada delegação (worker/validador) somente task/fase, paths, write set, DoD, evidência exigida, slice de `arch.md`/`ux.md` e docs da feature.
 - Não passar conversa inteira, raciocínio prévio ou contexto não referenciado nos documentos.
 - Se um subagent precisar de contexto extra, registrar qual artefato faltou e enviar só esse artefato.
 

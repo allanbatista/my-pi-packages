@@ -8,7 +8,15 @@ description: Controlador de resultado (closed loop) de uma feature ou épico em 
 
 ## Pi Runtime
 
-Leia `references/PI_ADAPTATION.md` do pacote quando o runtime Pi não oferecer `spawn_agent`, `fork_context` ou model pinning. **Prefira subagent quando disponível**; caso contrário, execute inline com isolamento de contexto e invoque skills filhas via `/skill:<name>`. Não bloqueie o workflow só por indisponibilidade de subagent.
+No Pi, a delegação padrão é **inline** com isolamento de contexto (ver `references/PI_ADAPTATION.md`). Use `spawn_agent`/`fork_context` apenas quando o runtime oferecer paridade Codex. Invoque skills filhas via `/skill:<name>`. Não bloqueie o workflow por indisponibilidade de subagent.
+## Delegação
+
+Siga `references/PI_ADAPTATION.md`:
+- **Padrão Pi**: execução inline na sessão atual, contexto mínimo (pedido, paths, `AGENTS.md`, docs da feature).
+- **Opcional**: subagent via `spawn_agent` quando disponível; `fork_context: false` e model pinning são opcionais.
+- **Guardian**: passo separado (inline ou subagent) que aplica rubrica sem editar arquivos.
+- **Paralelo**: batch paralelo quando suportado; senão serialize com write sets verificados.
+
 
 Use esta skill como controlador de resultado: dado um objetivo, garanta que ele é atingido de fato, decidindo decomposição, sequência/paralelismo e integração, e iterando (planejar/replanejar/executar/reexecutar) até fechar com evidência.
 
@@ -16,7 +24,7 @@ Esta é a camada mais externa do plugin. Ela orquestra `/skill:manifest` (autori
 
 Não use achismo: o objetivo só está atingido com evidência prática no caminho afetado. Registre como blocker qualquer premissa que não puder confirmar por arquivo, comando, log, teste, browser ou resposta do usuário.
 
-Esta skill atua como manager. Execute `manifest` e `execute` em subagents isolados com `fork_context: false`, passando apenas objetivo/sub-feature, project root, feature dir e documentos necessários. Não dependa do contexto acumulado da sessão.
+Esta skill atua como manager. Delegue a `/skill:manifest` e `/skill:execute` (inline por padrão no Pi; subagent opcional — ver `references/PI_ADAPTATION.md`), passando apenas objetivo/sub-feature, project root, feature dir e docs necessários.
 
 ## Workflow
 
@@ -25,8 +33,8 @@ Esta skill atua como manager. Execute `manifest` e `execute` em subagents isolad
 3. Fixe o **objetivo verificável**: resultado esperado + evidência de aceite no nível do resultado (como saberemos que fechou). Se o objetivo for ambíguo ou não verificável, pergunte (standalone) ou registre blocker.
 4. Identifique o project root e crie ou selecione o diretório do épico `.features/{YYYY-MM-DD}_{HHMM}-{short-desc}/` com `loop.md`.
 5. **Decida a decomposição** (ver `Decomposition`): 1 feature vs N sub-features; para N, monte o DAG (dependências, write sets, sequencial vs paralelo). Registre a decisão e o racional em `loop.md`.
-6. Para cada sub-feature liberada, delegue a autoria a `/skill:manifest` em subagent isolado (spec → ux ∥ arch → plan), passando objetivo da sub-feature, paths e docs.
-7. Quando o manifest devolver docs `ready` e guardians aprovados, delegue a execução a `/skill:execute` em subagent isolado. Features paralelas rodam cada uma em seu worktree (ver `Worktrees & Merge`).
+6. Para cada sub-feature liberada, delegue a autoria a `/skill:manifest` (inline ou subagent; spec → ux ∥ arch → plan), passando objetivo, paths e docs.
+7. Quando o manifest devolver docs `ready` e guardians aprovados, delegue a execução a `/skill:execute` (inline ou subagent). Features paralelas rodam cada uma em seu worktree (ver `Worktrees & Merge`).
 8. Execute batches de sub-features como batches: spawn das independentes primeiro, wait depois; serialize só as dependentes.
 9. Ao fechar as sub-features de um batch, faça merge dos worktrees e rode a **integração E2E** cross-feature.
 10. Dispare o **outcome guardian**: bate o resultado combinado contra o objetivo, com evidência.
@@ -121,7 +129,7 @@ Status: pending | approved | rejected
 
 ## Outcome Guardian
 
-Ao fechar (ou a cada tentativa de `converged`), crie um subagent guardian com `model: gpt-5.5`, `reasoning_effort: xhigh`, `fork_context: false` e contexto mínimo: objetivo, `AGENTS.md`, `loop.md`, manifests/plans das sub-features e evidência produzida.
+Ao fechar (ou a cada tentativa de `converged`), rode outcome guardian (inline ou subagent) com contexto mínimo: objetivo, `AGENTS.md`, `loop.md`, manifests/plans das sub-features e evidência produzida.
 
 O guardian não edita arquivos e não valida task a task (isso é do `execute`). Ele valida o **objetivo end-to-end**: o resultado combinado das sub-features entrega o objetivo, a integração cross-feature funciona e há evidência prática — sem achismo.
 
@@ -163,8 +171,8 @@ Antes de **cada** delegação a `manifest`/`execute`, merge ou de ceder o turno,
 
 ## Context Isolation
 
-- Passar a cada subagent (`manifest`/`execute`/guardian) só o objetivo/sub-feature, paths, feature dir, worktree e docs necessários.
-- Usar `fork_context: false`; nunca usar o histórico completo da sessão como contexto do subagent.
+- Passar a cada delegação (`manifest`/`execute`/guardian) só objetivo/sub-feature, paths, feature dir, worktree e docs necessários.
+- Nunca usar histórico completo da sessão como contexto da delegação.
 - Se subagents ou worktrees não estiverem disponíveis, siga `references/PI_ADAPTATION.md` (execução inline; serialize features se worktrees indisponíveis); registre limitação no `loop.md` e declare na resposta final.
 
 ## Final Response

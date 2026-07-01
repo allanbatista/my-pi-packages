@@ -8,7 +8,15 @@ description: Orquestra e revisa o workflow completo de feature em `.features/{YY
 
 ## Pi Runtime
 
-Leia `references/PI_ADAPTATION.md` do pacote quando o runtime Pi não oferecer `spawn_agent`, `fork_context` ou model pinning. **Prefira subagent quando disponível**; caso contrário, execute inline com isolamento de contexto e invoque skills filhas via `/skill:<name>`. Não bloqueie o workflow só por indisponibilidade de subagent.
+No Pi, a delegação padrão é **inline** com isolamento de contexto (ver `references/PI_ADAPTATION.md`). Use `spawn_agent`/`fork_context` apenas quando o runtime oferecer paridade Codex. Invoque skills filhas via `/skill:<name>`. Não bloqueie o workflow por indisponibilidade de subagent.
+## Delegação
+
+Siga `references/PI_ADAPTATION.md`:
+- **Padrão Pi**: execução inline na sessão atual, contexto mínimo (pedido, paths, `AGENTS.md`, docs da feature).
+- **Opcional**: subagent via `spawn_agent` quando disponível; `fork_context: false` e model pinning são opcionais.
+- **Guardian**: passo separado (inline ou subagent) que aplica rubrica sem editar arquivos.
+- **Paralelo**: batch paralelo quando suportado; senão serialize com write sets verificados.
+
 
 Use esta skill como orquestrador de autoria do plugin. Ela coordena `/skill:spec`, `/skill:ux`, `/skill:arch` e `/skill:plan`; execução operacional fica em `/skill:execute`. O entry point externo é `/skill:loop`.
 
@@ -16,7 +24,7 @@ Esta skill só pode editar documentos de workflow da feature. Não edite código
 
 Não use achismo: investigue antes de concluir, cite evidência concreta para fatos e registre como blocker/pending qualquer premissa que não puder confirmar por arquivo, comando, log, teste, browser ou resposta do usuário.
 
-Esta skill atua como manager. Execute `/skill:spec` e `/skill:plan` em subagents isolados com `model: gpt-5.5`, `reasoning_effort: xhigh` e `fork_context: false`, passando apenas pedido do usuário, project root, feature dir/arquivo alvo e documentos necessários.
+Esta skill atua como manager. Delegue a `/skill:spec`, `/skill:ux`, `/skill:arch` e `/skill:plan` (inline por padrão no Pi; subagent opcional — ver `references/PI_ADAPTATION.md`), passando apenas pedido, project root, feature dir e docs necessários.
 
 ## Workflow
 
@@ -25,14 +33,14 @@ Esta skill atua como manager. Execute `/skill:spec` e `/skill:plan` em subagents
 3. Identifique o project root e crie ou selecione `.features/{YYYY-MM-DD}_{HHMM}-{short-desc}/`.
 4. Revise o estado existente: perguntas pendentes, decisões contraditórias, DoD fraco, contrato/persistência/harness ausentes, divergência entre spec/plan/manifest e evidência faltante.
 5. Crie ou atualize `manifest.md` com links, status e ponto de retomada.
-6. Use `/skill:spec` em subagent isolado para criar ou atualizar `spec.md`.
-7. Se o subagent de spec devolver `Status: blocked` com `Clarifications Needed`, apresente as perguntas ao usuário em lote na ordem priorizada, colete as respostas e re-invoque `/skill:spec` no subagent isolado passando feature dir + respostas (`C#`). Repita até `ready` ou bloqueio duro. Não responda por suposição.
-8. Depois do subagent de spec, confirme aprovação do guardian da spec; se faltar, dispare guardian ou devolva para a spec corrigir.
+6. Delegue a `/skill:spec` (inline ou subagent) para criar ou atualizar `spec.md`.
+7. Se a delegação de spec devolver `Status: blocked` com `Clarifications Needed`, apresente as perguntas ao usuário em lote na ordem priorizada, colete as respostas e re-invoque `/skill:spec` passando feature dir + respostas (`C#`). Repita até `ready` ou bloqueio duro. Não responda por suposição.
+8. Depois da delegação de spec, confirme aprovação do guardian da spec; se faltar, dispare guardian ou devolva para a spec corrigir.
 9. Com `spec.md` `ready` e guardian aprovado, aplique o **Solution Gate** (ver seção abaixo): confirme `Shared Contract` fechado na spec; decida quais skills de solução rodam; atualize `manifest.md` com `UX`/`Arch` = `not-applicable` ou `pending` antes de spawn.
-10. Para cada skill de solução aplicável, use subagent isolado (`ux` e/ou `arch`). Spawn das aplicáveis em paralelo (spawn primeiro, wait depois); ambas partem da spec como contrato âncora. Se a skill devolver `not-applicable`, grave `not-applicable` no `manifest.md` (sem exigir arquivo). Se devolver `Status: blocked` com `Open Questions`, apresente ao usuário, colete respostas (`Q#`) e re-invoque a skill afetada — ou re-invoque `spec` se a dúvida for de produto/contrato. Não responda por suposição.
+10. Para cada skill de solução aplicável, invoque `/skill:ux` e/ou `/skill:arch` (paralelo quando suportado; senão serialize — ver `references/PI_ADAPTATION.md`); ambas partem da spec como contrato âncora. Se a skill devolver `not-applicable`, grave `not-applicable` no `manifest.md` (sem exigir arquivo). Se devolver `Status: blocked` com `Open Questions`, apresente ao usuário, colete respostas (`Q#`) e re-invoque a skill afetada — ou re-invoque `spec` se a dúvida for de produto/contrato. Não responda por suposição.
 11. Confirme guardians das skills aplicáveis (`approved`) ou `not-applicable` no manifesto. `missing` após o passo 10 é blocker — não avance.
-12. Só use `/skill:plan` em subagent isolado quando: `spec.md` `ready`; cada skill de solução estiver `ready`+guardian `approved` **ou** `not-applicable`+guardian `not-applicable` no manifesto; `Shared Contract` fechado. O plano consome `ux.md`/`arch.md` quando existirem e reconcilia conflitos residuais.
-13. Depois do subagent de plan, confirme aprovação do guardian do plan; se faltar, dispare guardian ou devolva para o plan corrigir. Se o plan devolver blocker de produto/contrato, re-invoque `spec` (e `ux`/`arch` se necessário) — não edite `spec.md` inline.
+12. Só invoque `/skill:plan` (inline ou subagent) quando: `spec.md` `ready`; cada skill de solução estiver `ready`+guardian `approved` **ou** `not-applicable`+guardian `not-applicable` no manifesto; `Shared Contract` fechado. O plano consome `ux.md`/`arch.md` quando existirem e reconcilia conflitos residuais.
+13. Depois da delegação de plan, confirme aprovação do guardian do plan; se faltar, dispare guardian ou devolva para o plan corrigir. Se o plan devolver blocker de produto/contrato, re-invoque `spec` (e `ux`/`arch` se necessário) — não edite `spec.md` inline.
 14. Durante execução longa, mantenha `manifest.md` como índice curto e `plan.md` como fonte do progresso detalhado.
 15. Antes de marcar `ready`, confirme que spec, ux/arch e plan não deixam contrato, persistência, harness, ponto de retomada ou guardian ambíguos.
 16. Ao final, responda ao usuário com um resumo curto do workflow criado/refinado e do que será feito.
@@ -126,7 +134,7 @@ Plan: ./plan.md
 
 ## Checkpoint (obrigatório)
 
-Antes de **cada** `spawn_agent` ou de ceder o turno, grave no `manifest.md`: `Updated:`, status de Spec/UX/Arch/Plan e guardians, resume point e blockers. Não delegue com `manifest.md` desatualizado.
+Antes de **cada** delegação (inline ou `spawn_agent`) ou de ceder o turno, grave no `manifest.md`: `Updated:`, status de Spec/UX/Arch/Plan e guardians, resume point e blockers. Não delegue com `manifest.md` desatualizado.
 
 ## State & Memory
 
@@ -139,8 +147,8 @@ Antes de **cada** `spawn_agent` ou de ceder o turno, grave no `manifest.md`: `Up
 ## Context Isolation
 
 - O manager não deve executar spec/ux/arch/plan inline quando puder delegar.
-- Usar `spawn_agent` com `model: gpt-5.5`, `reasoning_effort: xhigh` e `fork_context: false` para spec, ux, arch, plan e guardians.
-- Rodar `ux` e `arch` aplicáveis em paralelo (spawn primeiro, wait depois); passar a cada um só a spec como contrato âncora e os docs necessários.
+- Delegar spec, ux, arch, plan e guardians inline por padrão; `spawn_agent` opcional quando disponível (ver `references/PI_ADAPTATION.md`).
+- Rodar `ux` e `arch` aplicáveis em paralelo quando suportado; senão serialize; passar só spec como contrato âncora e docs necessários.
 - Passar contexto mínimo: pedido, paths, `AGENTS.md`, feature dir e docs relevantes.
 - Se subagents não estiverem disponíveis, siga `references/PI_ADAPTATION.md` (execução inline); serialize batches se necessário e declare a limitação na resposta final.
 

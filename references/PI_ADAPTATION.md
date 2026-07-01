@@ -1,22 +1,28 @@
 # Pi Runtime Adaptation
 
-Este pacote foi portado do Codex para Pi. As skills descrevem delegação via `spawn_agent`, `fork_context: false` e model pinning herdados do Codex — use-as quando o runtime Pi oferecer paridade. Quando não oferecer, **não bloqueie o workflow**: degrade graciosamente conforme abaixo.
+No Pi, **delegação inline é o padrão**. APIs Codex (`spawn_agent`, `fork_context`, model pinning) são opcionais — use-as só quando o runtime oferecer paridade.
 
-## Delegação sem subagent
+## Delegação inline (padrão Pi)
 
-1. **Execução inline com isolamento**: na mesma sessão, limite o contexto ativo a pedido, paths, `AGENTS.md`, feature dir e docs necessários. Não herde transcripts irrelevantes.
-2. **Skills filhas**: invoque via `/skill:<name>` com prompt explícito contendo só o contexto mínimo que um subagent receberia.
-3. **Guardians**: rode como passo separado na mesma sessão — leia o artefato, aplique a rubrica da skill, reporte `approved`/`rejected` sem editar arquivos no papel de guardian.
-4. **Paralelismo**: sem subagents paralelos, serialize batches verificando write sets disjuntos; registre no artefato que o batch foi serializado por limitação de runtime.
-5. **Modelos**: ignore pinning (`gpt-5.*`, `reasoning_effort`) quando não suportado; use o modelo disponível no Pi.
+1. **Contexto mínimo**: limite o contexto ativo a pedido, paths, `AGENTS.md`, feature dir e docs necessários.
+2. **Skills filhas**: invoque `/skill:<name>` com prompt explícito contendo só o que um subagent receberia.
+3. **Guardians**: passo separado na mesma sessão — leia artefato, aplique rubrica, reporte `approved`/`rejected` **sem editar arquivos** no papel de guardian.
+4. **Paralelismo**: serialize batches quando paralelo indisponível; registre no artefato.
+5. **Modelos**: ignore pinning (`gpt-5.*`, `reasoning_effort`) quando não suportado.
 
-## Managers (`loop`, `manifest`, `execute`)
+## Managers
 
-- `loop` → invoque `/skill:manifest` e `/skill:execute` inline quando `spawn_agent` não existir.
-- `manifest` → invoque `/skill:spec`, `/skill:ux`, `/skill:arch`, `/skill:plan` inline; serialize `ux`∥`arch` se paralelo indisponível.
-- `execute` → implemente e valide inline em passos separados (worker depois validador), sem compartilhar raciocínio entre os papéis.
+| Skill | Delegação inline |
+|---|---|
+| `loop` | `/skill:manifest` → `/skill:execute` |
+| `manifest` | `/skill:spec` → `/skill:ux` + `/skill:arch` → `/skill:plan` |
+| `execute` | worker (implementa) → validador (aprova evidência), passos separados |
+
+## Subagent opcional
+
+Quando `spawn_agent` existir, pode substituir delegação inline mantendo as mesmas regras de contexto mínimo e papéis separados (worker ≠ validador ≠ guardian).
 
 ## O que NÃO fazer
 
-- Não registre blocker só porque `spawn_agent` ou `fork_context` falhou — tente fallback inline primeiro.
-- Não abandone o workflow; declare a limitação na resposta final (`Final Response`).
+- Não bloqueie só porque `spawn_agent` ou `fork_context` falhou.
+- Não abandone o workflow; declare limitação na `Final Response`.

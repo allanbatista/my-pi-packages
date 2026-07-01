@@ -8,7 +8,15 @@ description: Cria, revisa e mantém apenas o `spec.md` de uma feature em `.featu
 
 ## Pi Runtime
 
-Leia `references/PI_ADAPTATION.md` do pacote quando o runtime Pi não oferecer `spawn_agent`, `fork_context` ou model pinning. **Prefira subagent quando disponível**; caso contrário, execute inline com isolamento de contexto e invoque skills filhas via `/skill:<name>`. Não bloqueie o workflow só por indisponibilidade de subagent.
+No Pi, a delegação padrão é **inline** com isolamento de contexto (ver `references/PI_ADAPTATION.md`). Use `spawn_agent`/`fork_context` apenas quando o runtime oferecer paridade Codex. Invoque skills filhas via `/skill:<name>`. Não bloqueie o workflow por indisponibilidade de subagent.
+## Delegação
+
+Siga `references/PI_ADAPTATION.md`:
+- **Padrão Pi**: execução inline na sessão atual, contexto mínimo (pedido, paths, `AGENTS.md`, docs da feature).
+- **Opcional**: subagent via `spawn_agent` quando disponível; `fork_context: false` e model pinning são opcionais.
+- **Guardian**: passo separado (inline ou subagent) que aplica rubrica sem editar arquivos.
+- **Paralelo**: batch paralelo quando suportado; senão serialize com write sets verificados.
+
 
 Use esta skill para fechar o contrato de produto antes de qualquer plano técnico.
 
@@ -16,12 +24,12 @@ Esta skill só pode editar documentos de workflow da feature. Não edite código
 
 Não use achismo: investigue antes de concluir, cite evidência concreta para fatos e registre como `pending` qualquer afirmação que não puder confirmar por arquivo, comando, log, teste, browser ou resposta do usuário.
 
-Quando esta skill for chamada por outra skill do `feature-workflow`, execute em subagent isolado com `model: gpt-5.5`, `reasoning_effort: xhigh` e `fork_context: false`, recebendo apenas pedido do usuário, project root, feature dir/arquivo alvo e documentos da feature necessários. Não dependa do contexto acumulado da sessão manager.
+Quando invocada por outra skill do feature-workflow, execute com isolamento de contexto (inline por padrão no Pi; subagent opcional — ver `references/PI_ADAPTATION.md`), recebendo apenas pedido, project root, feature dir e docs necessários.
 
 ## Workflow
 
 1. Leia o `AGENTS.md` do projeto.
-2. Determine o modo de execução: **standalone** (o usuário invocou a skill direto e pode responder perguntas) ou **orchestrated** (invocada por outra skill do `feature-workflow` em subagent `fork_context: false`, sem poder perguntar ao usuário no meio da execução). Ver `Clarification Protocol`.
+2. Determine o modo de execução: **standalone** (o usuário invocou a skill direto e pode responder perguntas) ou **orchestrated** (invocada por outra skill do feature-workflow com contexto isolado, sem poder perguntar ao usuário no meio da execução). Ver `Clarification Protocol`.
 3. Identifique o project root. Em dúvida real: standalone pergunta; orchestrated registra em `Clarifications Needed`. Use uma pasta existente `.features/{YYYY-MM-DD}_{HHMM}-{short-desc}/` quando indicada; senão crie uma nova com data/hora local e `short-desc` em kebab-case ASCII.
 4. Se o input for um diretório de feature ou arquivo (`manifest.md`, `spec.md` ou `plan.md`), trate a tarefa como revisão: leia os arquivos existentes da feature antes de decidir status (perguntas pendentes, decisões contraditórias, DoD fraco, contrato/persistência ausentes, divergência entre spec/plan/manifest e evidência faltante).
 5. Faça `Phase 0: Discovery` como método, não como desejo: percorra as dimensões — contratos/APIs, schemas/persistência, rotas/handlers, consumers/jobs/filas, configs/flags, testes existentes, dependências externas, telemetria/logs e owners — e **trace pelo menos um fluxo atual ponta a ponta**. Registre cada achado no `Discovery Ledger` com `ID` (`D#`), fonte, evidência e impacto. Afirmação sem evidência vira `pending`. Use Graphify quando `graphify-out/graph.json` existir.
@@ -31,7 +39,7 @@ Quando esta skill for chamada por outra skill do `feature-workflow`, execute em 
 9. Monte a rastreabilidade: cada requisito em forma **EARS** ligado a um `D#` do Discovery ou a uma decisão registrada; cada critério de aceite em **Dado/Quando/Então** com superfície de validação (ver `Gramática de Requisitos`).
 10. Feche explicitamente contrato, persistência, evidência obrigatória e fora de escopo antes de `Status: ready`.
 11. Escreva ou atualize somente `spec.md`. Não escreva `plan.md`.
-12. Dispare um subagent guardian independente para validar `spec.md`; aplique o menor ajuste necessário e repita até `approved`. Não conclua com guardian pendente ou rejeitado.
+12. Rode guardian independente (inline ou subagent) para validar `spec.md`; aplique o menor ajuste necessário e repita até `approved`. Não conclua com guardian pendente ou rejeitado.
 13. Responda conforme `Final Response` (incluindo o bloco `Clarifications Needed` + `Resume` quando estiver `blocked` em modo orchestrated).
 
 ## Gramática de Requisitos (EARS + Gherkin)
@@ -161,7 +169,7 @@ Updated: {YYYY-MM-DD HH:MM}
 
 ## Artifact Guardian
 
-Após atualizar `spec.md`, crie um subagent guardian com `model: gpt-5.5`, `reasoning_effort: xhigh`, `fork_context: false` e contexto mínimo: pedido do usuário, project root, `AGENTS.md`, feature dir, `manifest.md` quando existir, `spec.md` e evidências citadas.
+Após atualizar `spec.md`, rode guardian independente (inline ou subagent) com contexto mínimo: pedido do usuário, project root, `AGENTS.md`, feature dir, `manifest.md` quando existir, `spec.md` e evidências citadas.
 
 O guardian não edita arquivos. Ele valida se a spec fecha discovery, objetivo, escopo, fora de escopo, atores/usuários afetados, fluxos, requisitos rastreáveis, contratos, persistência, validação, DoD e perguntas pendentes sem achismo.
 
@@ -210,7 +218,7 @@ Qualquer item `fail` na rubrica força `Status: rejected`. Se `Status: rejected`
 Esclareça sem violar o isolamento. Detecte o modo no início (passo 2 do Workflow).
 
 - Standalone (usuário invocou a skill direto): agrupe as clarificações materiais num único lote priorizado (máx. 5), apresente ao usuário, espere as respostas, registre em `Questions and Decisions` e continue. Repita em lotes se surgir nova dúvida de alto impacto.
-- Orchestrated (invocada por `manifest`/outra skill em subagent `fork_context: false`): não pergunte no meio da execução. Preencha `Clarifications Needed` com IDs `C#`, grave o `spec.md`, set `Status: blocked` e devolva o controle ao manager com o bloco `Clarifications Needed` copiado na resposta final. Não invente respostas nem marque `ready`.
+- Orchestrated (invocada por `manifest`/outra skill com contexto isolado): não pergunte no meio da execução. Preencha `Clarifications Needed` com IDs `C#`, grave o `spec.md`, set `Status: blocked` e devolva o controle ao manager com o bloco `Clarifications Needed` copiado na resposta final. Não invente respostas nem marque `ready`.
 
 Taxonomia para varrer antes de perguntar (marque cada uma Clear/Partial/Missing; só Partial/Missing de alto impacto vira pergunta): escopo funcional, modelo de dados, fluxo/UX, atributos não-funcionais, integração/dependências, edge cases/falhas, restrições/tradeoffs, contrato, persistência, rollout, terminologia, sinais de conclusão/DoD.
 
@@ -236,8 +244,8 @@ Antes de **cada** guardian ou de ceder o turno, grave no `spec.md`: `Updated:`, 
 
 ## Context Isolation
 
-- Preferir executar esta skill em subagent isolado quando houver um manager/orquestrador.
-- Usar `fork_context: false` para evitar herdar contexto irrelevante.
+- Quando houver manager, aceitar invocação orchestrated com contexto mínimo (inline por padrão no Pi).
+- Não herdar contexto irrelevante da sessão manager.
 - Passar somente artefatos mínimos: pedido, paths, `AGENTS.md` e documentos da feature.
 - Se subagents não estiverem disponíveis, siga `references/PI_ADAPTATION.md` (execução inline com isolamento de contexto); declare a limitação na resposta final e não use contexto oculto como evidência.
 

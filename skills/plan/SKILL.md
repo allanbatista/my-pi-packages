@@ -8,7 +8,15 @@ description: Cria, revisa e mantém apenas o `plan.md` técnico de uma feature e
 
 ## Pi Runtime
 
-Leia `references/PI_ADAPTATION.md` do pacote quando o runtime Pi não oferecer `spawn_agent`, `fork_context` ou model pinning. **Prefira subagent quando disponível**; caso contrário, execute inline com isolamento de contexto e invoque skills filhas via `/skill:<name>`. Não bloqueie o workflow só por indisponibilidade de subagent.
+No Pi, a delegação padrão é **inline** com isolamento de contexto (ver `references/PI_ADAPTATION.md`). Use `spawn_agent`/`fork_context` apenas quando o runtime oferecer paridade Codex. Invoque skills filhas via `/skill:<name>`. Não bloqueie o workflow por indisponibilidade de subagent.
+## Delegação
+
+Siga `references/PI_ADAPTATION.md`:
+- **Padrão Pi**: execução inline na sessão atual, contexto mínimo (pedido, paths, `AGENTS.md`, docs da feature).
+- **Opcional**: subagent via `spawn_agent` quando disponível; `fork_context: false` e model pinning são opcionais.
+- **Guardian**: passo separado (inline ou subagent) que aplica rubrica sem editar arquivos.
+- **Paralelo**: batch paralelo quando suportado; senão serialize com write sets verificados.
+
 
 Use esta skill para transformar uma spec pronta em plano técnico executável.
 
@@ -16,7 +24,7 @@ Esta skill só pode editar documentos de workflow da feature. Não edite código
 
 Não use achismo: investigue antes de concluir, cite evidência concreta para fatos e registre como blocker qualquer premissa que não puder confirmar por arquivo, comando, log, teste, browser ou resposta do usuário.
 
-Quando esta skill for chamada por outra skill do `feature-workflow`, execute em subagent isolado com `model: gpt-5.5`, `reasoning_effort: xhigh` e `fork_context: false`, recebendo apenas pedido do usuário, project root, feature dir/arquivo alvo e documentos da feature necessários. Não dependa do contexto acumulado da sessão manager.
+Quando invocada por outra skill do feature-workflow, execute com isolamento de contexto (inline por padrão no Pi; subagent opcional — ver `references/PI_ADAPTATION.md`), recebendo apenas pedido, project root, feature dir e docs necessários.
 
 ## Workflow
 
@@ -32,7 +40,7 @@ Quando esta skill for chamada por outra skill do `feature-workflow`, execute em 
 10. Agrupe em batches paralelos sempre que tasks/fases forem independentes, tiverem write sets disjuntos e validação própria.
 11. Se contrato, persistência, harness, Impact Map ou arquivos alvo estiverem ambíguos, registre blocker no `plan.md` com `Escalation: spec | ux | arch | manifest` e devolva ao manager — esta skill **não** edita `spec.md`, `ux.md` nem `arch.md`; não crie plano executável por chute.
 12. Crie ou atualize somente `plan.md`.
-13. Depois de escrever/revisar, dispare um subagent guardian independente para validar `plan.md` contra `spec.md`.
+13. Depois de escrever/revisar, rode guardian independente (inline ou subagent) para validar `plan.md` contra `spec.md`.
 14. Se o guardian rejeitar, aplique o menor ajuste necessário no `plan.md` ou registre blocker e repita a validação. Não conclua com guardian pendente ou rejeitado.
 15. Atualize status antes e depois de cada task durante execução.
 16. Ao final, responda ao usuário com um resumo curto do plano e do que será feito.
@@ -163,7 +171,7 @@ Required Changes:
 
 ## Artifact Guardian
 
-Após atualizar `plan.md`, crie um subagent guardian com `model: gpt-5.5`, `reasoning_effort: xhigh`, `fork_context: false` e contexto mínimo: pedido do usuário, project root, `AGENTS.md`, feature dir, `manifest.md` quando existir, `spec.md`, `ux.md` e `arch.md` quando existirem, `plan.md` e evidências citadas.
+Após atualizar `plan.md`, rode guardian independente (inline ou subagent) com contexto mínimo: pedido do usuário, project root, `AGENTS.md`, feature dir, `manifest.md` quando existir, `spec.md`, `ux.md` e `arch.md` quando existirem, `plan.md` e evidências citadas.
 
 O guardian não edita arquivos. Ele valida aderência à spec e às soluções (`ux`/`arch`) aplicáveis, Impact Map, arquivos alvo, write sets, DAG, batches paralelos, pontos de sincronização, harness, DoD, blockers, ponto de retomada e evidência sem achismo.
 
@@ -232,8 +240,8 @@ Antes de **cada** guardian, batch paralelo ou de ceder o turno, grave no `plan.m
 
 ## Context Isolation
 
-- Preferir executar esta skill em subagent isolado quando houver um manager/orquestrador.
-- Usar `fork_context: false` para evitar herdar contexto irrelevante.
+- Quando houver manager, aceitar invocação orchestrated com contexto mínimo (inline por padrão no Pi).
+- Não herdar contexto irrelevante da sessão manager.
 - Passar somente artefatos mínimos: pedido, paths, `AGENTS.md`, `spec.md`, `ux.md`/`arch.md` aplicáveis e documentos da feature.
 - Se subagents não estiverem disponíveis, siga `references/PI_ADAPTATION.md` (execução inline com isolamento de contexto); declare a limitação na resposta final e não use contexto oculto como evidência.
 

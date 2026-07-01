@@ -32,9 +32,15 @@ test("validate.sh has no hardcoded harness scratch path", () => {
 
 test("PI_ADAPTATION reference exists and describes inline fallback", () => {
   const adaptation = fs.readFileSync(path.join(ROOT, "references/PI_ADAPTATION.md"), "utf8");
-  assert.match(adaptation, /inline/i);
+  assert.match(adaptation, /inline é o padrão/i);
   assert.match(adaptation, /\/skill:</);
-  assert.match(adaptation, /Não registre blocker só porque/);
+  assert.match(adaptation, /Não bloqueie só porque/);
+});
+
+test("pi-invocation test does not hardcode harness scratch path", () => {
+  const testFile = fs.readFileSync(path.join(ROOT, "test/pi-invocation.test.js"), "utf8");
+  assert.doesNotMatch(testFile, /grok-goal/);
+  assert.match(testFile, /process\.env\.SCRATCH/);
 });
 
 test("all seven skills exist with valid frontmatter", () => {
