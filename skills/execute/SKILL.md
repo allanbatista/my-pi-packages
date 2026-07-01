@@ -11,10 +11,11 @@ description: Coordena a execução de uma feature a partir de `manifest.md`, `sp
 No Pi, a delegação padrão é **inline** com isolamento de contexto (ver `references/PI_ADAPTATION.md`). Use `spawn_agent`/`fork_context` apenas quando o runtime oferecer paridade Codex. Invoque skills filhas via `/skill:<name>`. Não bloqueie o workflow por indisponibilidade de subagent.
 ## Delegação
 
-Siga `references/PI_ADAPTATION.md`:
-- **Padrão Pi**: execução inline na sessão atual, contexto mínimo (pedido, paths, `AGENTS.md`, docs da feature).
-- **Opcional**: subagent via `spawn_agent` quando disponível; `fork_context: false` e model pinning são opcionais.
-- **Guardian**: passo separado (inline ou subagent) que aplica rubrica sem editar arquivos.
+Siga `references/PI_ADAPTATION.md` e `references/MODEL_POLICY.md`:
+- **Padrão Pi**: manager inline; workers e validadores em passos separados.
+- **Worker** (implementação/correção): `deepseek/deepseek-v4-flash`, **sem reasoning** (`thinking: false`).
+- **Validador** (aceite): `deepseek/deepseek-v4-flash`, **thinking `xhigh`**.
+- **pi-subagents**: worker → agente `worker`; validador → agente `reviewer` (ver `examples/pi-subagents-settings.json`).
 - **Paralelo**: batch paralelo quando suportado; senão serialize com write sets verificados.
 
 
@@ -26,7 +27,7 @@ Não use achismo: investigue antes de delegar ou concluir, exija evidência conc
 
 Pronto não significa "o código parece certo". Pronto significa validação prática com evidência de funcionamento no caminho afetado.
 
-Workers e validadores recebem apenas contexto mínimo (task/fase, paths, spec/plan/manifest, evidência). Model pinning (`gpt-5.*`, `reasoning_effort`) é opcional — ignore quando não suportado. Delegação inline por padrão no Pi (ver `references/PI_ADAPTATION.md`).
+Workers e validadores recebem apenas contexto mínimo (task/fase, paths, spec/plan/manifest, evidência). Aplique `references/MODEL_POLICY.md`: worker `deepseek/deepseek-v4-flash` sem reasoning; validador `deepseek/deepseek-v4-flash` com thinking `xhigh`.
 
 ## Workflow
 
@@ -35,10 +36,10 @@ Workers e validadores recebem apenas contexto mínimo (task/fase, paths, spec/pl
 3. Revise `manifest.md`, `spec.md`, `plan.md` e slices aplicáveis de `ux.md`/`arch.md` (ou confirme `not-applicable` no manifesto): status, blockers, perguntas pendentes, DoD, arquivos alvo, paralelismo, harness e evidência faltante.
 4. Não execute se `spec.md` não estiver `ready`, se `plan.md` não tiver task executável, ou se houver decisão pendente que mude escopo/contrato/persistência/harness.
 5. Atualize `manifest.md` e `plan.md` antes de delegar: task/fase `running`, owner/subagent, resume point e evidência exigida.
-6. Delegue implementação ao papel **worker** (inline ou subagent — ver `references/PI_ADAPTATION.md`), escopo fechado: task, arquivos/responsabilidade, DoD, evidência prática exigida, o slice relevante de `arch.md`/`ux.md`, testes automáticos focados permitidos e regra para não reverter mudanças paralelas.
+6. Delegue implementação ao papel **worker** (`deepseek/deepseek-v4-flash`, sem reasoning — ver `references/MODEL_POLICY.md`), escopo fechado: task, arquivos/responsabilidade, DoD, evidência prática exigida, o slice relevante de `arch.md`/`ux.md`, testes automáticos focados permitidos e regra para não reverter mudanças paralelas.
 7. Para cada batch paralelo em `plan.md`, inicie todos os workers independentes antes de aguardar (paralelo quando suportado; senão serialize).
 8. Aguarde o batch somente quando os resultados forem necessários para validar, sincronizar ou liberar o próximo batch.
-9. Depois de cada worker, delegue validação a papel **validador** separado (inline ou subagent). O validador é guardião da entrega: valida evidência prática e não executa suítes de testes automáticos.
+9. Depois de cada worker, delegue validação a papel **validador** separado (`deepseek/deepseek-v4-flash`, thinking `xhigh`). O validador é guardião da entrega: valida evidência prática e não executa suítes de testes automáticos.
 10. Se a validação falhar, registre blocker/falha e delegue correção a worker. Não corrija diretamente.
 11. Ao fechar uma fase, delegue a worker o gate final previsto no plano: suíte ampla/final validation quando aplicável, correções mínimas e evidência produzida. Não rode suíte completa a cada task por hábito.
 12. Marque task/fase como `done` só quando o validador aprovar evidência prática. Marque a feature como `done` só quando todas as fases estiverem aprovadas e o manifesto apontar evidência suficiente.
@@ -57,6 +58,7 @@ Implementation worker:
 
 ```text
 Você é o worker responsável por executar somente esta task/fase.
+Modelo: deepseek/deepseek-v4-flash, sem reasoning.
 Leia AGENTS.md, spec.md, plan.md e o slice relevante de arch.md/ux.md.
 Escopo: {task/fase}
 Parallel batch: {batch-id | sequential}
@@ -74,6 +76,7 @@ Validation worker:
 
 ```text
 Você é o validador independente desta task/fase.
+Modelo: deepseek/deepseek-v4-flash, thinking xhigh.
 Leia AGENTS.md, spec.md, plan.md e o resultado do worker.
 Não implemente correções.
 Não execute testes automáticos; eles pertencem ao worker ou ao gate final de fase.
@@ -86,7 +89,7 @@ Responda com aprovado/reprovado, achados concretos, evidência conferida e corre
 ## Rules
 
 - Toda implementação passa por worker e todo aceite passa por validador separado.
-- Quando usar `spawn_agent`, passe contexto mínimo; model pinning é opcional.
+- Worker e validador devem seguir `references/MODEL_POLICY.md` (modelo/effort distintos do planejamento).
 - Worker e validador são papéis separados (inline por padrão no Pi); nunca use histórico completo da sessão manager como contexto.
 - Execute batches paralelos como batches: spawn primeiro, wait depois; não serialize tasks independentes.
 - Workers podem rodar testes automáticos focados no escopo da task; suíte completa fica para gate final de fase ou exigência explícita.

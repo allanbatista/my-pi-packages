@@ -11,9 +11,10 @@ description: Cria, revisa e mantém apenas o `arch.md` de arquitetura de uma fea
 No Pi, a delegação padrão é **inline** com isolamento de contexto (ver `references/PI_ADAPTATION.md`). Use `spawn_agent`/`fork_context` apenas quando o runtime oferecer paridade Codex. Invoque skills filhas via `/skill:<name>`. Não bloqueie o workflow por indisponibilidade de subagent.
 ## Delegação
 
-Siga `references/PI_ADAPTATION.md`:
+Siga `references/PI_ADAPTATION.md` e `references/MODEL_POLICY.md`:
 - **Padrão Pi**: execução inline na sessão atual, contexto mínimo (pedido, paths, `AGENTS.md`, docs da feature).
-- **Opcional**: subagent via `spawn_agent` quando disponível; `fork_context: false` e model pinning são opcionais.
+- **Modelo (planejamento)**: herde **modelo e effort da sessão principal** — sem override de modelo/thinking.
+- **Subagent opcional**: `planner`, `oracle` ou `delegate` sem `agentOverrides`; guardians de artefato **não** usam `reviewer` (reservado à validação de execução).
 - **Guardian**: passo separado (inline ou subagent) que aplica rubrica sem editar arquivos.
 - **Paralelo**: batch paralelo quando suportado; senão serialize com write sets verificados.
 

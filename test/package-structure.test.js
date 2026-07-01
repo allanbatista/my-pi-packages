@@ -30,6 +30,19 @@ test("validate.sh has no hardcoded harness scratch path", () => {
   assert.match(script, /SCRATCH:-/);
 });
 
+test("MODEL_POLICY defines planning inherit and execution pinning", () => {
+  const policy = fs.readFileSync(path.join(ROOT, "references/MODEL_POLICY.md"), "utf8");
+  const settings = JSON.parse(
+    fs.readFileSync(path.join(ROOT, "examples/pi-subagents-settings.json"), "utf8")
+  );
+  assert.match(policy, /herda sessão|sessão principal/i);
+  assert.match(policy, /deepseek\/deepseek-v4-flash/);
+  assert.match(policy, /xhigh/);
+  assert.equal(settings.subagents.agentOverrides.worker.model, "deepseek/deepseek-v4-flash");
+  assert.equal(settings.subagents.agentOverrides.worker.thinking, false);
+  assert.equal(settings.subagents.agentOverrides.reviewer.thinking, "xhigh");
+});
+
 test("PI_ADAPTATION reference exists and describes inline fallback", () => {
   const adaptation = fs.readFileSync(path.join(ROOT, "references/PI_ADAPTATION.md"), "utf8");
   assert.match(adaptation, /inline é o padrão/i);

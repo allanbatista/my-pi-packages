@@ -8,7 +8,7 @@ No Pi, **delegação inline é o padrão**. APIs Codex (`spawn_agent`, `fork_con
 2. **Skills filhas**: invoque `/skill:<name>` com prompt explícito contendo só o que um subagent receberia.
 3. **Guardians**: passo separado na mesma sessão — leia artefato, aplique rubrica, reporte `approved`/`rejected` **sem editar arquivos** no papel de guardian.
 4. **Paralelismo**: serialize batches quando paralelo indisponível; registre no artefato.
-5. **Modelos**: ignore pinning (`gpt-5.*`, `reasoning_effort`) quando não suportado.
+5. **Modelos**: siga `references/MODEL_POLICY.md` — planejamento herda sessão; execução usa worker/validador pinados.
 
 ## Managers
 

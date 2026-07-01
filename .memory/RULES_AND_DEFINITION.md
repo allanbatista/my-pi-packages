@@ -36,7 +36,7 @@ Ao finalizar `/skill:spec`, `/skill:plan` ou `/skill:manifest`, o agente deve re
 
 # Feature Workflow modelo dos subagents
 
-A skill `/skill:execute` deve criar todos os subagents com `model: gpt-5.4-mini` e `reasoning_effort: high`, incluindo workers de implementação, validadores e correções.
+Subagents de **planejamento** (`/skill:loop`, `/skill:manifest`, `/skill:spec`, `/skill:ux`, `/skill:arch`, `/skill:plan` e guardians de artefato) herdam **modelo e effort da sessão principal** — sem override. Subagents de **execução** na `/skill:execute`: worker com `deepseek/deepseek-v4-flash` sem reasoning; validador com `deepseek/deepseek-v4-flash` e thinking `xhigh`. Ver `references/MODEL_POLICY.md` e `examples/pi-subagents-settings.json`.
 
 # Feature Workflow paralelismo
 

@@ -1,0 +1,14 @@
+{
+  "subagents": {
+    "agentOverrides": {
+      "worker": {
+        "model": "deepseek/deepseek-v4-flash",
+        "thinking": false
+      },
+      "reviewer": {
+        "model": "deepseek/deepseek-v4-flash",
+        "thinking": "xhigh"
+      }
+    }
+  }
+}
