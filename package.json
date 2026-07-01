@@ -1,5 +1,5 @@
 {
-  "name": "my-feature-workflow",
+  "name": "my-pi-packages",
   "version": "0.1.0",
   "description": "Feature workflow skills (loop, manifest, spec, ux, arch, plan, execute) for Pi.",
   "private": true,
@@ -8,7 +8,8 @@
     "skills": ["./skills"]
   },
   "scripts": {
-    "test": "node --test test/package-structure.test.js",
-    "validate": "./scripts/validate.sh"
+    "test": "node --test test/package-structure.test.js test/pi-invocation.test.js",
+    "validate": "./scripts/validate.sh",
+    "test:pi": "node --test test/pi-invocation.test.js"
   }
 }

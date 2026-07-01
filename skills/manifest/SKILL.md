@@ -5,6 +5,11 @@ description: Orquestra e revisa o workflow completo de feature em `.features/{YY
 
 # Feature Manifest
 
+
+## Pi Runtime
+
+Leia `references/PI_ADAPTATION.md` do pacote quando o runtime Pi não oferecer `spawn_agent`, `fork_context` ou model pinning. **Prefira subagent quando disponível**; caso contrário, execute inline com isolamento de contexto e invoque skills filhas via `/skill:<name>`. Não bloqueie o workflow só por indisponibilidade de subagent.
+
 Use esta skill como orquestrador de autoria do plugin. Ela coordena `/skill:spec`, `/skill:ux`, `/skill:arch` e `/skill:plan`; execução operacional fica em `/skill:execute`. O entry point externo é `/skill:loop`.
 
 Esta skill só pode editar documentos de workflow da feature. Não edite código de produto, testes, configs, migrations ou arquivos fora da pasta da feature.
@@ -137,7 +142,7 @@ Antes de **cada** `spawn_agent` ou de ceder o turno, grave no `manifest.md`: `Up
 - Usar `spawn_agent` com `model: gpt-5.5`, `reasoning_effort: xhigh` e `fork_context: false` para spec, ux, arch, plan e guardians.
 - Rodar `ux` e `arch` aplicáveis em paralelo (spawn primeiro, wait depois); passar a cada um só a spec como contrato âncora e os docs necessários.
 - Passar contexto mínimo: pedido, paths, `AGENTS.md`, feature dir e docs relevantes.
-- Se subagents não estiverem disponíveis, registrar blocker/pending e declarar na resposta final.
+- Se subagents não estiverem disponíveis, siga `references/PI_ADAPTATION.md` (execução inline); serialize batches se necessário e declare a limitação na resposta final.
 
 ## Final Response
 

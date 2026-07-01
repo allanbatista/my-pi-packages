@@ -2,10 +2,11 @@
 
 ## Project Structure & Module Organization
 
-Este repositório é um **pi package** instalável com `pi install ./path` ou `pi -e ./path`. As skills do workflow de feature ficam em `skills/{skill-name}/SKILL.md`.
+Este repositório (`my-pi-packages`) é um **pi package** instalável com `pi install <path>` ou `pi -e <path>`. As skills do workflow de feature ficam em `skills/{skill-name}/SKILL.md`.
 
-- `package.json`: manifesto do pi package (`keywords: ["pi-package"]`, `pi.skills`).
+- `package.json`: manifesto do pi package (`name: my-pi-packages`, `keywords: ["pi-package"]`, `pi.skills`).
 - `skills/{skill-name}/SKILL.md`: instruções principais de cada skill.
+- `references/PI_ADAPTATION.md`: fallbacks de delegação quando Pi não oferece subagents.
 - `.memory/RULES_AND_DEFINITION.md`: regras duráveis do workflow.
 
 Não misture arquivos de uma skill com outra. Se criar uma nova skill, use um diretório próprio em `skills/{skill-name}/`.
@@ -27,17 +28,20 @@ O entry point do workflow é `/skill:loop` (controlador de resultado). Pipeline 
 ## Build, Test, and Development Commands
 
 ```bash
-# Validar estrutura e skills
+# Validar estrutura e skills (stdout only)
 ./scripts/validate.sh
 
-# Testes automatizados do pacote
+# Testes automatizados do pacote (estrutura + invocação Pi)
 npm test
 
-# Experimentar sem instalar
-pi -e /absolute/path/to/my-pi-packages
+# Somente testes de invocação Pi (requer CLI pi)
+npm run test:pi
 
-# Instalar no projeto
-pi install ./my-pi-packages
+# Experimentar sem instalar
+pi -e /home/allanbatista/Workspaces/allanbatista/my-pi-packages
+
+# Instalar no projeto (caminho absoluto ou relativo ao settings)
+pi install /home/allanbatista/Workspaces/allanbatista/my-pi-packages
 ```
 
 ## Coding Style & Naming Conventions
@@ -50,14 +54,15 @@ Use Markdown conciso em `SKILL.md`, com frontmatter YAML contendo pelo menos `na
 
 Validação mínima para mudanças em skills:
 
-- `package.json` parseia e contém `keywords: ["pi-package"]`.
+- `package.json` parseia, `name` é `my-pi-packages` e contém `keywords: ["pi-package"]`.
 - Frontmatter das skills contém `name` e `description`.
-- `./scripts/validate.sh` passa sem erro.
+- `./scripts/validate.sh` passa sem erro (sem efeitos colaterais fora do workspace).
 - `npx skills-ref validate` passa em cada skill.
+- `npm run test:pi` confirma invocação real via `/skill:*` no Pi.
 - Zero resíduos Codex (`$my-feature-workflow`, `.codex-plugin`, `agents/openai.yaml`).
 
 ## Agent-Specific Instructions
 
 Antes de editar, leia este arquivo e preserve o menor diff seguro. Não gere scaffolding futuro sem necessidade. Se uma regra durável mudar, atualize `.memory/RULES_AND_DEFINITION.md`.
 
-As skills assumem subagents quando disponíveis; em Pi sem paridade de `fork_context`/model pinning, siga os fallbacks explícitos nas skills (registrar blocker, declarar limitação na resposta final).
+Em Pi sem `spawn_agent`/`fork_context`, siga `references/PI_ADAPTATION.md`: execute inline com isolamento de contexto e invoque skills filhas via `/skill:<name>` — não bloqueie só por indisponibilidade de subagent.

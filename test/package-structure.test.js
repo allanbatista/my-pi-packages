@@ -19,8 +19,22 @@ function readFrontmatter(skillPath) {
 
 test("package.json is a valid pi package", () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
+  assert.equal(pkg.name, "my-pi-packages");
   assert.ok(pkg.keywords.includes("pi-package"));
   assert.deepEqual(pkg.pi.skills, ["./skills"]);
+});
+
+test("validate.sh has no hardcoded harness scratch path", () => {
+  const script = fs.readFileSync(path.join(ROOT, "scripts/validate.sh"), "utf8");
+  assert.doesNotMatch(script, /grok-goal/);
+  assert.match(script, /SCRATCH:-/);
+});
+
+test("PI_ADAPTATION reference exists and describes inline fallback", () => {
+  const adaptation = fs.readFileSync(path.join(ROOT, "references/PI_ADAPTATION.md"), "utf8");
+  assert.match(adaptation, /inline/i);
+  assert.match(adaptation, /\/skill:</);
+  assert.match(adaptation, /Não registre blocker só porque/);
 });
 
 test("all seven skills exist with valid frontmatter", () => {

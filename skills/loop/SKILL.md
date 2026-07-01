@@ -5,6 +5,11 @@ description: Controlador de resultado (closed loop) de uma feature ou épico em 
 
 # Feature Loop
 
+
+## Pi Runtime
+
+Leia `references/PI_ADAPTATION.md` do pacote quando o runtime Pi não oferecer `spawn_agent`, `fork_context` ou model pinning. **Prefira subagent quando disponível**; caso contrário, execute inline com isolamento de contexto e invoque skills filhas via `/skill:<name>`. Não bloqueie o workflow só por indisponibilidade de subagent.
+
 Use esta skill como controlador de resultado: dado um objetivo, garanta que ele é atingido de fato, decidindo decomposição, sequência/paralelismo e integração, e iterando (planejar/replanejar/executar/reexecutar) até fechar com evidência.
 
 Esta é a camada mais externa do plugin. Ela orquestra `/skill:manifest` (autoria) e `/skill:execute` (execução); não escreve `spec`/`ux`/`arch`/`plan` direto nem implementa código de produto. Pode editar apenas `loop.md` e índices de coordenação.
@@ -160,7 +165,7 @@ Antes de **cada** delegação a `manifest`/`execute`, merge ou de ceder o turno,
 
 - Passar a cada subagent (`manifest`/`execute`/guardian) só o objetivo/sub-feature, paths, feature dir, worktree e docs necessários.
 - Usar `fork_context: false`; nunca usar o histórico completo da sessão como contexto do subagent.
-- Se subagents ou worktrees não estiverem disponíveis, registrar blocker/pending no `loop.md` e declarar na resposta final.
+- Se subagents ou worktrees não estiverem disponíveis, siga `references/PI_ADAPTATION.md` (execução inline; serialize features se worktrees indisponíveis); registre limitação no `loop.md` e declare na resposta final.
 
 ## Final Response
 

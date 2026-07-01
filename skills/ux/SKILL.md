@@ -5,6 +5,11 @@ description: Cria, revisa e mantém apenas o `ux.md` de usabilidade de uma featu
 
 # Feature UX
 
+
+## Pi Runtime
+
+Leia `references/PI_ADAPTATION.md` do pacote quando o runtime Pi não oferecer `spawn_agent`, `fork_context` ou model pinning. **Prefira subagent quando disponível**; caso contrário, execute inline com isolamento de contexto e invoque skills filhas via `/skill:<name>`. Não bloqueie o workflow só por indisponibilidade de subagent.
+
 Use esta skill para fechar a **usabilidade** da feature antes do plano técnico, quando há frontend afetado. Foco em usabilidade — não em estética, tokens ou pixel (isso fica para `frontend-design` na execução).
 
 Esta skill só pode editar documentos de workflow da feature. Não edite código de produto, testes, configs, migrations ou arquivos fora da pasta da feature.
@@ -162,7 +167,7 @@ Antes de **cada** guardian ou de ceder o turno, grave no `ux.md`: `Updated:`, `S
 - Preferir executar esta skill em subagent isolado quando houver um manager/orquestrador.
 - Usar `fork_context: false` para evitar herdar contexto irrelevante.
 - Passar somente artefatos mínimos: pedido, paths, `AGENTS.md`, `spec.md` e documentos da feature.
-- Se subagents não estiverem disponíveis, declarar isso na resposta final e não usar contexto oculto como evidência.
+- Se subagents não estiverem disponíveis, siga `references/PI_ADAPTATION.md` (execução inline com isolamento de contexto); declare a limitação na resposta final e não use contexto oculto como evidência.
 
 ## Final Response
 

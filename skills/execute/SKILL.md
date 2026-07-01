@@ -5,6 +5,11 @@ description: Coordena a execução de uma feature a partir de `manifest.md`, `sp
 
 # Feature Execute
 
+
+## Pi Runtime
+
+Leia `references/PI_ADAPTATION.md` do pacote quando o runtime Pi não oferecer `spawn_agent`, `fork_context` ou model pinning. **Prefira subagent quando disponível**; caso contrário, execute inline com isolamento de contexto e invoque skills filhas via `/skill:<name>`. Não bloqueie o workflow só por indisponibilidade de subagent.
+
 Use esta skill para transformar a sessão atual em manager de execução. O manager coordena, registra progresso e delega; não implementa código nem valida a própria implementação.
 
 O manager pode editar documentos de workflow da feature. Código de produto, testes, configs e migrations só podem ser alterados por subagents workers.
@@ -38,7 +43,7 @@ Todos os subagents desta skill devem usar `fork_context: false` e receber apenas
 - Pode editar `manifest.md` e `plan.md` para status, blockers, evidência, loop ledger e resume point.
 - Pode pedir clarificação ao usuário quando uma decisão bloquear execução segura.
 - Não pode implementar código, corrigir testes, alterar arquivos de produto ou declarar validação própria como suficiente.
-- Se não houver ferramenta de subagents disponível, registre blocker em `plan.md` e pare.
+- Se não houver ferramenta de subagents disponível, siga `references/PI_ADAPTATION.md` (worker e validador inline em passos separados); declare a limitação na resposta final.
 
 ## Delegation Prompts
 
