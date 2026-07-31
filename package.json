@@ -5,11 +5,15 @@
   "private": true,
   "keywords": ["pi-package"],
   "pi": {
-    "skills": ["./skills"]
+    "skills": ["./skills"],
+    "subagents": {
+      "agents": ["./agents"]
+    }
   },
   "scripts": {
     "test": "node --test test/package-structure.test.js test/pi-invocation.test.js",
     "validate": "./scripts/validate.sh",
-    "test:pi": "node --test test/pi-invocation.test.js"
+    "test:pi": "PI_REQUIRE_CLI=1 PI_RUN_LIVE_CANARIES=1 node --test test/pi-invocation.test.js",
+    "test:e2e": "PI_REQUIRE_CLI=1 PI_RUN_LIVE_CANARIES=1 PI_RUN_LOOP_E2E=1 node --test --test-name-pattern='continues from execute pending|resumes after completed|recovers from a rejected root outcome' test/pi-invocation.test.js"
   }
 }

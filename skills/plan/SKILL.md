@@ -6,17 +6,9 @@ description: Cria, revisa e mantém apenas o `plan.md` técnico de uma feature e
 # Feature Plan
 
 
-## Pi Runtime
+## Runtime & Delegação
 
-No Pi, a delegação padrão é **inline** com isolamento de contexto (ver `references/PI_ADAPTATION.md`). Use `spawn_agent`/`fork_context` apenas quando o runtime oferecer paridade Codex. Invoque skills filhas via `/skill:<name>`. Não bloqueie o workflow por indisponibilidade de subagent.
-## Delegação
-
-Siga `references/PI_ADAPTATION.md` e `references/MODEL_POLICY.md`:
-- **Padrão Pi**: execução inline na sessão atual, contexto mínimo (pedido, paths, `AGENTS.md`, docs da feature).
-- **Modelo (planejamento)**: herde **modelo e effort da sessão principal** — sem override de modelo/thinking.
-- **Subagent opcional**: `planner`, `oracle` ou `delegate` sem `agentOverrides`; guardians de artefato **não** usam `reviewer` (reservado à validação de execução).
-- **Guardian**: passo separado (inline ou subagent) que aplica rubrica sem editar arquivos.
-- **Paralelo**: batch paralelo quando suportado; senão serialize com write sets verificados.
+Leia e siga `../../references/WORKFLOW_COMMON.md` para runtime Pi, delegação, isolamento, reconciliação de estado e checkpoints.
 
 
 Use esta skill para transformar uma spec pronta em plano técnico executável.
@@ -25,13 +17,13 @@ Esta skill só pode editar documentos de workflow da feature. Não edite código
 
 Não use achismo: investigue antes de concluir, cite evidência concreta para fatos e registre como blocker qualquer premissa que não puder confirmar por arquivo, comando, log, teste, browser ou resposta do usuário.
 
-Quando invocada por outra skill do feature-workflow, execute com isolamento de contexto (inline por padrão no Pi; subagent opcional — ver `references/PI_ADAPTATION.md`), recebendo apenas pedido, project root, feature dir e docs necessários.
+Quando invocada por outra skill do feature-workflow, execute como child `delegate` com `context: "fresh"` (ver `../../references/PI_ADAPTATION.md`), recebendo apenas pedido, project root, feature dir e docs necessários.
 
 ## Workflow
 
 1. Leia o `AGENTS.md` do projeto.
-2. Se o input for um diretório de feature ou arquivo (`manifest.md`, `spec.md` ou `plan.md`), use-o como fonte: leia os arquivos existentes da feature antes de decidir status.
-3. Localize o `spec.md` da feature. Se não existir, use `/skill:spec` primeiro. Leia também `ux.md` e `arch.md` quando existirem (fontes de solução: usabilidade e arquitetura); reconcilie conflito de contrato entre elas e registre blocker se não resolvível.
+2. Determine o modo: **standalone** (usuário invocou direto) ou **orchestrated** (child de `manifest`). Se o input for um diretório de feature ou arquivo, leia os artefatos existentes antes de decidir status.
+3. Localize o `spec.md` da feature. Se não existir, registre blocker e devolva ao manager; não emita `/skill:spec`. Leia também `ux.md` e `arch.md` quando existirem (fontes de solução: usabilidade e arquitetura); reconcilie conflito de contrato entre elas e registre blocker se não resolvível.
 4. Revise o estado existente: perguntas pendentes, decisões contraditórias, DoD fraco, contrato/persistência/harness ausentes, divergência entre spec/plan/manifest e evidência faltante.
 5. Se `spec.md` estiver `draft` ou `blocked`, não invente decisões de produto; registre o bloqueio.
 6. Antes de planejar implementação, faça preflight: AGENTS, Graphify quando existir, worktree, contratos afetados, arquivos existentes/novos e comandos de validação disponíveis.
@@ -41,17 +33,17 @@ Quando invocada por outra skill do feature-workflow, execute com isolamento de c
 10. Agrupe em batches paralelos sempre que tasks/fases forem independentes, tiverem write sets disjuntos e validação própria.
 11. Se contrato, persistência, harness, Impact Map ou arquivos alvo estiverem ambíguos, registre blocker no `plan.md` com `Escalation: spec | ux | arch | manifest` e devolva ao manager — esta skill **não** edita `spec.md`, `ux.md` nem `arch.md`; não crie plano executável por chute.
 12. Crie ou atualize somente `plan.md`.
-13. Depois de escrever/revisar, rode guardian independente (inline ou subagent) para validar `plan.md` contra `spec.md`.
-14. Se o guardian rejeitar, aplique o menor ajuste necessário no `plan.md` ou registre blocker e repita a validação. Não conclua com guardian pendente ou rejeitado.
+13. Em modo orchestrated, grave `draft` (ou `blocked`) e devolva sem rodar guardian; somente uma re-invocação com verdict real `approved` pode persistir o gate e promover para `ready`. Em standalone, delegue a rubrica ao `artifact-guardian`.
+14. Em standalone, se o guardian rejeitar, aplique o menor ajuste necessário no `plan.md` ou registre blocker e repita a validação. Não conclua com guardian pendente ou rejeitado.
 15. Atualize status antes e depois de cada task durante execução.
-16. Ao final, responda ao usuário com um resumo curto do plano e do que será feito.
+16. Responda conforme `Final Response`; em modo orchestrated, retorne somente o `Delegation Result` de `../../references/WORKFLOW_COMMON.md`.
 
 ## Template
 
 ```markdown
 # {Feature} Execution Plan
 
-Status: pending | running | done | fail
+Status: draft | ready | blocked | running | done | fail
 Spec: ./spec.md
 Updated: {YYYY-MM-DD HH:MM}
 
@@ -172,37 +164,30 @@ Required Changes:
 
 ## Artifact Guardian
 
-Após atualizar `plan.md`, rode guardian independente (inline ou subagent) com contexto mínimo: pedido do usuário, project root, `AGENTS.md`, feature dir, `manifest.md` quando existir, `spec.md`, `ux.md` e `arch.md` quando existirem, `plan.md` e evidências citadas.
+Após atualizar `plan.md`, o modo standalone roda `artifact-guardian`; no modo orchestrated, o manager é responsável pelo guardian após receber o artefato.
 
 O guardian não edita arquivos. Ele valida aderência à spec e às soluções (`ux`/`arch`) aplicáveis, Impact Map, arquivos alvo, write sets, DAG, batches paralelos, pontos de sincronização, harness, DoD, blockers, ponto de retomada e evidência sem achismo.
 
-Saída obrigatória do guardian:
+Rubrica obrigatória; registre cada resultado no campo `evidence` do `DELEGATION_RESULT` canônico:
 
-```markdown
-Status: approved | rejected
-Rubric:
 - [pass/fail] Impact Map cobre todas as `Validation surfaces` da spec (ou justifica `not-applicable`).
 - [pass/fail] Tasks de frontend derivam de `ux.md`; tasks de backend derivam de `arch.md` (ou da spec quando solução N/A).
 - [pass/fail] Conflitos `ux`↔`arch`↔`Shared Contract` resolvidos no plano ou escalados com `Escalation` explícita.
 - [pass/fail] Write sets, DAG, batches e pontos de sincronização são explícitos e seguros.
 - [pass/fail] Harness cita comandos/checks concretos; sem placeholders genéricos.
-Questions: none | {perguntas que bloqueiam execução}
-Critiques: none | {críticas que bloqueiam execução}
-Required changes: none | {ajustes obrigatórios}
-```
 
-Qualquer item `fail` na rubrica força `Status: rejected`. Se `Status: rejected`, copie o feedback para `Guardian Review`, corrija `plan.md` quando a resposta já estiver disponível ou registre blocker com `Escalation` quando faltar decisão/evidência. Só entregue plano executável ou `Status: done` com `Status: approved`.
+Qualquer item `fail` força `status: rejected`. Copie `evidence`, `questions`, `blockers` e `resume` para `Guardian Review`; corrija `plan.md` quando a resposta já estiver disponível ou registre blocker com `Escalation` quando faltar decisão/evidência. Só use `Status: ready` ou `done` com guardian `approved`.
 
 ## Rules
 
-- Status permitido: `pending`, `running`, `done`, `fail`.
+- Status permitido: `draft`, `ready`, `blocked`, `running`, `done`, `fail`.
 - Não planeje arquivos, comandos, harness, dependências ou paralelismo por suposição; confirme no repo ou registre blocker.
 - Não marque `plan.md` como executável sem `Impact Map` completo.
 - Cada task/fase deve referenciar uma superfície mapeada; superfície sem evidência vira blocker/pending.
 - Prefira plano paralelizável quando seguro: dividir tasks por write set disjunto, contrato independente e validação própria.
 - Não serialize tasks independentes por conveniência; registre batch paralelo explícito.
 - Não paralelize tasks que compartilham arquivo, migração, estado, contrato, fixture crítica ou validação sequencial.
-- Mesmo se o usuário disser "corrija", "implemente" ou "execute", esta skill deve criar/refinar `plan.md` e encaminhar execução para `/skill:execute`; não faça patch de produto.
+- Mesmo se o usuário disser "corrija", "implemente" ou "execute", esta skill deve criar/refinar `plan.md` e retornar ao manager; somente standalone indica `/skill:execute`. Não faça patch de produto.
 - Cada fase e task deve ter DoD próprio, owner/subagent, arquivos planejados/reais, evidência exigida/produzida e blockers.
 - Toda feature deve ter `Phase 0: Preflight` e `Readiness Gates`.
 - O harness deve citar comandos/checks práticos concretos ou registrar blocker; placeholders genéricos não bastam para execução.
@@ -241,10 +226,10 @@ Antes de **cada** guardian, batch paralelo ou de ceder o turno, grave no `plan.m
 
 ## Context Isolation
 
-- Quando houver manager, aceitar invocação orchestrated com contexto mínimo (inline por padrão no Pi).
+- Quando houver manager, aceitar invocação orchestrated como child `delegate` com `context: "fresh"`.
 - Não herdar contexto irrelevante da sessão manager.
 - Passar somente artefatos mínimos: pedido, paths, `AGENTS.md`, `spec.md`, `ux.md`/`arch.md` aplicáveis e documentos da feature.
-- Se subagents não estiverem disponíveis, siga `references/PI_ADAPTATION.md` (execução inline com isolamento de contexto); declare a limitação na resposta final e não use contexto oculto como evidência.
+- Em modo orchestrated, não rode guardian nem converse com o usuário; devolva o `Delegation Result` ao manager conforme `../../references/WORKFLOW_COMMON.md`.
 
 ## Final Response
 
@@ -256,3 +241,5 @@ Ao concluir, responda com:
 - `Validação planejada`: comandos, browser/API/consumer checks e evidências esperadas.
 - `Pendências`: blockers, decisões abertas ou `none`.
 - `Evidência`: arquivos lidos/atualizados e fatos confirmados que sustentam o plano.
+
+Em modo orchestrated, substitua a resposta humana pelo `DELEGATION_RESULT`.

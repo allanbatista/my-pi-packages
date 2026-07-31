@@ -6,45 +6,51 @@ description: Orquestra e revisa o workflow completo de feature em `.features/{YY
 # Feature Manifest
 
 
-## Pi Runtime
+## Runtime & Delegação
 
-No Pi, a delegação padrão é **inline** com isolamento de contexto (ver `references/PI_ADAPTATION.md`). Use `spawn_agent`/`fork_context` apenas quando o runtime oferecer paridade Codex. Invoque skills filhas via `/skill:<name>`. Não bloqueie o workflow por indisponibilidade de subagent.
-## Delegação
-
-Siga `references/PI_ADAPTATION.md` e `references/MODEL_POLICY.md`:
-- **Padrão Pi**: execução inline na sessão atual, contexto mínimo (pedido, paths, `AGENTS.md`, docs da feature).
-- **Modelo (planejamento)**: herde **modelo e effort da sessão principal** — sem override de modelo/thinking.
-- **Subagent opcional**: `planner`, `oracle` ou `delegate` sem `agentOverrides`; guardians de artefato **não** usam `reviewer` (reservado à validação de execução).
-- **Guardian**: passo separado (inline ou subagent) que aplica rubrica sem editar arquivos.
-- **Paralelo**: batch paralelo quando suportado; senão serialize com write sets verificados.
+Leia e siga `../../references/WORKFLOW_COMMON.md` para runtime Pi, delegação, isolamento, reconciliação de estado e checkpoints.
 
 
-Use esta skill como orquestrador de autoria do plugin. Ela coordena `/skill:spec`, `/skill:ux`, `/skill:arch` e `/skill:plan`; execução operacional fica em `/skill:execute`. O entry point externo é `/skill:loop`.
+Use esta skill como orquestrador de autoria do plugin. Ela coordena as skills `spec`, `ux`, `arch` e `plan` via subagents; execução operacional fica na rotina `execute`. O entry point externo é `/skill:loop`.
 
 Esta skill só pode editar documentos de workflow da feature. Não edite código de produto, testes, configs, migrations ou arquivos fora da pasta da feature.
 
 Não use achismo: investigue antes de concluir, cite evidência concreta para fatos e registre como blocker/pending qualquer premissa que não puder confirmar por arquivo, comando, log, teste, browser ou resposta do usuário.
 
-Esta skill atua como manager. Delegue a `/skill:spec`, `/skill:ux`, `/skill:arch` e `/skill:plan` (inline por padrão no Pi; subagent opcional — ver `references/PI_ADAPTATION.md`), passando apenas pedido, project root, feature dir e docs necessários.
+Esta skill atua como manager raiz. Delegue `spec`, `ux`, `arch` e `plan` pela ferramenta `subagent`, nunca emitindo `/skill:*`; veja `../../references/PI_ADAPTATION.md`.
 
 ## Workflow
 
-1. Leia o `AGENTS.md` do projeto.
-2. Se o input for um diretório de feature ou arquivo (`manifest.md`, `spec.md` ou `plan.md`), use-o como fonte: leia os arquivos existentes da feature antes de decidir status.
-3. Identifique o project root e crie ou selecione `.features/{YYYY-MM-DD}_{HHMM}-{short-desc}/`.
-4. Revise o estado existente: perguntas pendentes, decisões contraditórias, DoD fraco, contrato/persistência/harness ausentes, divergência entre spec/plan/manifest e evidência faltante.
-5. Crie ou atualize `manifest.md` com links, status e ponto de retomada.
-6. Delegue a `/skill:spec` (inline ou subagent) para criar ou atualizar `spec.md`.
-7. Se a delegação de spec devolver `Status: blocked` com `Clarifications Needed`, apresente as perguntas ao usuário em lote na ordem priorizada, colete as respostas e re-invoque `/skill:spec` passando feature dir + respostas (`C#`). Repita até `ready` ou bloqueio duro. Não responda por suposição.
-8. Depois da delegação de spec, confirme aprovação do guardian da spec; se faltar, dispare guardian ou devolva para a spec corrigir.
-9. Com `spec.md` `ready` e guardian aprovado, aplique o **Solution Gate** (ver seção abaixo): confirme `Shared Contract` fechado na spec; decida quais skills de solução rodam; atualize `manifest.md` com `UX`/`Arch` = `not-applicable` ou `pending` antes de spawn.
-10. Para cada skill de solução aplicável, invoque `/skill:ux` e/ou `/skill:arch` (paralelo quando suportado; senão serialize — ver `references/PI_ADAPTATION.md`); ambas partem da spec como contrato âncora. Se a skill devolver `not-applicable`, grave `not-applicable` no `manifest.md` (sem exigir arquivo). Se devolver `Status: blocked` com `Open Questions`, apresente ao usuário, colete respostas (`Q#`) e re-invoque a skill afetada — ou re-invoque `spec` se a dúvida for de produto/contrato. Não responda por suposição.
-11. Confirme guardians das skills aplicáveis (`approved`) ou `not-applicable` no manifesto. `missing` após o passo 10 é blocker — não avance.
-12. Só invoque `/skill:plan` (inline ou subagent) quando: `spec.md` `ready`; cada skill de solução estiver `ready`+guardian `approved` **ou** `not-applicable`+guardian `not-applicable` no manifesto; `Shared Contract` fechado. O plano consome `ux.md`/`arch.md` quando existirem e reconcilia conflitos residuais.
-13. Depois da delegação de plan, confirme aprovação do guardian do plan; se faltar, dispare guardian ou devolva para o plan corrigir. Se o plan devolver blocker de produto/contrato, re-invoque `spec` (e `ux`/`arch` se necessário) — não edite `spec.md` inline.
-14. Durante execução longa, mantenha `manifest.md` como índice curto e `plan.md` como fonte do progresso detalhado.
-15. Antes de marcar `ready`, confirme que spec, ux/arch e plan não deixam contrato, persistência, harness, ponto de retomada ou guardian ambíguos.
-16. Ao final, responda ao usuário com um resumo curto do workflow criado/refinado e do que será feito.
+1. Leia o `AGENTS.md`, valide paths e aplique o preflight `list` + `get` de `../../references/WORKFLOW_COMMON.md` para `delegate` e `artifact-guardian`.
+2. Se o input resolver para feature dir ou arquivo existente, selecione-o e releia seus artefatos; não crie outra feature. Para pedido novo, crie `.features/{YYYY-MM-DD}_{HHMM}-{short-desc}/`.
+3. Reconcile status, perguntas, gates, guardians e evidência conforme `State Reconciliation`; o arquivo mais específico vence o manifesto.
+4. Crie ou atualize `manifest.md` com links, estado real e resume point.
+5. Despache a partir do primeiro artefato ausente, bloqueado, inválido ou indicado no resume point; não reinicie pela spec quando ela já estiver realmente `ready` e aprovada.
+6. Para `spec`, aplique `Author → Guardian Handshake`. Se retornar `blocked`, persista as `Clarifications Needed`, apresente-as ao usuário e ceda o turno; não responda por suposição.
+7. Com spec válida, aplique o **Solution Gate**: confirme `Shared Contract` fechado e grave UX/Arch como `not-applicable` ou `draft` antes da delegação.
+8. Para cada solução aplicável, aplique `Author → Guardian Handshake`; `ux` e `arch` podem compartilhar uma chamada paralela quando os write sets forem disjuntos. Passe o `Discovery Ledger` (`D#`) da spec. Pergunta de produto/contrato volta à spec.
+9. Só planeje quando spec e soluções aplicáveis estiverem `ready`+guardian `approved`, soluções não aplicáveis estiverem explicitamente `not-applicable` e o contrato compartilhado estiver fechado.
+10. Para `plan`, aplique `Author → Guardian Handshake`. Blocker de produto/contrato reabre a menor skill fonte; o manager não edita o artefato folha.
+11. Releia todos os artefatos e marque manifest `ready` somente com estados, gates e guardians persistidos e zero pergunta material.
+12. Se esta rotina foi carregada pelo `loop`, não emita `Final Response`: devolva o controle ao passo seguinte do loop no mesmo turno. Em invocação standalone, responda conforme `Final Response`.
+
+### Resume Dispatch
+
+| Estado real | Próxima ação |
+|---|---|
+| Spec ausente/draft/blocked/rejected | `spec` |
+| Spec pronta; UX/Arch aplicável incompleto | `ux`/`arch` |
+| Soluções prontas; plan incompleto | `plan` |
+| Pergunta material aberta | manifest `blocked`; perguntar ao usuário |
+| Tudo pronto e aprovado | manifest `ready`; retornar ao `loop` |
+
+### Author → Guardian Handshake
+
+1. Resolva o `SKILL.md` exato desta instalação e delegue a folha com `delegate`, `model: "inherit"`, `context: "fresh"`, `cwd` explícito e o prompt de `../../references/WORKFLOW_COMMON.md`; não selecione skill apenas pelo nome.
+2. Releia o artefato. Se houver pergunta material, persista `blocked` no manifesto e não rode guardian.
+3. Sem perguntas e com gates internos completos — exceto o gate autorreferente de aprovação — delegue a rubrica ao `artifact-guardian`; ele não edita arquivos.
+4. Se rejeitado, incremente o iteration budget, re-invoque o autor com o feedback ou bloqueie quando faltar decisão/evidência.
+5. Se aprovado, re-invoque o autor somente para persistir a aprovação, marcar o gate do guardian e promover o artefato a `ready`; então releia o arquivo antes de atualizar o manifesto.
 
 ## Solution Gate
 
@@ -85,13 +91,15 @@ Spec: ./spec.md
 UX: ./ux.md
 Arch: ./arch.md
 Plan: ./plan.md
+Iteration budget: 3
+Iterations used: {0}
 
 ## State
 
 - Spec: missing | draft | ready | blocked
 - UX: missing | not-applicable | draft | ready | blocked
 - Arch: missing | not-applicable | draft | ready | blocked
-- Plan: missing | pending | running | done | fail
+- Plan: missing | draft | ready | blocked | running | done | fail
 - Spec Guardian: missing | pending | approved | rejected
 - UX Guardian: missing | not-applicable | pending | approved | rejected
 - Arch Guardian: missing | not-applicable | pending | approved | rejected
@@ -118,7 +126,7 @@ Plan: ./plan.md
 
 - `manifest.md` é índice, não substitui `spec.md` nem `plan.md`.
 - Não consolide status, resume point, blockers ou evidência por suposição; confirme nos documentos/comandos ou registre pendência.
-- Mesmo se o usuário disser "corrija", "implemente" ou "execute", esta skill deve criar/refinar `manifest.md`, `spec.md`, `ux.md`, `arch.md` e `plan.md` (via subagents) e encaminhar execução para `/skill:execute`; não faça patch de produto.
+- Mesmo se o usuário disser "corrija", "implemente" ou "execute", esta rotina deve criar/refinar os artefatos via subagents e retornar ao `loop`; apenas a invocação standalone indica `/skill:execute` ao usuário. Não faça patch de produto.
 - Não coloque detalhe técnico extenso no manifesto.
 - Quando a spec devolver `Clarifications Needed`, relé as perguntas ao usuário e re-invoque a spec com as respostas; nunca marque `ready` com clarificações abertas nem responda por achismo.
 - Se `spec.md` bloquear por decisão de produto, deixe `plan.md` ausente ou marcado como bloqueado.
@@ -127,7 +135,9 @@ Plan: ./plan.md
 - Não marque `ready` quando a próxima execução ainda precisar adivinhar contrato, persistência, harness ou arquivos alvo.
 - Aplique o `Solution Gate` com precedência surfaces > intent; registre `not-applicable` no manifesto quando a skill não criar arquivo.
 - `not-applicable` no manifesto satisfaz o gate de solução; `missing` após o passo de solução é blocker.
-- Não marque `ready` sem guardian aprovado para `spec.md`, `plan.md` e skills aplicáveis (`approved` ou `not-applicable`).
+- Guardians de spec, ux/arch aplicáveis e plan são sempre obrigatórios e independentes.
+- **Iteration budget**: incremente `Iterations used` em toda rejeição ou reinvocação de autor; com 3 tentativas sem evidência nova, force `Status: blocked` e reporte.
+- Mudança em spec invalida UX/Arch/Plan e seus guardians; mudança em UX/Arch invalida Plan e seu guardian; mudança no plan invalida seu guardian. Persista os resets antes do próximo dispatch.
 - O que sobrevive à feature (convenção, decisão de arquitetura durável, procedimento repetido) vai pro projeto (`AGENTS.md`, skills project-local, `docs/adr`); o efêmero fica em `.features/{...}/`.
 - Ao receber arquivo ou diretório existente, trate a tarefa como revisão: corrija/refine `manifest.md`, `spec.md` e/ou `plan.md` antes de concluir e não aceite status pronto herdado sem checagem.
 - Não marque `done` se spec, plan ou manifesto ainda tiver pergunta pendente, blocker, evidência `pending`, guardian rejeitado/pendente ou ponto de retomada indefinido.
@@ -135,7 +145,7 @@ Plan: ./plan.md
 
 ## Checkpoint (obrigatório)
 
-Antes de **cada** delegação (inline ou `spawn_agent`) ou de ceder o turno, grave no `manifest.md`: `Updated:`, status de Spec/UX/Arch/Plan e guardians, resume point e blockers. Não delegue com `manifest.md` desatualizado.
+Antes de **cada** chamada `subagent` ou de ceder o turno, grave no `manifest.md`: `Updated:`, status de Spec/UX/Arch/Plan e guardians, resume point e blockers. Não delegue com `manifest.md` desatualizado.
 
 ## State & Memory
 
@@ -148,10 +158,10 @@ Antes de **cada** delegação (inline ou `spawn_agent`) ou de ceder o turno, gra
 ## Context Isolation
 
 - O manager não deve executar spec/ux/arch/plan inline quando puder delegar.
-- Delegar spec, ux, arch, plan e guardians inline por padrão; `spawn_agent` opcional quando disponível (ver `references/PI_ADAPTATION.md`).
+- Delegar spec, ux, arch, plan e guardians pela ferramenta `subagent`, sempre com `context: "fresh"` e `cwd` explícito (ver `../../references/PI_ADAPTATION.md`).
 - Rodar `ux` e `arch` aplicáveis em paralelo quando suportado; senão serialize; passar só spec como contrato âncora e docs necessários.
 - Passar contexto mínimo: pedido, paths, `AGENTS.md`, feature dir e docs relevantes.
-- Se subagents não estiverem disponíveis, siga `references/PI_ADAPTATION.md` (execução inline); serialize batches se necessário e declare a limitação na resposta final.
+- Se `subagent` não estiver disponível, siga `../../references/PI_ADAPTATION.md`: grave blocker e não simule guardian ou autoria inline.
 
 ## Final Response
 
@@ -159,6 +169,6 @@ Ao concluir, responda com:
 
 - `Resumo`: spec/plan/manifest criados ou refinados e status geral.
 - `Será feito`: escopo planejado em linguagem de produto, sem detalhe excessivo.
-- `Próxima ação`: execução com `/skill:execute`, clarificação necessária ou `none`.
+- `Próxima ação`: em standalone, execução com `/skill:execute`; quando carregada pelo loop, retorno ao controlador; ou clarificação necessária.
 - `Pendências`: blockers, perguntas abertas ou `none`.
 - `Evidência`: arquivos lidos/atualizados e fatos confirmados.

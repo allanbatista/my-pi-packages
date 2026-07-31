@@ -6,17 +6,9 @@ description: Cria, revisa e mantém apenas o `spec.md` de uma feature em `.featu
 # Feature Spec
 
 
-## Pi Runtime
+## Runtime & Delegação
 
-No Pi, a delegação padrão é **inline** com isolamento de contexto (ver `references/PI_ADAPTATION.md`). Use `spawn_agent`/`fork_context` apenas quando o runtime oferecer paridade Codex. Invoque skills filhas via `/skill:<name>`. Não bloqueie o workflow por indisponibilidade de subagent.
-## Delegação
-
-Siga `references/PI_ADAPTATION.md` e `references/MODEL_POLICY.md`:
-- **Padrão Pi**: execução inline na sessão atual, contexto mínimo (pedido, paths, `AGENTS.md`, docs da feature).
-- **Modelo (planejamento)**: herde **modelo e effort da sessão principal** — sem override de modelo/thinking.
-- **Subagent opcional**: `planner`, `oracle` ou `delegate` sem `agentOverrides`; guardians de artefato **não** usam `reviewer` (reservado à validação de execução).
-- **Guardian**: passo separado (inline ou subagent) que aplica rubrica sem editar arquivos.
-- **Paralelo**: batch paralelo quando suportado; senão serialize com write sets verificados.
+Leia e siga `../../references/WORKFLOW_COMMON.md` para runtime Pi, delegação, isolamento, reconciliação de estado e checkpoints.
 
 
 Use esta skill para fechar o contrato de produto antes de qualquer plano técnico.
@@ -25,7 +17,7 @@ Esta skill só pode editar documentos de workflow da feature. Não edite código
 
 Não use achismo: investigue antes de concluir, cite evidência concreta para fatos e registre como `pending` qualquer afirmação que não puder confirmar por arquivo, comando, log, teste, browser ou resposta do usuário.
 
-Quando invocada por outra skill do feature-workflow, execute com isolamento de contexto (inline por padrão no Pi; subagent opcional — ver `references/PI_ADAPTATION.md`), recebendo apenas pedido, project root, feature dir e docs necessários.
+Quando invocada por outra skill do feature-workflow, execute como child `delegate` com `context: "fresh"` (ver `../../references/PI_ADAPTATION.md`), recebendo apenas pedido, project root, feature dir e docs necessários.
 
 ## Workflow
 
@@ -35,13 +27,17 @@ Quando invocada por outra skill do feature-workflow, execute com isolamento de c
 4. Se o input for um diretório de feature ou arquivo (`manifest.md`, `spec.md` ou `plan.md`), trate a tarefa como revisão: leia os arquivos existentes da feature antes de decidir status (perguntas pendentes, decisões contraditórias, DoD fraco, contrato/persistência ausentes, divergência entre spec/plan/manifest e evidência faltante).
 5. Faça `Phase 0: Discovery` como método, não como desejo: percorra as dimensões — contratos/APIs, schemas/persistência, rotas/handlers, consumers/jobs/filas, configs/flags, testes existentes, dependências externas, telemetria/logs e owners — e **trace pelo menos um fluxo atual ponta a ponta**. Registre cada achado no `Discovery Ledger` com `ID` (`D#`), fonte, evidência e impacto. Afirmação sem evidência vira `pending`. Use Graphify quando `graphify-out/graph.json` existir.
 6. Reflita e registre a intenção real do usuário (pontual/localizada vs feature ponta a ponta) com justificativa baseada em achados do Discovery.
-7. Levante as clarificações materiais pela taxonomia (ver `Clarification Protocol`), priorize por (Impacto × Incerteza) e leve no máximo 5 de alto impacto por rodada. Dúvida trivial não vira pergunta: vira suposição explícita em `Questions and Decisions` ou item em `Out of Scope`.
+7. Levante as clarificações materiais pela taxonomia (ver `Clarification Protocol`), priorize por (Impacto × Incerteza) e leve no máximo 5 de alto impacto por rodada. Só uma dúvida que **não altera** escopo, aceite, contrato, persistência, UX, segurança, rollout ou validação pode virar suposição explícita.
 8. Resolva as clarificações conforme o modo: standalone pergunta em lote e espera as respostas; orchestrated preenche `Clarifications Needed`, seta `Status: blocked` e devolve o controle ao manager.
 9. Monte a rastreabilidade: cada requisito em forma **EARS** ligado a um `D#` do Discovery ou a uma decisão registrada; cada critério de aceite em **Dado/Quando/Então** com superfície de validação (ver `Gramática de Requisitos`).
 10. Feche explicitamente contrato, persistência, evidência obrigatória e fora de escopo antes de `Status: ready`.
 11. Escreva ou atualize somente `spec.md`. Não escreva `plan.md`.
-12. Rode guardian independente (inline ou subagent) para validar `spec.md`; aplique o menor ajuste necessário e repita até `approved`. Não conclua com guardian pendente ou rejeitado.
-13. Responda conforme `Final Response` (incluindo o bloco `Clarifications Needed` + `Resume` quando estiver `blocked` em modo orchestrated).
+12. Aplique o **Fail-Closed Clarification Gate**. Em modo orchestrated, grave `draft` (ou `blocked`) e devolva sem rodar guardian; somente uma re-invocação com verdict real `approved` pode persistir o gate e promover para `ready`. Em standalone, delegue a rubrica ao `artifact-guardian`, aplique o menor ajuste e repita até `approved`.
+13. Responda conforme `Final Response`; em modo orchestrated, retorne somente o `Delegation Result` de `../../references/WORKFLOW_COMMON.md`.
+
+## Fail-Closed Clarification Gate
+
+Antes de guardian ou `Status: ready`, procure decisões materiais com `A: a definir`, `pending` ou origem `suposição explícita`. Converta cada uma em `Clarifications Needed`, grave `Status: blocked` e devolva as perguntas. Não rode guardian e não continue para UX/Arch/Plan enquanto existir qualquer ocorrência.
 
 ## Gramática de Requisitos (EARS + Gherkin)
 
@@ -170,34 +166,28 @@ Updated: {YYYY-MM-DD HH:MM}
 
 ## Artifact Guardian
 
-Após atualizar `spec.md`, rode guardian independente (inline ou subagent) com contexto mínimo: pedido do usuário, project root, `AGENTS.md`, feature dir, `manifest.md` quando existir, `spec.md` e evidências citadas.
+Após atualizar `spec.md`, o modo standalone roda `artifact-guardian`; no modo orchestrated, o manager é responsável pelo guardian após receber o artefato.
 
 O guardian não edita arquivos. Ele valida se a spec fecha discovery, objetivo, escopo, fora de escopo, atores/usuários afetados, fluxos, requisitos rastreáveis, contratos, persistência, validação, DoD e perguntas pendentes sem achismo.
 
-Saída obrigatória do guardian:
+Rubrica obrigatória; registre cada resultado no campo `evidence` do `DELEGATION_RESULT` canônico:
 
-```markdown
-Status: approved | rejected
-Rubric:
 - [pass/fail] Todo requisito está em forma EARS (Quando/Enquanto/Onde/Se-Então/ubíquo).
 - [pass/fail] Todo critério de aceite está em Dado/Quando/Então com superfície de validação.
 - [pass/fail] Todo fato usado na spec referencia um achado do Discovery (`D#`) com evidência.
 - [pass/fail] `Intent Classification` é justificada por achados, não por achismo.
 - [pass/fail] Taxonomia coberta: não há pergunta material não feita; `Clarifications Needed` consistente com o estado (none ⇒ nada de alto impacto em aberto).
+- [pass/fail] Nenhuma decisão material foi fechada por suposição; toda resposta material referencia usuário, decisão registrada ou evidência `D#`.
 - [pass/fail] Contrato, persistência, validação e fora de escopo fechados ou `none` justificado.
 - [pass/fail] `Shared Contract` = `closed` ou `none` quando `ux` e `arch` rodarão em paralelo; campos/erros/sequência não podem ficar `pending`.
-Questions: none | {perguntas que bloqueiam ready}
-Critiques: none | {críticas que bloqueiam ready}
-Required changes: none | {ajustes obrigatórios}
-```
 
-Qualquer item `fail` na rubrica força `Status: rejected`. Se `Status: rejected`, trate `Rubric`, `Questions`, `Critiques` e `Required changes` como blocker da spec, corrija `spec.md` quando a resposta já estiver disponível, pergunte ao usuário (modo standalone) ou registre em `Clarifications Needed` (modo orchestrated) quando faltar decisão. Só use `Status: ready` com `Status: approved`.
+Qualquer item `fail` força `status: rejected`. Trate `evidence`, `questions`, `blockers` e `resume` como feedback da spec; corrija `spec.md` quando a resposta já estiver disponível, pergunte ao usuário (modo standalone) ou registre em `Clarifications Needed` (modo orchestrated) quando faltar decisão. Só use `Status: ready` com guardian `approved`.
 
 ## Rules
 
 - Mantenha o conteúdo sem detalhes técnicos de implementação.
 - Faça perguntas só depois de investigar o que o repo, docs e artefatos existentes conseguem responder.
-- Pergunte tudo que molda materialmente escopo, aceite, contrato, persistência, UX ou rollout, em lote e priorizado pela taxonomia (máx. 5 por rodada). Não pergunte trivialidade: registre como suposição explícita em `Questions and Decisions` ou em `Out of Scope`.
+- Pergunte tudo que molda materialmente escopo, aceite, contrato, persistência, UX, segurança, rollout ou validação, em lote e priorizado pela taxonomia (máx. 5 por rodada). Só registre suposição quando ela não alterar nenhuma dessas superfícies.
 - Todo requisito em forma EARS; todo critério de aceite em Dado/Quando/Então. O guardian rejeita desvio de forma.
 - Todo fato na spec referencia um `D#` do `Discovery Ledger` com evidência, ou uma decisão registrada; sem isso vira `pending`.
 - Não marque requisitos, escopo, contratos, persistência ou validação como definidos sem evidência ou decisão registrada.
@@ -221,7 +211,7 @@ Esclareça sem violar o isolamento. Detecte o modo no início (passo 2 do Workfl
 - Standalone (usuário invocou a skill direto): agrupe as clarificações materiais num único lote priorizado (máx. 5), apresente ao usuário, espere as respostas, registre em `Questions and Decisions` e continue. Repita em lotes se surgir nova dúvida de alto impacto.
 - Orchestrated (invocada por `manifest`/outra skill com contexto isolado): não pergunte no meio da execução. Preencha `Clarifications Needed` com IDs `C#`, grave o `spec.md`, set `Status: blocked` e devolva o controle ao manager com o bloco `Clarifications Needed` copiado na resposta final. Não invente respostas nem marque `ready`.
 
-Taxonomia para varrer antes de perguntar (marque cada uma Clear/Partial/Missing; só Partial/Missing de alto impacto vira pergunta): escopo funcional, modelo de dados, fluxo/UX, atributos não-funcionais, integração/dependências, edge cases/falhas, restrições/tradeoffs, contrato, persistência, rollout, terminologia, sinais de conclusão/DoD.
+Taxonomia para varrer antes de perguntar (marque cada uma Clear/Partial/Missing; Partial/Missing que altera superfície material sempre vira pergunta): escopo funcional, modelo de dados, fluxo/UX, atributos não-funcionais, integração/dependências, edge cases/falhas, restrições/tradeoffs, contrato, persistência, rollout, terminologia, sinais de conclusão/DoD.
 
 Retomada (orchestrated), ao ser re-invocada com respostas referenciadas por `C#`:
 
@@ -245,10 +235,10 @@ Antes de **cada** guardian ou de ceder o turno, grave no `spec.md`: `Updated:`, 
 
 ## Context Isolation
 
-- Quando houver manager, aceitar invocação orchestrated com contexto mínimo (inline por padrão no Pi).
+- Quando houver manager, aceitar invocação orchestrated como child `delegate` com `context: "fresh"`.
 - Não herdar contexto irrelevante da sessão manager.
 - Passar somente artefatos mínimos: pedido, paths, `AGENTS.md` e documentos da feature.
-- Se subagents não estiverem disponíveis, siga `references/PI_ADAPTATION.md` (execução inline com isolamento de contexto); declare a limitação na resposta final e não use contexto oculto como evidência.
+- Em modo orchestrated, não rode guardian nem converse com o usuário; devolva o `Delegation Result` ao manager conforme `../../references/WORKFLOW_COMMON.md`.
 
 ## Final Response
 
@@ -260,3 +250,5 @@ Ao concluir, responda com:
 - `Resume` (mesmo caso): feature dir + instrução de que a re-invocação deve passar as respostas referenciadas por `C#`.
 - `Pendências`: perguntas, blockers ou `none`.
 - `Evidência`: arquivos lidos/atualizados e fatos confirmados que sustentam a spec.
+
+Em modo orchestrated, substitua a resposta humana pelo `DELEGATION_RESULT`; o manager raiz é responsável por apresentar perguntas ao usuário.

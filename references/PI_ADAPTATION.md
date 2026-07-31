@@ -1,28 +1,32 @@
 # Pi Runtime Adaptation
 
-No Pi, **delegação inline é o padrão**. APIs Codex (`spawn_agent`, `fork_context`, model pinning) são opcionais — use-as só quando o runtime oferecer paridade.
+## Fronteira correta
 
-## Delegação inline (padrão Pi)
+- `/skill:<name>` é entry point de **input do usuário**. Texto emitido pelo assistant não invoca outra skill.
+- `/subagents` é a interface humana de administração do `pi-subagents`.
+- Managers executam delegações pela ferramenta `subagent(...)`; nunca escrevem slash commands esperando que o Pi os execute.
 
-1. **Contexto mínimo**: limite o contexto ativo a pedido, paths, `AGENTS.md`, feature dir e docs necessários.
-2. **Skills filhas**: invoque `/skill:<name>` com prompt explícito contendo só o que um subagent receberia.
-3. **Guardians**: passo separado na mesma sessão — leia artefato, aplique rubrica, reporte `approved`/`rejected` **sem editar arquivos** no papel de guardian.
-4. **Paralelismo**: serialize batches quando paralelo indisponível; registre no artefato.
-5. **Modelos**: siga `references/MODEL_POLICY.md` — planejamento herda sessão; execução usa worker/validador pinados.
+## Managers na sessão raiz
 
-## Managers
+`loop`, `manifest` e `execute` permanecem na sessão raiz, que possui a ferramenta `subagent`:
 
-| Skill | Delegação inline |
-|---|---|
-| `loop` | `/skill:manifest` → `/skill:execute` |
-| `manifest` | `/skill:spec` → `/skill:ux` + `/skill:arch` → `/skill:plan` |
-| `execute` | worker (implementa) → validador (aprova evidência), passos separados |
+- `loop` carrega `../skills/manifest/SKILL.md` e `../skills/execute/SKILL.md`, resolvidos a partir deste arquivo, com `read` e aplica essas rotinas inline, no mesmo turno.
+- `manifest` delega `spec`, `ux`, `arch` e `plan` a subagents folha.
+- `execute` delega implementação e validação a subagents separados.
+- Uma rotina manager carregada por outra rotina não emite sua `Final Response`; devolve o controle ao manager chamador.
 
-## Subagent opcional
+Não delegue um manager a um child comum: children comuns não recebem a ferramenta `subagent` e não conseguem orquestrar o próximo nível.
 
-Quando `spawn_agent` existir, pode substituir delegação inline mantendo as mesmas regras de contexto mínimo e papéis separados (worker ≠ validador ≠ guardian).
+## Delegação por `pi-subagents`
 
-## O que NÃO fazer
+1. Faça preflight com `action: "list"` e depois `action: "get"` para cada papel, conforme `./WORKFLOW_COMMON.md`; bloqueie source/tools divergentes.
+2. Use `context: "fresh"`, `cwd` canônico do projeto e contexto mínimo explícito.
+3. Para autoria, use `delegate` com `model: "inherit"` e mande ler o path absoluto da skill deste package; não use seleção por nome, que pode sofrer shadowing no projeto alvo.
+4. Para guardians de artefato/outcome, use `artifact-guardian`.
+5. Para execução, use `worker`; para aceite independente, use `workflow-validator`.
+6. Aguarde o resultado necessário antes de avançar; não ceda o turno entre etapas dependentes.
+7. Releia os artefatos após cada retorno. Arquivo vence relato do child.
 
-- Não bloqueie só porque `spawn_agent` ou `fork_context` falhou.
-- Não abandone o workflow; declare limitação na `Final Response`.
+## Runtime ausente
+
+Se a ferramenta `subagent` ou algum papel obrigatório estiver indisponível, grave `Status: blocked` e instrua `pi install npm:pi-subagents` seguido de reinício do Pi. Não simule guardian, worker ou validador inline e não marque `ready`/`done`.

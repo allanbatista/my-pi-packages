@@ -6,17 +6,9 @@ description: Cria, revisa e mantém apenas o `arch.md` de arquitetura de uma fea
 # Feature Architecture
 
 
-## Pi Runtime
+## Runtime & Delegação
 
-No Pi, a delegação padrão é **inline** com isolamento de contexto (ver `references/PI_ADAPTATION.md`). Use `spawn_agent`/`fork_context` apenas quando o runtime oferecer paridade Codex. Invoque skills filhas via `/skill:<name>`. Não bloqueie o workflow por indisponibilidade de subagent.
-## Delegação
-
-Siga `references/PI_ADAPTATION.md` e `references/MODEL_POLICY.md`:
-- **Padrão Pi**: execução inline na sessão atual, contexto mínimo (pedido, paths, `AGENTS.md`, docs da feature).
-- **Modelo (planejamento)**: herde **modelo e effort da sessão principal** — sem override de modelo/thinking.
-- **Subagent opcional**: `planner`, `oracle` ou `delegate` sem `agentOverrides`; guardians de artefato **não** usam `reviewer` (reservado à validação de execução).
-- **Guardian**: passo separado (inline ou subagent) que aplica rubrica sem editar arquivos.
-- **Paralelo**: batch paralelo quando suportado; senão serialize com write sets verificados.
+Leia e siga `../../references/WORKFLOW_COMMON.md` para runtime Pi, delegação, isolamento, reconciliação de estado e checkpoints.
 
 
 Use esta skill para fechar a **arquitetura** da feature antes do plano técnico, quando há backend afetado. Design técnico e decisões, não decomposição em tasks (isso é do `plan`).
@@ -25,7 +17,7 @@ Esta skill só pode editar documentos de workflow da feature. Não edite código
 
 Não use achismo: investigue antes de concluir, cite evidência concreta e registre como `pending`/blocker qualquer premissa que não puder confirmar por arquivo, comando, log, teste, browser ou resposta do usuário.
 
-Quando invocada por outra skill do feature-workflow, execute com isolamento de contexto (inline por padrão no Pi; subagent opcional — ver `references/PI_ADAPTATION.md`), recebendo apenas pedido, project root, feature dir e docs necessários.
+Quando invocada por outra skill do feature-workflow, execute como child `delegate` com `context: "fresh"` (ver `../../references/PI_ADAPTATION.md`), recebendo apenas pedido, project root, feature dir e docs necessários.
 
 ## Applicability
 
@@ -37,17 +29,17 @@ Quando invocada por outra skill do feature-workflow, execute com isolamento de c
 
 1. Leia o `AGENTS.md` do projeto.
 2. Determine o modo: **standalone** (usuário invocou direto) ou **orchestrated** (invocada por `manifest` em subagent — não pergunte ao usuário no meio). Ver `Clarification Protocol`.
-3. Localize o `spec.md` da feature. Se não existir, use `/skill:spec` primeiro. Se estiver `draft`/`blocked`, registre blocker, set `Status: blocked` e devolva ao manager.
+3. Localize o `spec.md` da feature. Se não existir ou estiver `draft`/`blocked`, registre blocker, set `Status: blocked` e devolva ao manager; não emita `/skill:spec`.
 4. Confirme a aplicabilidade (superfície backend na spec). Se não aplicável, pare conforme `Applicability`.
 5. Se o input for um `arch.md` existente, trate como revisão: leia antes de decidir status.
-6. **Technical Discovery**: trace a arquitetura atual ponta a ponta — componentes, modelo de dados, contratos, integrações, jobs/consumers, telemetria. Registre cada achado no `Architecture Ledger` com `A#`, fonte e evidência. Use Graphify quando `graphify-out/graph.json` existir.
+6. **Technical Discovery**: parta do `Discovery Ledger` da spec (`D#` recebidos via manifest). Trace componentes, modelo de dados, contratos, integrações, jobs/consumers e telemetria. Registre achados de arquitetura não cobertos pela spec no `Architecture Ledger` com `A#`, fonte e evidência. Se o ledger da spec for insuficiente para decisão de design, faça discovery completo e escale com `Open Questions`. Use Graphify quando `graphify-out/graph.json` existir.
 7. Defina a **abordagem** escolhida vs alternativas (ADR-lite) com racional e tradeoffs, alinhada ao `Shared Contract` da spec.
 8. Feche: fronteiras de componente, modelo de dados/schema, design de contrato (endpoints/payloads/versionamento), sequência de interação, failure modes, migração e rollback, não-funcionais (perf/segurança/escala).
 9. Monte a rastreabilidade: cada decisão arquitetural ligada a um requisito EARS da spec e a um `A#` do Discovery.
 10. Dúvida de produto → orchestrated: `Open Questions` + `Status: blocked`; standalone: pergunte.
 11. Escreva ou atualize somente `arch.md`.
-12. Rode guardian independente (inline ou subagent); aplique o menor ajuste e repita até `approved`.
-13. Responda conforme `Final Response` (inclua `Open Questions` + `Resume` quando `blocked` em orchestrated).
+12. Em modo orchestrated, grave `draft` (ou `blocked`) e devolva sem rodar guardian; somente uma re-invocação com verdict real `approved` pode persistir o gate e promover para `ready`. Em standalone, delegue a rubrica ao `artifact-guardian`, aplique o menor ajuste e repita até `approved`.
+13. Responda conforme `Final Response`; em modo orchestrated, retorne somente o `Delegation Result` de `../../references/WORKFLOW_COMMON.md`.
 
 ## Template
 
@@ -131,27 +123,20 @@ Updated: {YYYY-MM-DD HH:MM}
 
 ## Artifact Guardian
 
-Após atualizar `arch.md`, rode guardian independente (inline ou subagent) com contexto mínimo: pedido do usuário, project root, `AGENTS.md`, feature dir, `spec.md`, `arch.md` e evidências citadas.
+Após atualizar `arch.md`, o modo standalone roda `artifact-guardian`; no modo orchestrated, o manager é responsável pelo guardian após receber o artefato.
 
 O guardian não edita arquivos. Ele valida a arquitetura sem achismo.
 
-Saída obrigatória do guardian:
+Rubrica obrigatória; registre cada resultado no campo `evidence` do `DELEGATION_RESULT` canônico:
 
-```markdown
-Status: approved | rejected
-Rubric:
 - [pass/fail] Cada requisito backend da spec tem decisão arquitetural que o sustenta.
 - [pass/fail] Abordagem escolhida tem alternativas e tradeoffs explícitos.
 - [pass/fail] Modelo de dados suporta os requisitos; contrato desenhado (não só "muda: sim").
 - [pass/fail] Migração e rollback definidos quando há mudança de estado/contrato.
 - [pass/fail] Cada decisão referencia um `A#` do Discovery ou decisão registrada.
 - [pass/fail] Failure modes e não-funcionais relevantes cobertos ou `none` justificado.
-Questions: none | {perguntas que bloqueiam ready}
-Critiques: none | {críticas que bloqueiam ready}
-Required changes: none | {ajustes obrigatórios}
-```
 
-Qualquer item `fail` na rubrica força `Status: rejected`. Trate `Rubric`, `Questions`, `Critiques` e `Required changes` como blocker; corrija `arch.md` quando a resposta já estiver disponível, pergunte ao usuário (standalone) ou registre em `Open Questions` (orchestrated). Só use `Status: ready` com guardian `approved`.
+Qualquer item `fail` força `status: rejected`. Trate `evidence`, `questions`, `blockers` e `resume` como feedback; corrija `arch.md` quando a resposta já estiver disponível, pergunte ao usuário (standalone) ou registre em `Open Questions` (orchestrated). Só use `Status: ready` com guardian `approved`.
 
 ## Rules
 
@@ -184,10 +169,10 @@ Antes de **cada** guardian ou de ceder o turno, grave no `arch.md`: `Updated:`, 
 
 ## Context Isolation
 
-- Quando houver manager, aceitar invocação orchestrated com contexto mínimo (inline por padrão no Pi).
+- Quando houver manager, aceitar invocação orchestrated como child `delegate` com `context: "fresh"`.
 - Não herdar contexto irrelevante da sessão manager.
 - Passar somente artefatos mínimos: pedido, paths, `AGENTS.md`, `spec.md` e documentos da feature.
-- Se subagents não estiverem disponíveis, siga `references/PI_ADAPTATION.md` (execução inline com isolamento de contexto); declare a limitação na resposta final e não use contexto oculto como evidência.
+- Em modo orchestrated, não rode guardian nem converse com o usuário; devolva o `Delegation Result` ao manager conforme `../../references/WORKFLOW_COMMON.md`.
 
 ## Final Response
 
@@ -200,3 +185,5 @@ Ao concluir, responda com:
 - `Resume` (mesmo caso): feature dir + instrução de re-invocar com respostas `Q#`.
 - `Pendências`: blockers, perguntas técnicas ou `none`.
 - `Evidência`: arquivos lidos e fatos que sustentam o `arch.md`.
+
+Em modo orchestrated, substitua a resposta humana pelo `DELEGATION_RESULT`.

@@ -5,7 +5,7 @@
         "model": "deepseek/deepseek-v4-flash",
         "thinking": false
       },
-      "reviewer": {
+      "workflow-validator": {
         "model": "deepseek/deepseek-v4-flash",
         "thinking": "xhigh"
       }

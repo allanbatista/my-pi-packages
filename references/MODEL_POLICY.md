@@ -1,53 +1,37 @@
 # Política de modelos por papel
 
-Fonte da verdade para pinning de modelo no feature-workflow. Requer `pi-subagents` quando a delegação for via subagent; em delegação inline, o manager aplica a mesma política ao escolher modelo/effort do turno filho.
+## Planejamento
 
-## Planejamento (herda sessão principal)
+Autoria (`spec`, `ux`, `arch`, `plan`) usa `delegate` com `model: "inherit"`. Guardians de artefato e outcome usam `artifact-guardian` com `model: "inherit"`. Ambos usam `context: "fresh"`.
 
-Skills e papéis de **autoria/planejamento** usam o **mesmo modelo e effort (thinking/reasoning) da sessão principal** — sem override.
+`model: "inherit"` fixa o modelo ativo da sessão no child. O `pi-subagents` atual não expõe o thinking ativo como parâmetro por chamada; portanto o effort segue a configuração efetiva do agente/runtime. Verifique com `/subagents-models` quando paridade estrita de effort for requisito.
 
-| Skill / papel | Escopo |
-|---|---|
-| `/skill:loop` | manager de épico |
-| `/skill:manifest` | manager de autoria |
-| `/skill:spec`, `/skill:ux`, `/skill:arch`, `/skill:plan` | autoria de artefatos |
-| Guardian de spec/ux/arch/plan | validação de artefato (fase de planejamento) |
-| Outcome guardian do `loop` | validação de objetivo (fase de planejamento/coordenação) |
+## Execução
 
-**Como aplicar (pi-subagents):** use `planner`, `oracle` ou `delegate` **sem** `agentOverrides.model` / `agentOverrides.thinking`. Não use o agente `reviewer` para guardians de planejamento — ele está pinado para validação de execução.
-
-**Inline:** o manager não troca modelo; continua na sessão atual.
-
-## Execução (modelos dedicados)
-
-Papéis de **implementação e aceite** na `/skill:execute`:
-
-| Papel | Modelo | Reasoning / thinking |
+| Papel | Agent | Modelo por chamada |
 |---|---|---|
-| **Worker** (implementação, correções, gate de fase) | `deepseek/deepseek-v4-flash` | **off** (sem reasoning) |
-| **Validador** (aceite independente por task/fase) | `deepseek/deepseek-v4-flash` | **xhigh** |
+| Worker | `worker` | `deepseek/deepseek-v4-flash:off` |
+| Validador | `workflow-validator` | `deepseek/deepseek-v4-flash:xhigh` |
 
-O manager de execução **não** implementa nem valida — só coordena com esses papéis.
-
-**Como aplicar (pi-subagents):** mapeie worker → agente `worker`; validador → agente `reviewer` (ou agente custom `workflow-validator`). Ver `examples/pi-subagents-settings.json`.
-
-**Override por run (exemplo):**
+Use os overrides por chamada para que a política funcione mesmo quando o snippet de settings não foi mesclado:
 
 ```text
-/run worker[model=deepseek/deepseek-v4-flash] "implementar task 1.1"
-/run reviewer[model=deepseek/deepseek-v4-flash,thinking=xhigh] "validar task 1.1"
+subagent({ agent: "worker", model: "deepseek/deepseek-v4-flash:off", context: "fresh", cwd: "{project-root}", task: "..." })
+subagent({ agent: "workflow-validator", model: "deepseek/deepseek-v4-flash:xhigh", context: "fresh", cwd: "{project-root}", task: "..." })
 ```
+
+O manager não implementa nem valida. Worker e validador são children distintos; o validador possui somente `read`, `grep`, `find` e `ls`.
 
 ## Precedência
 
-1. Override explícito no spawn/run (quando suportado)
+1. `model` explícito na chamada
 2. `subagents.agentOverrides` em settings
-3. Sessão principal (somente fase de planejamento)
-4. `defaultModel` do Pi
+3. Modelo herdado da sessão
+4. Default global do Pi
 
 ## Verificação
 
 ```text
 /subagents-models worker
-/subagents-models reviewer
+/subagents-models workflow-validator
 ```
