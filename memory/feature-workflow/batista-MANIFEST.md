@@ -18,5 +18,5 @@ Reconciliar → invalidar approvals downstream quando o upstream mudou → despa
 
 ## Fontes no código
 
-- `skills/manifest/SKILL.md`
+- `skills/batista-manifest/SKILL.md`
 - `references/WORKFLOW_COMMON.md`

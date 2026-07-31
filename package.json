@@ -1,7 +1,7 @@
 {
   "name": "my-pi-packages",
   "version": "0.1.0",
-  "description": "Feature workflow skills (loop, manifest, spec, ux, arch, plan, execute) for Pi.",
+  "description": "Feature workflow skills (batista-loop, batista-manifest, batista-spec, batista-ux, batista-arch, batista-plan, batista-execute), entity memory playbook, ship PR to deploy e mensagens Discord para Pi.",
   "private": true,
   "keywords": ["pi-package"],
   "pi": {

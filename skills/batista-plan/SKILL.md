@@ -1,6 +1,6 @@
 ---
-name: plan
-description: Cria, revisa e mantém apenas o `plan.md` técnico de uma feature em `.features/{YYYY-MM-DD}_{HHMM}-{short-desc}/plan.md`, a partir de `spec.md` e das soluções `ux.md`/`arch.md` quando aplicáveis. Use como `/skill:plan` quando o usuário pedir plano técnico, mapa de impacto, investigação técnica, fases, tasks, subagents, paralelismo, plano paralelizável, validação, harness, loop engineering ou revisão de uma feature existente. Para executar o plano, use `/skill:execute`.
+name: batista-plan
+description: Cria, revisa e mantém apenas o `plan.md` técnico de uma feature em `.features/{YYYY-MM-DD}_{HHMM}-{short-desc}/plan.md`, a partir de `spec.md` e das soluções `ux.md`/`arch.md` quando aplicáveis. Use como `/skill:batista-plan` quando o usuário pedir plano técnico, mapa de impacto, investigação técnica, fases, tasks, subagents, paralelismo, plano paralelizável, validação, harness, loop engineering ou revisão de uma feature existente. Para executar o plano, use `/skill:batista-execute`.
 ---
 
 # Feature Plan
@@ -22,8 +22,8 @@ Quando invocada por outra skill do feature-workflow, execute como child `delegat
 ## Workflow
 
 1. Leia o `AGENTS.md` do projeto.
-2. Determine o modo: **standalone** (usuário invocou direto) ou **orchestrated** (child de `manifest`). Se o input for um diretório de feature ou arquivo, leia os artefatos existentes antes de decidir status.
-3. Localize o `spec.md` da feature. Se não existir, registre blocker e devolva ao manager; não emita `/skill:spec`. Leia também `ux.md` e `arch.md` quando existirem (fontes de solução: usabilidade e arquitetura); reconcilie conflito de contrato entre elas e registre blocker se não resolvível.
+2. Determine o modo: **standalone** (usuário invocou direto) ou **orchestrated** (child de `batista-manifest`). Se o input for um diretório de feature ou arquivo, leia os artefatos existentes antes de decidir status.
+3. Localize o `spec.md` da feature. Se não existir, registre blocker e devolva ao manager; não emita `/skill:batista-spec`. Leia também `ux.md` e `arch.md` quando existirem (fontes de solução: usabilidade e arquitetura); reconcilie conflito de contrato entre elas e registre blocker se não resolvível.
 4. Revise o estado existente: perguntas pendentes, decisões contraditórias, DoD fraco, contrato/persistência/harness ausentes, divergência entre spec/plan/manifest e evidência faltante.
 5. Se `spec.md` estiver `draft` ou `blocked`, não invente decisões de produto; registre o bloqueio.
 6. Antes de planejar implementação, faça preflight: AGENTS, Graphify quando existir, worktree, contratos afetados, arquivos existentes/novos e comandos de validação disponíveis.
@@ -66,7 +66,7 @@ Updated: {YYYY-MM-DD HH:MM}
 - [ ] Arquivos alvo existentes/novos conferidos.
 - [ ] Impact Map completo, com evidência para cada superfície.
 - [ ] Harness mínimo definido com baseline, teste focado e validação final.
-- [ ] Guardian aprovou o plano contra a spec e as soluções (`ux`/`arch`) aplicáveis.
+- [ ] Guardian aprovou o plano contra a spec e as soluções (`batista-ux`/`batista-arch`) aplicáveis.
 
 ## Impact Map
 
@@ -166,13 +166,13 @@ Required Changes:
 
 Após atualizar `plan.md`, o modo standalone roda `artifact-guardian`; no modo orchestrated, o manager é responsável pelo guardian após receber o artefato.
 
-O guardian não edita arquivos. Ele valida aderência à spec e às soluções (`ux`/`arch`) aplicáveis, Impact Map, arquivos alvo, write sets, DAG, batches paralelos, pontos de sincronização, harness, DoD, blockers, ponto de retomada e evidência sem achismo.
+O guardian não edita arquivos. Ele valida aderência à spec e às soluções (`batista-ux`/`batista-arch`) aplicáveis, Impact Map, arquivos alvo, write sets, DAG, batches paralelos, pontos de sincronização, harness, DoD, blockers, ponto de retomada e evidência sem achismo.
 
 Rubrica obrigatória; registre cada resultado no campo `evidence` do `DELEGATION_RESULT` canônico:
 
 - [pass/fail] Impact Map cobre todas as `Validation surfaces` da spec (ou justifica `not-applicable`).
 - [pass/fail] Tasks de frontend derivam de `ux.md`; tasks de backend derivam de `arch.md` (ou da spec quando solução N/A).
-- [pass/fail] Conflitos `ux`↔`arch`↔`Shared Contract` resolvidos no plano ou escalados com `Escalation` explícita.
+- [pass/fail] Conflitos `batista-ux`↔`batista-arch`↔`Shared Contract` resolvidos no plano ou escalados com `Escalation` explícita.
 - [pass/fail] Write sets, DAG, batches e pontos de sincronização são explícitos e seguros.
 - [pass/fail] Harness cita comandos/checks concretos; sem placeholders genéricos.
 
@@ -187,7 +187,7 @@ Qualquer item `fail` força `status: rejected`. Copie `evidence`, `questions`, `
 - Prefira plano paralelizável quando seguro: dividir tasks por write set disjunto, contrato independente e validação própria.
 - Não serialize tasks independentes por conveniência; registre batch paralelo explícito.
 - Não paralelize tasks que compartilham arquivo, migração, estado, contrato, fixture crítica ou validação sequencial.
-- Mesmo se o usuário disser "corrija", "implemente" ou "execute", esta skill deve criar/refinar `plan.md` e retornar ao manager; somente standalone indica `/skill:execute`. Não faça patch de produto.
+- Mesmo se o usuário disser "corrija", "implemente" ou "execute", esta skill deve criar/refinar `plan.md` e retornar ao manager; somente standalone indica `/skill:batista-execute`. Não faça patch de produto.
 - Cada fase e task deve ter DoD próprio, owner/subagent, arquivos planejados/reais, evidência exigida/produzida e blockers.
 - Toda feature deve ter `Phase 0: Preflight` e `Readiness Gates`.
 - O harness deve citar comandos/checks práticos concretos ou registrar blocker; placeholders genéricos não bastam para execução.
@@ -197,10 +197,10 @@ Qualquer item `fail` força `status: rejected`. Copie `evidence`, `questions`, `
 - Paralelize apenas tasks independentes e registre dependências, write sets e pontos de sincronização.
 - Para long-running work, mantenha checkpoints, evidência e ponto de retomada.
 - Ao receber arquivo ou diretório existente, trate a tarefa como revisão: corrija/refine o `plan.md` antes de concluir e não aceite status pronto herdado sem checagem.
-- Se a revisão revelar decisão de produto pendente, registre blocker no `plan.md` com `Escalation: spec` (ou `ux`/`arch`) e devolva ao `manifest` — não edite outros artefatos.
+- Se a revisão revelar decisão de produto pendente, registre blocker no `plan.md` com `Escalation: batista-spec` (ou `batista-ux`/`batista-arch`) e devolva ao `batista-manifest` — não edite outros artefatos.
 - Não marque `done` se qualquer fase/task ainda tiver blocker, evidência `pending`, DoD sem prova ou guardian não aprovado.
 - Se existir `manifest.md`, atualize apenas status/resume point quando necessário.
-- Quando o usuário pedir execução, retomada operacional ou coordenação de workers, encaminhe para `/skill:execute`.
+- Quando o usuário pedir execução, retomada operacional ou coordenação de workers, encaminhe para `/skill:batista-execute`.
 - Não aceite guardian genérico; ele deve listar evidência conferida ou bloquear com pergunta/crítica objetiva.
 
 ## Skill Extraction

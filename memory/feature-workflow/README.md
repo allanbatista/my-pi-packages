@@ -6,13 +6,13 @@ Mapear o harness de autoria, execução, validação e retomada oferecido pelo p
 
 ## Componentes
 
-- [LOOP.md](./LOOP.md): controlador ponta a ponta.
-- [MANIFEST.md](./MANIFEST.md): manager de autoria.
-- [SPEC.md](./SPEC.md): contrato e clarificações.
-- [UX.md](./UX.md): solução de usabilidade.
-- [ARCH.md](./ARCH.md): solução técnica.
-- [PLAN.md](./PLAN.md): DAG executável e harness.
-- [EXECUTE.md](./EXECUTE.md): coordenação de implementação.
+- [batista-LOOP.md](./batista-LOOP.md): controlador ponta a ponta.
+- [batista-MANIFEST.md](./batista-MANIFEST.md): manager de autoria.
+- [batista-SPEC.md](./batista-SPEC.md): contrato e clarificações.
+- [batista-UX.md](./batista-UX.md): solução de usabilidade.
+- [batista-ARCH.md](./batista-ARCH.md): solução técnica.
+- [batista-PLAN.md](./batista-PLAN.md): DAG executável e harness.
+- [batista-EXECUTE.md](./batista-EXECUTE.md): coordenação de implementação.
 - [SUBAGENTS.md](./SUBAGENTS.md): papéis e fronteiras do runtime.
 - [MANAGER_GUARD.md](./MANAGER_GUARD.md): contenção nativa de tool calls dos managers.
 

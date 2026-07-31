@@ -1,6 +1,6 @@
 ---
-name: arch
-description: Cria, revisa e mantém apenas o `arch.md` de arquitetura de uma feature em `.features/{YYYY-MM-DD}_{HHMM}-{short-desc}/arch.md`, a partir de `spec.md` e condicional a haver superfície de backend afetada. Use como `/skill:arch` quando o usuário pedir arquitetura, design técnico, modelo de dados, design de contrato/API, decisão arquitetural (ADR), tradeoffs, migração, rollback, failure modes ou revisão técnica de uma feature com backend.
+name: batista-arch
+description: Cria, revisa e mantém apenas o `arch.md` de arquitetura de uma feature em `.features/{YYYY-MM-DD}_{HHMM}-{short-desc}/arch.md`, a partir de `spec.md` e condicional a haver superfície de backend afetada. Use como `/skill:batista-arch` quando o usuário pedir arquitetura, design técnico, modelo de dados, design de contrato/API, decisão arquitetural (ADR), tradeoffs, migração, rollback, failure modes ou revisão técnica de uma feature com backend.
 ---
 
 # Feature Architecture
@@ -11,7 +11,7 @@ description: Cria, revisa e mantém apenas o `arch.md` de arquitetura de uma fea
 Leia e siga `../../references/WORKFLOW_COMMON.md` para runtime Pi, delegação, isolamento, reconciliação de estado e checkpoints.
 
 
-Use esta skill para fechar a **arquitetura** da feature antes do plano técnico, quando há backend afetado. Design técnico e decisões, não decomposição em tasks (isso é do `plan`).
+Use esta skill para fechar a **arquitetura** da feature antes do plano técnico, quando há backend afetado. Design técnico e decisões, não decomposição em tasks (isso é do `batista-plan`).
 
 Esta skill só pode editar documentos de workflow da feature. Não edite código de produto, testes, configs, migrations ou arquivos fora da pasta da feature.
 
@@ -23,13 +23,13 @@ Quando invocada por outra skill do feature-workflow, execute como child `delegat
 
 - Produza `arch.md` só quando `spec.md` indicar superfície de backend/API/job/consumer/infra/dados afetada (ver `Validation surfaces` da spec).
 - Se não houver backend afetado, não crie o arquivo: responda `arch não aplicável` com a evidência (superfícies da spec) e devolva o controle.
-- Roda em paralelo com `/skill:ux`; ambas partem da mesma spec como contrato âncora.
+- Roda em paralelo com `/skill:batista-ux`; ambas partem da mesma spec como contrato âncora.
 
 ## Workflow
 
 1. Leia o `AGENTS.md` do projeto.
-2. Determine o modo: **standalone** (usuário invocou direto) ou **orchestrated** (invocada por `manifest` em subagent — não pergunte ao usuário no meio). Ver `Clarification Protocol`.
-3. Localize o `spec.md` da feature. Se não existir ou estiver `draft`/`blocked`, registre blocker, set `Status: blocked` e devolva ao manager; não emita `/skill:spec`.
+2. Determine o modo: **standalone** (usuário invocou direto) ou **orchestrated** (invocada por `batista-manifest` em subagent — não pergunte ao usuário no meio). Ver `Clarification Protocol`.
+3. Localize o `spec.md` da feature. Se não existir ou estiver `draft`/`blocked`, registre blocker, set `Status: blocked` e devolva ao manager; não emita `/skill:batista-spec`.
 4. Confirme a aplicabilidade (superfície backend na spec). Se não aplicável, pare conforme `Applicability`.
 5. Se o input for um `arch.md` existente, trate como revisão: leia antes de decidir status.
 6. **Technical Discovery**: parta do `Discovery Ledger` da spec (`D#` recebidos via manifest). Trace componentes, modelo de dados, contratos, integrações, jobs/consumers e telemetria. Registre achados de arquitetura não cobertos pela spec no `Architecture Ledger` com `A#`, fonte e evidência. Se o ledger da spec for insuficiente para decisão de design, faça discovery completo e escale com `Open Questions`. Use Graphify quando `graphify-out/graph.json` existir.
@@ -140,7 +140,7 @@ Qualquer item `fail` força `status: rejected`. Trate `evidence`, `questions`, `
 
 ## Rules
 
-- Design técnico e decisões; não faça decomposição em tasks (isso é do `plan`).
+- Design técnico e decisões; não faça decomposição em tasks (isso é do `batista-plan`).
 - Não decida produto: falta de decisão de produto vira blocker puxado para `spec.md`.
 - Desenhe o contrato e o modelo de dados de fato; "contrato muda: sim/não" não basta.
 - Abordagem sem alternativa/tradeoff explícito é rejeitada pelo guardian.
@@ -148,7 +148,7 @@ Qualquer item `fail` força `status: rejected`. Trate `evidence`, `questions`, `
 - Cada decisão referencia um requisito EARS e um `A#`, ou vira `pending`.
 - Mesmo se o usuário disser "implemente", esta skill cria/refina `arch.md` e para.
 - Ao receber `arch.md` existente, trate como revisão; não herde status pronto sem checagem.
-- Roda em paralelo com `ux` sem ver `ux.md`; conflito com `Shared Contract` ou premissa de UX vira `Open Questions` (orchestrated: `Status: blocked`) — reconciliação final no `plan`.
+- Roda em paralelo com `batista-ux` sem ver `ux.md`; conflito com `Shared Contract` ou premissa de UX vira `Open Questions` (orchestrated: `Status: blocked`) — reconciliação final no `batista-plan`.
 - Não aceite guardian genérico; ele lista evidência conferida ou bloqueia com pergunta/crítica objetiva.
 
 ## Clarification Protocol

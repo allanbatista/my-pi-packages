@@ -21,7 +21,7 @@ log_line() {
   fi
 }
 
-EXPECTED_SKILLS=(arch execute loop manifest plan spec ux)
+EXPECTED_SKILLS=(batista-arch batista-execute batista-loop batista-manifest batista-plan batista-spec batista-ux batista-discord-webhook-messages batista-entity-memory-playbook batista-ship-pr-to-deploy)
 
 log_section "Structure check" structure-check
 node -e "
@@ -52,8 +52,8 @@ done
 
 IFS=$'\n' sorted_found=($(printf '%s\n' "${found[@]}" | sort))
 IFS=$'\n' sorted_expected=($(printf '%s\n' "${EXPECTED_SKILLS[@]}" | sort))
-if [ "${#found[@]}" -ne 7 ]; then
-  log_line "FAIL: expected 7 skills, found ${#found[@]}: ${found[*]}" structure-check
+if [ "${#found[@]}" -ne 10 ]; then
+  log_line "FAIL: expected 10 skills, found ${#found[@]}: ${found[*]}" structure-check
   exit 1
 fi
 for i in "${!sorted_expected[@]}"; do
@@ -83,7 +83,7 @@ fi
 log_line "No Codex residue in shipped artifacts" codex-residue
 
 log_section "Docs evidence" docs-evidence
-rg -n 'pi package|/skill:loop|pi install|pi -e' "$ROOT/AGENTS.md" "$ROOT/.memory/RULES_AND_DEFINITION.md" | while IFS= read -r line; do
+rg -n 'pi package|/skill:batista-loop|pi install|pi -e' "$ROOT/AGENTS.md" "$ROOT/.memory/RULES_AND_DEFINITION.md" | while IFS= read -r line; do
   log_line "$line" docs-evidence
 done
 

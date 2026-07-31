@@ -86,7 +86,7 @@ A sobreposição real está na leitura de arquivos-base (AGENTS.md, estrutura do
 
 **Mecanismo**: flag `guardian` no manifest: `required` (default) | `skip`. Para features fullstack ou que tocam contrato/persistência/superfície nova, `required`. Para features pontuais sem contrato novo, `skip`.
 
-**Arquivos afetados**: manifest/SKILL.md (flag), spec/SKILL.md (guardian permanece), ux/SKILL.md, arch/SKILL.md, plan/SKILL.md (guardian condicional).
+**Arquivos afetados**: batista-manifest/SKILL.md (flag), batista-spec/SKILL.md (guardian permanece), batista-ux/SKILL.md, batista-arch/SKILL.md, batista-plan/SKILL.md (guardian condicional).
 
 ### Recomendação 2: Discovery complementar (renomeado de "Discovery único")
 
@@ -96,7 +96,7 @@ A sobreposição real está na leitura de arquivos-base (AGENTS.md, estrutura do
 
 **Gate de escalação**: se ux/arch encontrarem lacuna no spec que afeta decisão de design, registram `Open Questions` e escalam — não operam com descoberta insuficiente.
 
-**Arquivos afetados**: manifest/SKILL.md (passa D# no contexto), ux/SKILL.md e arch/SKILL.md (discovery complementar com gate de escalação).
+**Arquivos afetados**: batista-manifest/SKILL.md (passa D# no contexto), batista-ux/SKILL.md e batista-arch/SKILL.md (discovery complementar com gate de escalação).
 
 ### Recomendação 3: Boilerplate compartilhado (sem alterações — risco mínimo, implementar primeiro)
 
@@ -117,7 +117,7 @@ Criar `references/WORKFLOW_COMMON.md`. Cada SKILL.md referencia com 1 linha.
 
 **O que NÃO pula**: guardian da spec (sempre required quando há contrato ou superfície nova).
 
-**Arquivos afetados**: manifest/SKILL.md (Solution Gate com critérios de risco).
+**Arquivos afetados**: batista-manifest/SKILL.md (Solution Gate com critérios de risco).
 
 ### Recomendação 5 (nova): Iteration budget no manifest
 
@@ -125,7 +125,7 @@ Criar `references/WORKFLOW_COMMON.md`. Cada SKILL.md referencia com 1 linha.
 
 Adicionar `Manifest iteration budget: 3` ao `manifest.md`. Se o manifesto precisar re-invocar spec 3+ vezes, força blocker.
 
-**Arquivos afetados**: manifest/SKILL.md, manifest.md template.
+**Arquivos afetados**: batista-manifest/SKILL.md, manifest.md template.
 
 ---
 

@@ -11,34 +11,34 @@
 ### 1. As 4 causas raiz — avaliação por item
 
 **Causa 1 — Guardians inflam turn count: CORRETA.**
-Evidência: cada skill de autoria tem um passo explícito de guardian como etapa separada do workflow (`spec/SKILL.md:43`, `ux/SKILL.md:47`, `arch/SKILL.md:49`, `plan/SKILL.md:44`), e o `manifest` confirma aprovação entre cada delegação (`manifest/SKILL.md:39-44`). O guardian é de fato um passo com seu próprio carregamento de contexto. Maior impacto confirmado.
+Evidência: cada skill de autoria tem um passo explícito de guardian como etapa separada do workflow (`batista-spec/SKILL.md:43`, `batista-ux/SKILL.md:47`, `batista-arch/SKILL.md:49`, `batista-plan/SKILL.md:44`), e o `batista-manifest` confirma aprovação entre cada delegação (`batista-manifest/SKILL.md:39-44`). O guardian é de fato um passo com seu próprio carregamento de contexto. Maior impacto confirmado.
 
 **Causa 2 — Tripla Discovery: PARCIALMENTE CORRETA (exagerada).**
-Evidência: existem três ledgers distintos com focos diferentes — `Discovery Ledger` (D#, fatos de produto/escopo, `spec/SKILL.md:83`), `Usability Ledger` (U#, telas/fluxos/estados/a11y, `ux/SKILL.md:43`), `Architecture Ledger` (A#, componentes/schemas/integrações/jobs, `arch/SKILL.md:43`). A afirmação "os mesmos arquivos são lidos 3 vezes por 3 skills com propósitos sobrepostos" é imprecisa: a sobreposição é parcial (todos varrem o codebase), mas o *produto* de cada discovery é diferente. A Causa 2 deveria ser "discovery com sobreposição parcial de leitura", não "tripla discovery idêntica".
+Evidência: existem três ledgers distintos com focos diferentes — `Discovery Ledger` (D#, fatos de produto/escopo, `batista-spec/SKILL.md:83`), `Usability Ledger` (U#, telas/fluxos/estados/a11y, `batista-ux/SKILL.md:43`), `Architecture Ledger` (A#, componentes/schemas/integrações/jobs, `batista-arch/SKILL.md:43`). A afirmação "os mesmos arquivos são lidos 3 vezes por 3 skills com propósitos sobrepostos" é imprecisa: a sobreposição é parcial (todos varrem o codebase), mas o *produto* de cada discovery é diferente. A Causa 2 deveria ser "discovery com sobreposição parcial de leitura", não "tripla discovery idêntica".
 
 **Causa 3 — Boilerplate duplicado (~200 linhas): PLAUUSÍVEL, não verificado linha-a-linha.**
 As seções `Context Isolation`, `State & Memory`, `Checkpoint` e `Final Response` aparecem com conteúdo quase idêntico em spec/ux/arch/plan/loop/manifest (verificada a presença). A estimativa de ~200 linhas (14%) é razoável mas não foi medida; recomendo confirmar com `diff` entre skills antes de aceitar o número como fato.
 
 **Causa 4 — Guardians vs self-check redundante: CORRETA EM FORMA, SUBESTIMA A INDEPENDÊNCIA.**
-Evidência: `Spec Readiness Gates` (`spec/SKILL.md:151`) e `Artifact Guardian` rubric (`spec/SKILL.md:181`) cobrem o mesmo checklist (EARS, Dado/Quando/Então, D#, Shared Contract). A redundância de *itens* é real. **Porém**: Readiness Gates são preenchidos pelo próprio autor (mesmo contexto, mesmo viés de confirmação); o guardian é uma passagem independente (contexto mínimo carregado separadamente, `spec/SKILL.md:173`). O documento trata as duas como equivalentes e ignora que self-check do autor é estruturalmente mais fraco que revisão independente.
+Evidência: `Spec Readiness Gates` (`batista-spec/SKILL.md:151`) e `Artifact Guardian` rubric (`batista-spec/SKILL.md:181`) cobrem o mesmo checklist (EARS, Dado/Quando/Então, D#, Shared Contract). A redundância de *itens* é real. **Porém**: Readiness Gates são preenchidos pelo próprio autor (mesmo contexto, mesmo viés de confirmação); o guardian é uma passagem independente (contexto mínimo carregado separadamente, `batista-spec/SKILL.md:173`). O documento trata as duas como equivalentes e ignora que self-check do autor é estruturalmente mais fraco que revisão independente.
 
 ### 2. Recomendação #1 — self-check substitui guardian: **CONDICIONALMENTE SEGURO**
 
-- **Seguro para**: consistência cross-artefato (o `manifest` já reconcilia via Solution Gate/Shared Contract) e validação E2E (o `loop` mantém outcome guardian).
-- **Não seguro para**: detecção precoce de defeitos de *forma* (EARS mal-formado, aceite sem superfície de validação, D# sem evidência). O outcome guardian do `loop` valida o **resultado**, não a forma do artefato (`loop/SKILL.md:135`: "não valida task a task"). Um spec mal-formado passa, é planejado, executado, e só falha no outcome — detecção tardia cara.
+- **Seguro para**: consistência cross-artefato (o `batista-manifest` já reconcilia via Solution Gate/Shared Contract) e validação E2E (o `batista-loop` mantém outcome guardian).
+- **Não seguro para**: detecção precoce de defeitos de *forma* (EARS mal-formado, aceite sem superfície de validação, D# sem evidência). O outcome guardian do `batista-loop` valida o **resultado**, não a forma do artefato (`batista-loop/SKILL.md:135`: "não valida task a task"). Um spec mal-formado passa, é planejado, executado, e só falha no outcome — detecção tardia cara.
 - **Risco não modelado**: viés de confirmação do autor preenchendo seu próprio checklist. O ganho de turnos (-4 a -8) é otimista porque parte da função do guardian é capturar retrabalho que, se removido, vira retrabalho mais caro downstream.
 
 ### 3. Recomendação #2 — discovery único no spec: **NÃO FUNCIONA COMO PROPOSTO**
 
-- A spec tem regra explícita: "Mantenha o conteúdo sem detalhes técnicos de implementação" (`spec/SKILL.md:199`). Um discovery único abrangendo UI (telas, componentes, estados) e backend (schemas, jobs, integrações) ou (a) viola esta regra, ou (b) deixa ux/arch ainda precisando de seu próprio discovery.
+- A spec tem regra explícita: "Mantenha o conteúdo sem detalhes técnicos de implementação" (`batista-spec/SKILL.md:199`). Um discovery único abrangendo UI (telas, componentes, estados) e backend (schemas, jobs, integrações) ou (a) viola esta regra, ou (b) deixa ux/arch ainda precisando de seu próprio discovery.
 - A cláusula "discovery complementar" reconhece o problema, mas reduz o ganho real (não são mais -2 traces; é ~-1 a -1.5).
 - **Risco novo**: spec vira single point of failure — toda skill downstream depende da completude do discovery da spec. Se a spec errar um fato de backend, arch herda o gap e pode não re-descobrir (pois discovery passa a ser "só complementar"). Aumenta risco em vez de reduzir.
 
 ### 4. Recomendação #4 — fast-track sem guardians: **NÃO SEGURO COMO PROPOSTO**
 
-- `Intent Classification` é auto-classificada pelo autor da spec (`spec/SKILL.md:37`, passo 6). Sem guardian de spec, a classificação "pontual/localizada" fica sem checagem independente. Uma feature mal-classificada como pontual pula guardians que precisaria — buraco de confiança auto-referencial.
+- `Intent Classification` é auto-classificada pelo autor da spec (`batista-spec/SKILL.md:37`, passo 6). Sem guardian de spec, a classificação "pontual/localizada" fica sem checagem independente. Uma feature mal-classificada como pontual pula guardians que precisaria — buraco de confiança auto-referencial.
 - O outcome guardian do loop captura o resultado, mas para um fix pequeno o custo de uma iteração de outcome falho pode exceder o custo de um spec guardian rápido.
-- **Condição mínima para ser seguro**: manter pelo menos o guardian de spec (que valida a Intent Classification) ou ter o `manifest` checando explicitamente a classificação antes de liberar fast-track.
+- **Condição mínima para ser seguro**: manter pelo menos o guardian de spec (que valida a Intent Classification) ou ter o `batista-manifest` checando explicitamente a classificação antes de liberar fast-track.
 
 ### 5. Trade-offs — riscos subestimados
 
@@ -51,11 +51,11 @@ Evidência: `Spec Readiness Gates` (`spec/SKILL.md:151`) e `Artifact Guardian` r
 
 ### 6. Omissões — causas raiz não identificadas
 
-1. **Loops de guardian sem borne de iteração.** `repita até approved` (`spec/SKILL.md:43`, `arch/SKILL.md:49`) não tem teto de iterações. Um guardian flaky ou rubrica ambígua pode inflar turns bem além de "1-2 por skill". Não está nas 4 causas.
-2. **Custo de contexto por turno, não só contagem.** Cada guardian recarrega AGENTS.md + spec + evidências (`spec/SKILL.md:173`). O doc conta turns mas ignora tokens/custo de contexto por turno — que é onde modelos flash sentem.
-3. **`manifest` como gargalo serial.** Passos 8-14 do manifest (`manifest/SKILL.md:39-44`) são handoffs sequenciais spec→guardian→solution→guardian→plan→guardian com confirmações entre cada. Mesmo sem guardians, a serialização do manifest adiciona turnos não contabilizados.
-4. **Round-trips de clarificação.** `Clarification Protocol` orchestrated (`spec/SKILL.md:222`) re-invoca a spec por lote de até 5 perguntas; múltiplos lotes = múltiplos turnos. Não contado.
-5. **Discovery obrigatório "pelo menos um fluxo ponta a ponta"** (`spec/SKILL.md:36`) é caro por feature e não é sinalizado como fonte de lentidão.
+1. **Loops de guardian sem borne de iteração.** `repita até approved` (`batista-spec/SKILL.md:43`, `batista-arch/SKILL.md:49`) não tem teto de iterações. Um guardian flaky ou rubrica ambígua pode inflar turns bem além de "1-2 por skill". Não está nas 4 causas.
+2. **Custo de contexto por turno, não só contagem.** Cada guardian recarrega AGENTS.md + spec + evidências (`batista-spec/SKILL.md:173`). O doc conta turns mas ignora tokens/custo de contexto por turno — que é onde modelos flash sentem.
+3. **`batista-manifest` como gargalo serial.** Passos 8-14 do manifest (`batista-manifest/SKILL.md:39-44`) são handoffs sequenciais spec→guardian→solution→guardian→plan→guardian com confirmações entre cada. Mesmo sem guardians, a serialização do manifest adiciona turnos não contabilizados.
+4. **Round-trips de clarificação.** `Clarification Protocol` orchestrated (`batista-spec/SKILL.md:222`) re-invoca a spec por lote de até 5 perguntas; múltiplos lotes = múltiplos turnos. Não contado.
+5. **Discovery obrigatório "pelo menos um fluxo ponta a ponta"** (`batista-spec/SKILL.md:36`) é caro por feature e não é sinalizado como fonte de lentidão.
 
 ---
 

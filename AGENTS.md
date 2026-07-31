@@ -5,8 +5,9 @@
 Este repositório (`my-pi-packages`) é um **pi package** instalável com `pi install <path>` ou `pi -e <path>`. As skills do workflow de feature ficam em `skills/{skill-name}/SKILL.md`.
 
 - `package.json`: manifesto do pi package (`name`, `keywords`, `pi.skills`, `pi.subagents.agents`).
-- `extensions/workflow-manager-guard.ts`: bloqueia escrita de produto e normaliza preflight/model/context/cwd dos managers durante `loop`/`manifest`/`execute`.
+- `extensions/workflow-manager-guard.ts`: bloqueia escrita de produto e normaliza preflight/model/context/cwd dos managers durante `batista-loop`/`batista-manifest`/`batista-execute`.
 - `skills/{skill-name}/SKILL.md`: instruções principais de cada skill.
+- `skills/{skill-name}/scripts/`: scripts próprios de uma skill (ex.: `discord_message.py`).
 - `agents/{agent-name}.md`: guardians read-only carregados pelo `pi-subagents`.
 - `references/PI_ADAPTATION.md`: contrato entre slash commands, managers e a ferramenta `subagent`.
 - `references/MODEL_POLICY.md`: modelo/effort por papel (planejamento herda sessão; execução usa DeepSeek flash).
@@ -17,17 +18,20 @@ Não misture arquivos de uma skill com outra. Se criar uma nova skill, use um di
 
 ## Entry Point & Invocation
 
-O entry point do workflow é `/skill:loop` (controlador de resultado). Pipeline de autoria: `/skill:manifest` orquestra `spec` → (`ux` ∥ `arch`, condicional) → `plan`. Execução: `/skill:execute`.
+O entry point do workflow é `/skill:batista-loop` (controlador de resultado). Pipeline de autoria: `/skill:batista-manifest` orquestra `batista-spec` → (`batista-ux` ∥ `batista-arch`, condicional) → `batista-plan`. Execução: `/skill:batista-execute`.
 
 | Skill | Invocação | Uso |
 |---|---|---|
-| loop | `/skill:loop` | Objetivo ponta a ponta, autopilot, decomposição, worktrees |
-| manifest | `/skill:manifest` | Workflow completo (spec → ux ∥ arch → plan) |
-| spec | `/skill:spec` | Especificação de produto, DoD, clarificações |
-| ux | `/skill:ux` | Usabilidade e fluxos (quando há frontend) |
-| arch | `/skill:arch` | Arquitetura e contratos (quando há backend) |
-| plan | `/skill:plan` | Plano técnico, Impact Map, paralelismo |
-| execute | `/skill:execute` | Coordenação de workers e validação |
+| batista-loop | `/skill:batista-loop` | Objetivo ponta a ponta, autopilot, decomposição, worktrees |
+| batista-manifest | `/skill:batista-manifest` | Workflow completo (spec → ux ∥ arch → plan) |
+| batista-spec | `/skill:batista-spec` | Especificação de produto, DoD, clarificações |
+| batista-ux | `/skill:batista-ux` | Usabilidade e fluxos (quando há frontend) |
+| batista-arch | `/skill:batista-arch` | Arquitetura e contratos (quando há backend) |
+| batista-plan | `/skill:batista-plan` | Plano técnico, Impact Map, paralelismo |
+| batista-execute | `/skill:batista-execute` | Coordenação de workers e validação |
+| batista-entity-memory-playbook | `/skill:batista-entity-memory-playbook` | Memória técnica de entidades/componentes em `memory/<dominio>/` |
+| batista-ship-pr-to-deploy | `/skill:batista-ship-pr-to-deploy` | Entrega ponta a ponta: commit → PR → CR → CI → merge → tag → deploy → release note |
+| batista-discord-webhook-messages | `/skill:batista-discord-webhook-messages` | Mensagens Discord por sessão via bot (`scripts/discord_message.py`) |
 
 ## Build, Test, and Development Commands
 

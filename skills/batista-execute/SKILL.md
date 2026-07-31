@@ -1,6 +1,6 @@
 ---
-name: execute
-description: Coordena a execução de uma feature a partir de `manifest.md`, `spec.md` e `plan.md`, delegando implementação a subagents e validação a um subagent independente. Use como `/skill:execute` quando o usuário pedir execução, retomada, coordenação de tasks/fases, paralelismo operacional ou validação independente do workflow.
+name: batista-execute
+description: Coordena a execução de uma feature a partir de `manifest.md`, `spec.md` e `plan.md`, delegando implementação a subagents e validação a um subagent independente. Use como `/skill:batista-execute` quando o usuário pedir execução, retomada, coordenação de tasks/fases, paralelismo operacional ou validação independente do workflow.
 ---
 
 # Feature Execute
@@ -30,7 +30,7 @@ Workers e validadores recebem apenas contexto mínimo (task/fase, paths, spec/pl
 1. Leia o `AGENTS.md` e aplique o preflight de agents de `../../references/WORKFLOW_COMMON.md`; confirme `worker` builtin e `workflow-validator` do package com allowlist read-only exata.
 2. Canonicalize project root, feature dir e write sets conforme `../../references/WORKFLOW_COMMON.md`. Se o input resolver para feature dir ou arquivo existente, selecione-o e releia o estado; não crie outra feature.
 3. Reconcile `manifest.md`, `spec.md`, `plan.md` e slices de `ux.md`/`arch.md`. Só execute com manifest/spec/plan `ready`, guardians obrigatórios `approved`, gates `[x]`, zero pergunta material e task executável. Uma correção raiz de task existente é elegível somente após a transição completa de `Root Correction Reopen`; `done` parcial não é runnable.
-4. Se houver divergência ou lacuna de autoria, persista `blocked` e devolva ao `manifest`; não corrija artefatos folha nem execute por suposição.
+4. Se houver divergência ou lacuna de autoria, persista `blocked` e devolva ao `batista-manifest`; não corrija artefatos folha nem execute por suposição.
 5. Ao retomar task `running`, confira owner, diff e evidência persistida antes de relançar; não duplique trabalho já aplicado.
 6. Capture baseline do worktree e atualize `manifest.md`/`plan.md`: task/fase `running`, owner, write set, resume point e evidência exigida.
 7. Lance **worker** com `model: "deepseek/deepseek-v4-flash:off"`, `context: "fresh"`, `cwd: "{canonical-project-root}"` — nunca feature dir — e escopo fechado: task, write set, DoD, evidência prática, slices relevantes e testes focados permitidos.
@@ -40,7 +40,7 @@ Workers e validadores recebem apenas contexto mínimo (task/fase, paths, spec/pl
 11. Se rejeitado ou se diff/write set/path divergir, registre causa e delegue a menor correção a novo worker. Não corrija diretamente, nem mesmo uma linha ou move/copy; repetição da mesma causa sem evidência nova vira blocker.
 12. Ao fechar fase, delegue ao worker o gate final previsto no plano. Não rode suíte completa a cada task por hábito.
 13. Marque task/fase `done` somente após validator `approved`; com todas as fases e evidências aprovadas, feche o estado atomicamente antes de devolver o controle: primeiro `Status:` de `plan.md` e `manifest.md` em `done`, `manifest.md > State > Plan: done`, resume points sem próxima task e todas as tasks/fases `done`. Releia ambos; qualquer divergência mantém a execução `running`.
-14. Se esta rotina foi carregada pelo `loop`, não emita `Final Response`: devolva o controle ao loop no mesmo turno. Em standalone, responda conforme `Final Response`.
+14. Se esta rotina foi carregada pelo `batista-loop`, não emita `Final Response`: devolva o controle ao loop no mesmo turno. Em standalone, responda conforme `Final Response`.
 
 ## Manager Boundaries
 
@@ -133,4 +133,4 @@ Ao concluir, responda com:
 - `Como validar`: comandos/checks que o usuário pode rodar e resultado esperado.
 - `Resumo final`: status da feature, resume point e próxima ação.
 
-Quando carregada pelo `loop`, não produza esta resposta humana; continue o controlador com o estado persistido.
+Quando carregada pelo `batista-loop`, não produza esta resposta humana; continue o controlador com o estado persistido.

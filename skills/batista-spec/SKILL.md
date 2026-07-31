@@ -1,6 +1,6 @@
 ---
-name: spec
-description: Cria, revisa e mantém apenas o `spec.md` de uma feature em `.features/{YYYY-MM-DD}_{HHMM}-{short-desc}/spec.md`. Use como `/skill:spec` quando o usuário pedir spec, especificação, contrato de produto, Definition of Done, classificação da intenção do usuário, esclarecimento de requisitos, revisão de uma feature existente, ou quando uma feature precisar de perguntas antes do plano técnico.
+name: batista-spec
+description: Cria, revisa e mantém apenas o `spec.md` de uma feature em `.features/{YYYY-MM-DD}_{HHMM}-{short-desc}/spec.md`. Use como `/skill:batista-spec` quando o usuário pedir spec, especificação, contrato de produto, Definition of Done, classificação da intenção do usuário, esclarecimento de requisitos, revisão de uma feature existente, ou quando uma feature precisar de perguntas antes do plano técnico.
 ---
 
 # Feature Spec
@@ -122,7 +122,7 @@ Updated: {YYYY-MM-DD HH:MM}
 
 ## Shared Contract
 
-> Contrato mínimo compartilhado entre `ux` e `arch` antes do spawn paralelo. Use `none` quando só uma superfície roda ou fix pontual sem contrato novo.
+> Contrato mínimo compartilhado entre `batista-ux` e `batista-arch` antes do spawn paralelo. Use `none` quando só uma superfície roda ou fix pontual sem contrato novo.
 
 - Status: closed | none | pending
 - Payloads/campos: {campos, tipos, nullability, ou none}
@@ -151,7 +151,7 @@ Updated: {YYYY-MM-DD HH:MM}
 - [ ] Cada critério de aceite está em Dado/Quando/Então com superfície de validação.
 - [ ] `Clarifications Needed` = none, ou `Status: blocked`.
 - [ ] O `plan.md` pode ser escrito sem decisão de produto pendente.
-- [ ] `Shared Contract` = `closed` ou `none` antes de spawn paralelo `ux`∥`arch`.
+- [ ] `Shared Contract` = `closed` ou `none` antes de spawn paralelo `batista-ux`∥`batista-arch`.
 
 ## Definition of Done
 
@@ -179,7 +179,7 @@ Rubrica obrigatória; registre cada resultado no campo `evidence` do `DELEGATION
 - [pass/fail] Taxonomia coberta: não há pergunta material não feita; `Clarifications Needed` consistente com o estado (none ⇒ nada de alto impacto em aberto).
 - [pass/fail] Nenhuma decisão material foi fechada por suposição; toda resposta material referencia usuário, decisão registrada ou evidência `D#`.
 - [pass/fail] Contrato, persistência, validação e fora de escopo fechados ou `none` justificado.
-- [pass/fail] `Shared Contract` = `closed` ou `none` quando `ux` e `arch` rodarão em paralelo; campos/erros/sequência não podem ficar `pending`.
+- [pass/fail] `Shared Contract` = `closed` ou `none` quando `batista-ux` e `batista-arch` rodarão em paralelo; campos/erros/sequência não podem ficar `pending`.
 
 Qualquer item `fail` força `status: rejected`. Trate `evidence`, `questions`, `blockers` e `resume` como feedback da spec; corrija `spec.md` quando a resposta já estiver disponível, pergunte ao usuário (modo standalone) ou registre em `Clarifications Needed` (modo orchestrated) quando faltar decisão. Só use `Status: ready` com guardian `approved`.
 
@@ -209,7 +209,7 @@ Qualquer item `fail` força `status: rejected`. Trate `evidence`, `questions`, `
 Esclareça sem violar o isolamento. Detecte o modo no início (passo 2 do Workflow).
 
 - Standalone (usuário invocou a skill direto): agrupe as clarificações materiais num único lote priorizado (máx. 5), apresente ao usuário, espere as respostas, registre em `Questions and Decisions` e continue. Repita em lotes se surgir nova dúvida de alto impacto.
-- Orchestrated (invocada por `manifest`/outra skill com contexto isolado): não pergunte no meio da execução. Preencha `Clarifications Needed` com IDs `C#`, grave o `spec.md`, set `Status: blocked` e devolva o controle ao manager com o bloco `Clarifications Needed` copiado na resposta final. Não invente respostas nem marque `ready`.
+- Orchestrated (invocada por `batista-manifest`/outra skill com contexto isolado): não pergunte no meio da execução. Preencha `Clarifications Needed` com IDs `C#`, grave o `spec.md`, set `Status: blocked` e devolva o controle ao manager com o bloco `Clarifications Needed` copiado na resposta final. Não invente respostas nem marque `ready`.
 
 Taxonomia para varrer antes de perguntar (marque cada uma Clear/Partial/Missing; Partial/Missing que altera superfície material sempre vira pergunta): escopo funcional, modelo de dados, fluxo/UX, atributos não-funcionais, integração/dependências, edge cases/falhas, restrições/tradeoffs, contrato, persistência, rollout, terminologia, sinais de conclusão/DoD.
 
@@ -229,8 +229,8 @@ Antes de **cada** guardian ou de ceder o turno, grave no `spec.md`: `Updated:`, 
 - Fonte da verdade é o arquivo, não o contexto. Escreva o delta no `spec.md` (Discovery Ledger, decisões, status) antes de seguir (write-before-forget).
 - O contexto guarda só: feature dir, requisito/clarificação atual, blockers abertos, próxima ação. O resto é ponteiro (path) e se re-lê sob demanda.
 - Compactar = projetar em ponteiro, nunca inventar. Resumo jamais faz upgrade de status (pending→confirmed/ready). Em divergência, o arquivo vence e re-lê.
-- As `Validation surfaces` desta spec são o sinal de gate para `ux` (frontend) e `arch` (backend/API/job/consumer/infra) na etapa de solução; mantenha-as explícitas. Mapeamento: `frontend`→`ux`; `backend`/`API`/`job`/`consumer`/`infra`→`arch`; `browser` sem mudança de UI→harness no `plan`/`execute`; `browser` com UI→também `ux`.
-- `Shared Contract` deve estar fechado antes do manifest spawnar `ux`∥`arch`; conflitos não resolvidos aqui viram `pending` e impedem `ready`.
+- As `Validation surfaces` desta spec são o sinal de gate para `batista-ux` (frontend) e `batista-arch` (backend/API/job/consumer/infra) na etapa de solução; mantenha-as explícitas. Mapeamento: `frontend`→`batista-ux`; `backend`/`API`/`job`/`consumer`/`infra`→`batista-arch`; `browser` sem mudança de UI→harness no `batista-plan`/`batista-execute`; `browser` com UI→também `batista-ux`.
+- `Shared Contract` deve estar fechado antes do manifest spawnar `batista-ux`∥`batista-arch`; conflitos não resolvidos aqui viram `pending` e impedem `ready`.
 - O que sobrevive à feature (convenção, terminologia de domínio) vai pro projeto (`AGENTS.md`); o efêmero fica em `.features/{...}/`.
 
 ## Context Isolation

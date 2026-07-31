@@ -1,6 +1,6 @@
 ---
-name: ux
-description: Cria, revisa e mantém apenas o `ux.md` de usabilidade de uma feature em `.features/{YYYY-MM-DD}_{HHMM}-{short-desc}/ux.md`, a partir de `spec.md` e condicional a haver superfície de frontend afetada. Use como `/skill:ux` quando o usuário pedir usabilidade, fluxo de uso, estados de tela, prevenção de erro, feedback, acessibilidade ou revisão da experiência de uma feature com frontend.
+name: batista-ux
+description: Cria, revisa e mantém apenas o `ux.md` de usabilidade de uma feature em `.features/{YYYY-MM-DD}_{HHMM}-{short-desc}/ux.md`, a partir de `spec.md` e condicional a haver superfície de frontend afetada. Use como `/skill:batista-ux` quando o usuário pedir usabilidade, fluxo de uso, estados de tela, prevenção de erro, feedback, acessibilidade ou revisão da experiência de uma feature com frontend.
 ---
 
 # Feature UX
@@ -23,13 +23,13 @@ Quando invocada por outra skill do feature-workflow, execute como child `delegat
 
 - Produza `ux.md` só quando `spec.md` indicar superfície de frontend/UI afetada (ver `Validation surfaces` da spec).
 - Se não houver frontend afetado, não crie o arquivo: responda `ux não aplicável` com a evidência (superfícies da spec) e devolva o controle.
-- Roda em paralelo com `/skill:arch`; ambas partem da mesma spec como contrato âncora.
+- Roda em paralelo com `/skill:batista-arch`; ambas partem da mesma spec como contrato âncora.
 
 ## Workflow
 
 1. Leia o `AGENTS.md` do projeto.
-2. Determine o modo: **standalone** (usuário invocou direto) ou **orchestrated** (invocada por `manifest` em subagent — não pergunte ao usuário no meio). Ver `Clarification Protocol`.
-3. Localize o `spec.md` da feature. Se não existir ou estiver `draft`/`blocked`, registre blocker, set `Status: blocked` e devolva ao manager; não emita `/skill:spec`.
+2. Determine o modo: **standalone** (usuário invocou direto) ou **orchestrated** (invocada por `batista-manifest` em subagent — não pergunte ao usuário no meio). Ver `Clarification Protocol`.
+3. Localize o `spec.md` da feature. Se não existir ou estiver `draft`/`blocked`, registre blocker, set `Status: blocked` e devolva ao manager; não emita `/skill:batista-spec`.
 4. Confirme a aplicabilidade (superfície frontend na spec). Se não aplicável, pare conforme `Applicability`.
 5. Se o input for um `ux.md` existente, trate como revisão: leia antes de decidir status.
 6. **Usability Discovery**: parta do `Discovery Ledger` da spec (`D#` recebidos via manifest). Trace fluxos de uso, telas/rotas, componentes reutilizáveis, estados e baseline de acessibilidade. Registre achados de UX não cobertos pela spec no `Usability Ledger` com `U#`, fonte e evidência. Se o ledger da spec for insuficiente para decisão de design, faça discovery completo e escale com `Open Questions`. Use Graphify quando `graphify-out/graph.json` existir.
@@ -137,7 +137,7 @@ Qualquer item `fail` força `status: rejected`. Trate `evidence`, `questions`, `
 - Acessibilidade concreta por tela; não aceite "seguir boas práticas" genérico.
 - Mesmo se o usuário disser "implemente", esta skill cria/refina `ux.md` e para.
 - Ao receber `ux.md` existente, trate como revisão e não aceite status pronto herdado sem checagem.
-- Roda em paralelo com `arch` sem ver `arch.md`; conflito com `Shared Contract` ou premissa técnica vira `Open Questions` (orchestrated: `Status: blocked`) — reconciliação final no `plan`.
+- Roda em paralelo com `batista-arch` sem ver `arch.md`; conflito com `Shared Contract` ou premissa técnica vira `Open Questions` (orchestrated: `Status: blocked`) — reconciliação final no `batista-plan`.
 - Não aceite guardian genérico; ele lista evidência conferida ou bloqueia com pergunta/crítica objetiva.
 
 ## Clarification Protocol

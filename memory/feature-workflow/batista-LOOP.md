@@ -10,7 +10,7 @@ Conduzir um objetivo até `converged`, `blocked` ou `ceiling`, retomando o mesmo
 
 ## Relações
 
-Carrega `manifest` e `execute` inline na sessão raiz; `workflow-validator` fecha apenas a sub-feature e `artifact-guardian` valida somente o outcome do épico completo.
+Carrega `batista-manifest` e `batista-execute` inline na sessão raiz; `workflow-validator` fecha apenas a sub-feature e `artifact-guardian` valida somente o outcome do épico completo.
 
 ## Fluxo
 
@@ -20,5 +20,5 @@ Falha raiz avalia ceiling/anti-thrash antes de incrementar ou reabrir. Havendo o
 
 ## Fontes no código
 
-- `skills/loop/SKILL.md`
+- `skills/batista-loop/SKILL.md`
 - `references/PI_ADAPTATION.md`

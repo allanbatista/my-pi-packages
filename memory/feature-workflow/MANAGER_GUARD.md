@@ -6,11 +6,11 @@ Impedir que modelos simples contornem as fronteiras do workflow por tool call.
 
 ## Entidades
 
-Ativação por `/skill:loop|manifest|execute`, allowlist de paths, preflight de agents, contrato de dispatch e validação pendente.
+Ativação por `/skill:batista-loop|batista-manifest|batista-execute`, allowlist de paths, preflight de agents, contrato de dispatch e validação pendente.
 
 ## Relações
 
-Complementa as instruções de `loop` e `execute` com enforcement no evento `tool_call`; não roda dentro dos children porque eles não recebem o slash command manager.
+Complementa as instruções de `batista-loop` e `batista-execute` com enforcement no evento `tool_call`; não roda dentro dos children porque eles não recebem o slash command manager.
 
 ## Fluxo
 

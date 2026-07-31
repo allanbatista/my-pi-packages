@@ -18,4 +18,4 @@ Preflight → Impact Map → DAG/batches → harness → draft → guardian → 
 
 ## Fontes no código
 
-- `skills/plan/SKILL.md`
+- `skills/batista-plan/SKILL.md`

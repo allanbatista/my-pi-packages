@@ -20,6 +20,6 @@ O manager escreve somente `loop.md`, `manifest.md` e `plan.md`; produto incorret
 
 ## Fontes no código
 
-- `skills/execute/SKILL.md`
+- `skills/batista-execute/SKILL.md`
 - `agents/workflow-validator.md`
 - `references/MODEL_POLICY.md`

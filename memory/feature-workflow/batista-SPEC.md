@@ -18,5 +18,5 @@ Discovery → classificação → clarificações → rastreabilidade → fail-c
 
 ## Fontes no código
 
-- `skills/spec/SKILL.md`
+- `skills/batista-spec/SKILL.md`
 - `.memory/RULES_AND_DEFINITION.md`

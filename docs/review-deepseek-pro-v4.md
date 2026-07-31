@@ -18,7 +18,7 @@ Análise estruturalmente sólida mas com riscos subestimados e omissões relevan
 
 | Causa | Verdicto | Evidência |
 |---|---|---|
-| **#1 Guardians inflam turn count** | ✅ Correta | Cada skill (spec/ux/arch/plan) tem passo explícito "Rode guardian independente" no workflow (ex: spec/SKILL.md:147, plan/SKILL.md:181). Manifest exige `approved` como gate: "Não marque ready sem guardian aprovado" (manifest/SKILL.md:213). Cada guardian consome 1-2 turns de context reload + rubrica. |
+| **#1 Guardians inflam turn count** | ✅ Correta | Cada skill (spec/ux/arch/plan) tem passo explícito "Rode guardian independente" no workflow (ex: batista-spec/SKILL.md:147, batista-plan/SKILL.md:181). Manifest exige `approved` como gate: "Não marque ready sem guardian aprovado" (batista-manifest/SKILL.md:213). Cada guardian consome 1-2 turns de context reload + rubrica. |
 | **#2 Tripla Discovery** | ⚠️ Parcialmente correta | Spec, ux e arch têm Discovery Ledgers com escopos diferentes (spec: contratos/APIs/schemas, ux: telas/fluxos/estados, arch: componentes/dados/integrações). A sobreposição real está nos arquivos-base (AGENTS.md, spec.md, estrutura do repo) — não necessariamente "os mesmos arquivos 3 vezes." O documento superestima a redundância ao não distinguir entre leitura base e discovery especializado. |
 | **#3 Boilerplate duplicado** | ✅ Correta | Confirmado em todos os 7 SKILL.md: seções `Pi Runtime`, `Delegação`, `Context Isolation`, `State & Memory` são idênticas ou quase idênticas. ~200 linhas de duplicação entre 1402 totais (14%). Manutenção requer edição em 7 arquivos. |
 | **#4 Guardians vs self-check redundante** | ⚠️ Subestima o papel generativo do guardian | A redundância de rubrica é real (Readiness Gates ≈ Guardian Rubric nos itens mecânicos). Porém o guardian tem função generativa que o documento não captura: o campo `Questions` e `Critiques` permite ao guardian levantar problemas que o autor não viu. O self-check é mecânico (checklist de itens conhecidos); o guardian é um juiz independente que pode fazer perguntas novas (ex: spec guardian pergunta "Taxonomia coberta: não há pergunta material não feita" — isso não está nos Readiness Gates da spec). |
@@ -33,9 +33,9 @@ A análise propõe remover guardians de artefato (spec, ux, arch, plan) e confia
 
 1. **Context blindness do autor**: O skill que escreve não tem distância crítica para validar o próprio artefato. O guardian existe justamente para ser um par independente.
 
-2. **Manifest não substitui guardian**: O manifest reconcilia consistência *entre* artefatos (Solution Gate: spec↔ux↔arch↔plan), não a qualidade *interna* de cada artefato. Evidência: manifest/SKILL.md passo 8 diz "confirme aprovação do guardian da spec; se faltar, dispare guardian" — o manifest delega a validação ao guardian, não a faz.
+2. **Manifest não substitui guardian**: O manifest reconcilia consistência *entre* artefatos (Solution Gate: spec↔ux↔arch↔plan), não a qualidade *interna* de cada artefato. Evidência: batista-manifest/SKILL.md passo 8 diz "confirme aprovação do guardian da spec; se faltar, dispare guardian" — o manifest delega a validação ao guardian, não a faz.
 
-3. **Outcome guardian é shift-right**: O outcome guardian do loop valida se o *resultado* entrega o *objetivo* (loop/SKILL.md:247). Não valida se o spec tem requisitos EARS, se cada fato tem D#, se contratos estão fechados. Erro de spec detectado pós-execução custa replan + reimplement — muito mais caro que pré-execução.
+3. **Outcome guardian é shift-right**: O outcome guardian do loop valida se o *resultado* entrega o *objetivo* (batista-loop/SKILL.md:247). Não valida se o spec tem requisitos EARS, se cada fato tem D#, se contratos estão fechados. Erro de spec detectado pós-execução custa replan + reimplement — muito mais caro que pré-execução.
 
 4. **Cascata de retrabalho**: Fluxo proposto: spec self-check → ready → ux/arch → plan → execute → outcome guardian rejeita → reroute para spec → refazer spec → refazer ux/arch/plan → reexecutar. Na prática, um erro de spec que o guardian pegaria em 1-2 turns pode virar 6-10 turns de retrabalho.
 
@@ -143,7 +143,7 @@ Isso mantém fast-track para features triviais e exige guardian para features po
 
 ### S3: Critério de escalação para discovery complementar
 
-Adicionar ao ux/SKILL.md e arch/SKILL.md: "Se o Discovery Ledger da spec não contiver informação suficiente para uma decisão de design, registre `Open Questions` com `Q#`, faça discovery completo na dimensão afetada e continue."
+Adicionar ao batista-ux/SKILL.md e batista-arch/SKILL.md: "Se o Discovery Ledger da spec não contiver informação suficiente para uma decisão de design, registre `Open Questions` com `Q#`, faça discovery completo na dimensão afetada e continue."
 
 ### S4: Medir antes de otimizar
 
@@ -157,7 +157,7 @@ Sem dados, as otimizações podem mirar o alvo errado.
 
 ### S5: Especificar "complementary discovery" com extensão
 
-No ux/SKILL.md e arch/SKILL.md, substituir "Discovery só complementar" por:
+No batista-ux/SKILL.md e batista-arch/SKILL.md, substituir "Discovery só complementar" por:
 - "Parta do Discovery Ledger da spec (D# recebidos via manifest). Confirme aplicabilidade ao escopo de UX/arch."
 - "Faça discovery adicional APENAS nas dimensões específicas de UX/arch não cobertas pelo spec."
 - "Se o discovery complementar revelar lacuna no spec que afeta decisão de design, escale com Open Questions."

@@ -18,4 +18,4 @@ Aplicabilidade → discovery → solução → perguntas ou draft → guardian �
 
 ## Fontes no código
 
-- `skills/ux/SKILL.md`
+- `skills/batista-ux/SKILL.md`

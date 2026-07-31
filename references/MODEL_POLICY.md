@@ -2,7 +2,7 @@
 
 ## Planejamento
 
-Autoria (`spec`, `ux`, `arch`, `plan`) usa `delegate` com `model: "inherit"`. Guardians de artefato e outcome usam `artifact-guardian` com `model: "inherit"`. Ambos usam `context: "fresh"`.
+Autoria (`batista-spec`, `batista-ux`, `batista-arch`, `batista-plan`) usa `delegate` com `model: "inherit"`. Guardians de artefato e outcome usam `artifact-guardian` com `model: "inherit"`. Ambos usam `context: "fresh"`.
 
 `model: "inherit"` fixa o modelo ativo da sessão no child. O `pi-subagents` atual não expõe o thinking ativo como parâmetro por chamada; portanto o effort segue a configuração efetiva do agente/runtime. Verifique com `/subagents-models` quando paridade estrita de effort for requisito.
 

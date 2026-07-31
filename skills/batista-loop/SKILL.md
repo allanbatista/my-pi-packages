@@ -1,6 +1,6 @@
 ---
-name: loop
-description: Controlador de resultado (closed loop) de uma feature ou épico em `.features/{YYYY-MM-DD}_{HHMM}-{short-desc}/loop.md`. Garante que o objetivo é atingido, orquestrando as rotinas `manifest` e `execute` na sessão raiz e replanejando/reexecutando o menor ponto até fechar. Use como `/skill:loop` quando o usuário pedir para atingir um objetivo ponta a ponta, autopilot, decomposição em sub-features, execução sequencial/paralela, worktrees, merge/integração ou retomada de um objetivo long-running.
+name: batista-loop
+description: Controlador de resultado (closed loop) de uma feature ou épico em `.features/{YYYY-MM-DD}_{HHMM}-{short-desc}/loop.md`. Garante que o objetivo é atingido, orquestrando as rotinas `batista-manifest` e `batista-execute` na sessão raiz e replanejando/reexecutando o menor ponto até fechar. Use como `/skill:batista-loop` quando o usuário pedir para atingir um objetivo ponta a ponta, autopilot, decomposição em sub-features, execução sequencial/paralela, worktrees, merge/integração ou retomada de um objetivo long-running.
 ---
 
 # Feature Loop
@@ -9,7 +9,7 @@ description: Controlador de resultado (closed loop) de uma feature ou épico em 
 
 Execute na ordem; não pule passos nem compense falha de child:
 
-1. Paths de instrução (`../execute/SKILL.md`, `../manifest/SKILL.md`, `../../references/*`) são relativos ao diretório deste `loop/SKILL.md`, **nunca** ao cwd, project root ou epic dir. Se não conseguir ler o path real do package, grave `blocked`; não simule a rotina.
+1. Paths de instrução (`../batista-execute/SKILL.md`, `../batista-manifest/SKILL.md`, `../../references/*`) são relativos ao diretório deste `batista-loop/SKILL.md`, **nunca** ao cwd, project root ou epic dir. Se não conseguir ler o path real do package, grave `blocked`; não simule a rotina.
 2. Antes do primeiro child, chame `subagent({ action: "list" })` e depois `subagent({ action: "get", agent: "{papel}" })` para cada papel usado.
 3. Toda chamada de execução contém literalmente:
    - worker: `subagent({ agent: "worker", model: "deepseek/deepseek-v4-flash:off", context: "fresh", cwd: "{canonical-project-root}", task: "..." })`;
@@ -28,15 +28,15 @@ Leia e siga `../../references/WORKFLOW_COMMON.md` para runtime Pi, delegação, 
 
 Use esta skill como controlador de resultado: dado um objetivo, garanta que ele é atingido de fato, decidindo decomposição, sequência/paralelismo e integração, e iterando (planejar/replanejar/executar/reexecutar) até fechar com evidência.
 
-Esta é a camada mais externa do plugin. Ela orquestra as rotinas `manifest` (autoria) e `execute` (execução); não escreve `spec`/`ux`/`arch`/`plan` direto nem implementa código de produto.
+Esta é a camada mais externa do plugin. Ela orquestra as rotinas `batista-manifest` (autoria) e `batista-execute` (execução); não escreve `batista-spec`/`batista-ux`/`batista-arch`/`batista-plan` direto nem implementa código de produto.
 
 ### Manager Tool Firewall — antes de todo `write`/`edit`
 
-Resolva o target antes da chamada. A allowlist fechada da sessão raiz contém somente o `loop.md` selecionado e os `manifest.md`/`plan.md` das sub-features; qualquer outro path é produto e a chamada é proibida. Isso vale também para correção trivial de um byte, gap raiz, worker vazio/incorreto ou arquivo no path errado. Cancele a chamada e aplique `execute`, que despacha um `worker`. O manager nunca cria, edita, move, copia ou remove produto.
+Resolva o target antes da chamada. A allowlist fechada da sessão raiz contém somente o `loop.md` selecionado e os `manifest.md`/`plan.md` das sub-features; qualquer outro path é produto e a chamada é proibida. Isso vale também para correção trivial de um byte, gap raiz, worker vazio/incorreto ou arquivo no path errado. Cancele a chamada e aplique `batista-execute`, que despacha um `worker`. O manager nunca cria, edita, move, copia ou remove produto.
 
 Não use achismo: o objetivo só está atingido com evidência prática no caminho afetado. Registre como blocker qualquer premissa que não puder confirmar por arquivo, comando, log, teste, browser ou resposta do usuário.
 
-Esta skill atua como manager raiz. Carregue as rotinas de `manifest` e `execute` com `read`; elas não são slash commands internos. Veja `../../references/PI_ADAPTATION.md`.
+Esta skill atua como manager raiz. Carregue as rotinas de `batista-manifest` e `batista-execute` com `read`; elas não são slash commands internos. Veja `../../references/PI_ADAPTATION.md`.
 
 ## Workflow
 
@@ -45,15 +45,15 @@ Esta skill atua como manager raiz. Carregue as rotinas de `manifest` e `execute`
 3. Fixe o **objetivo verificável**: resultado esperado + evidência de aceite no nível do resultado. Ambiguidade material vira pergunta e `blocked`.
 4. Decida ou releia a decomposição (ver `Decomposition`) e persista DAG, write sets, dependências e estratégia.
 5. Reconcile `loop.md`, cada `manifest.md` e os artefatos ligados conforme `State Reconciliation`. Rebaixe qualquer índice otimista; arquivo e gates vencem resumos.
-6. Para cada sub-feature liberada **não terminal**, cujo `execute`/`Status` ainda não seja `done`/`done`, carregue `../manifest/SKILL.md` somente se o manifest não estiver realmente `ready`; manifest com primeiro `Status: done` é terminal válido quando sua linha também está `done` e nunca deve ser reaberto. Aplique `../manifest/SKILL.md` inline em modo orchestrated, sem emitir `/skill:manifest` nem propagar a `Final Response` interna.
+6. Para cada sub-feature liberada **não terminal**, cujo `execute`/`Status` ainda não seja `done`/`done`, carregue `../batista-manifest/SKILL.md` somente se o manifest não estiver realmente `ready`; manifest com primeiro `Status: done` é terminal válido quando sua linha também está `done` e nunca deve ser reaberto. Aplique `../batista-manifest/SKILL.md` inline em modo orchestrated, sem emitir `/skill:batista-manifest` nem propagar a `Final Response` interna.
 7. Releia manifest, spec, ux/arch e plan. Só aceite autoria quando todos os status literais, gates e guardians persistidos forem válidos e não houver clarificação material. Se houver perguntas, copie-as ao usuário, grave `blocked` e ceda o turno.
-8. Com autoria válida e `execute` `pending|running|fail` elegível a retry, carregue `../execute/SKILL.md` com `read` e aplique sua rotina inline. Cada chamada deve informar literalmente `cwd: "{canonical-project-root}"`, `model: "deepseek/deepseek-v4-flash:off"` para `worker` e `model: "deepseek/deepseek-v4-flash:xhigh"` para `workflow-validator`; feature dir como `cwd`, `inherit`, campo ausente ou valor efetivo divergente invalida o dispatch e não promove estado. Execução concluída deve persistir `Status: done` no `manifest.md` e no `plan.md`. **Não encerre pedindo ao usuário para executar a fase.**
+8. Com autoria válida e `execute` `pending|running|fail` elegível a retry, carregue `../batista-execute/SKILL.md` com `read` e aplique sua rotina inline. Cada chamada deve informar literalmente `cwd: "{canonical-project-root}"`, `model: "deepseek/deepseek-v4-flash:off"` para `worker` e `model: "deepseek/deepseek-v4-flash:xhigh"` para `workflow-validator`; feature dir como `cwd`, `inherit`, campo ausente ou valor efetivo divergente invalida o dispatch e não promove estado. Execução concluída deve persistir `Status: done` no `manifest.md` e no `plan.md`. **Não encerre pedindo ao usuário para executar a fase.**
 9. Execute batches de sub-features como batches: inicie as independentes antes de aguardar; serialize só as dependentes. Features paralelas usam worktrees isolados.
 10. Ao fechar um batch, releia `manifest.md` e `plan.md` de cada sub-feature. Atualize sua linha atomicamente para `manifest=done`, `execute=done`, `Verify=pass`, `Status=done` somente quando o **primeiro campo `Status:`** de ambos e `manifest.md > State > Plan` persistirem `done`, todas as tasks/fases estiverem `done`, os resume points não indicarem trabalho e a evidência estiver aprovada. Antes da execução, `manifest=ready`; depois dela, espelhe o header terminal como `done`. Aprovação local não atualiza `Integration`, `Outcome Guardian`, `Status` nem `Iterations used` do épico.
 11. Enquanto qualquer linha de `Sub-features` não estiver `done | done | pass | done`, continue pela próxima sub-feature liberada no DAG. Mantenha o Outcome Guardian raiz `pending` e não emita resposta final de fase.
 12. Somente após passar os itens 1–2 do `Root Completion Gate`, faça merge dos worktrees quando aplicável, rode o aceite end-to-end do objetivo inteiro diretamente com `bash`/`read` da sessão raiz e persista toda prova e todo ajuste de linha/resume em `loop.md`. Não lance child para executar ou aprovar o E2E. Se ele passar, não faça outra chamada `subagent` até o `artifact-guardian`; se falhar, invalide o checkpoint e siga imediatamente ao passo 14.
 13. Após passar também o item 3, faça o `Pre-Guardian Checkpoint`; só então dispare o `artifact-guardian` raiz com `model: "inherit"`, `context: "fresh"`, `cwd: "{canonical-project-root}"`, o objetivo literal do `loop.md`, todas as sub-features e a evidência de `Integration > E2E` desta iteração.
-14. **Gap → itera:** se a integração ou o outcome raiz falhar, diagnostique a menor causa e, antes de incrementar ou reabrir qualquer estado, aplique os guards de `Ceiling` e `Anti-thrash`. Se nenhum guard parar o loop, registre exatamente uma iteração raiz e aplique integralmente `Root Correction Reopen` antes de rotear para `manifest`, `execute` ou decomposição. O manager raiz não corrige produto; toda mutação de produto continua obrigatoriamente no `worker` de `execute`.
+14. **Gap → itera:** se a integração ou o outcome raiz falhar, diagnostique a menor causa e, antes de incrementar ou reabrir qualquer estado, aplique os guards de `Ceiling` e `Anti-thrash`. Se nenhum guard parar o loop, registre exatamente uma iteração raiz e aplique integralmente `Root Correction Reopen` antes de rotear para `batista-manifest`, `batista-execute` ou decomposição. O manager raiz não corrige produto; toda mutação de produto continua obrigatoriamente no `worker` de `batista-execute`.
 15. Repita até uma `Stop Condition`. Atualize `loop.md` antes de ceder o turno.
 16. Ao final, responda conforme `Final Response`.
 
@@ -62,8 +62,8 @@ Esta skill atua como manager raiz. Carregue as rotinas de `manifest` e `execute`
 | Estado persistido | Próxima ação |
 |---|---|
 | Clarificação material aberta | `blocked`; perguntar ao usuário |
-| Sub-feature não terminal + manifest ausente, inválido ou não `ready` | carregar `manifest/SKILL.md` e continuar inline |
-| Manifest válido + execute `pending|running|fail` elegível a retry | carregar `execute/SKILL.md` e continuar inline |
+| Sub-feature não terminal + manifest ausente, inválido ou não `ready` | carregar `batista-manifest/SKILL.md` e continuar inline |
+| Manifest válido + execute `pending|running|fail` elegível a retry | carregar `batista-execute/SKILL.md` e continuar inline |
 | Execute `done` + verify pendente | validar somente a sub-feature e atualizar sua linha |
 | Sub-feature `done`, mas existe outra incompleta | não reabrir a concluída; continuar a próxima liberada e manter outcome raiz `pending` |
 | Todas as sub-features `done|done|pass|done` | rodar integração end-to-end raiz |
@@ -84,7 +84,7 @@ Qualquer campo ausente, divergente ou ambíguo falha o gate. Rebaixe Outcome Gua
 
 ### Root Correction Reopen
 
-Após falha raiz, antes de qualquer incremento ou mutação de reabertura, avalie `Ceiling` e `Anti-thrash` com o budget e o ledger persistidos. Se um guard disparar, grave a stop condition e não incremente nem reabra trabalho. Caso contrário, rebaixe Outcome Guardian para `pending`, incremente `Iterations used` uma vez e grave uma entrada concreta no ledger. Se a correção couber numa task já planejada, reabra **somente** a sub-feature responsável antes de chamar `execute`:
+Após falha raiz, antes de qualquer incremento ou mutação de reabertura, avalie `Ceiling` e `Anti-thrash` com o budget e o ledger persistidos. Se um guard disparar, grave a stop condition e não incremente nem reabra trabalho. Caso contrário, rebaixe Outcome Guardian para `pending`, incremente `Iterations used` uma vez e grave uma entrada concreta no ledger. Se a correção couber numa task já planejada, reabra **somente** a sub-feature responsável antes de chamar `batista-execute`:
 
 - `plan.md`: primeiro `Status: ready`; task/fase afetada `pending`; `Evidence: pending`; resume aponta a task; preserve o guardian/readiness do plano `approved`, pois a task existente não muda o plano;
 - `manifest.md`: primeiro `Status: ready`; `State > Plan: ready` — nunca `pending`; resume aponta `execute` da task; preserve todos os demais estados e guardians;
@@ -93,12 +93,12 @@ Após falha raiz, antes de qualquer incremento ou mutação de reabertura, avali
 Essa transição inteira deve estar persistida e relida **antes de qualquer correção**; campo divergente impede o worker. Preserve campos não citados e não reescreva o documento inteiro para reabrir status. Depois siga esta ordem sem atalhos:
 
 1. faça o preflight `list`/`get` exigido para `worker` e `workflow-validator`;
-2. aplique `execute`: checkpoint `running` → um worker → inspeção do write set/evidência;
+2. aplique `batista-execute`: checkpoint `running` → um worker → inspeção do write set/evidência;
 3. o próximo child após esse worker é obrigatoriamente um único `workflow-validator`, nunca `artifact-guardian`; sem aprovação positiva, a task não fecha;
 4. só então retorne task/fase, plan/manifest/`State.Plan`, resumes e linha do loop ao estado terminal;
 5. repita o E2E raiz, o checkpoint limpo e um único `artifact-guardian`.
 
-É proibido saltar de outcome/E2E rejeitado para E2E `pass`, guardian raiz ou `converged`. As demais sub-features permanecem terminais. Se a correção mudar requisito, contrato, solução ou tasks do plano, não preserve approvals: invalide os artefatos downstream e roteie ao `manifest`/replan.
+É proibido saltar de outcome/E2E rejeitado para E2E `pass`, guardian raiz ou `converged`. As demais sub-features permanecem terminais. Se a correção mudar requisito, contrato, solução ou tasks do plano, não preserve approvals: invalide os artefatos downstream e roteie ao `batista-manifest`/replan.
 
 ### Pre-Guardian Checkpoint
 
@@ -115,7 +115,7 @@ Decida com critério, não por conveniência:
 | Sub-feature B precisa do contrato de A, ou compartilha write set | sequencial |
 | Write sets disjuntos + validação independente | paralelo → 1 worktree por feature |
 
-Mesma regra de write-set disjunto do `plan` (paralelismo de tasks), elevada para o nível de feature. Não paralelize features que compartilham arquivo, migração, contrato ou sequência de validação.
+Mesma regra de write-set disjunto do `batista-plan` (paralelismo de tasks), elevada para o nível de feature. Não paralelize features que compartilham arquivo, migração, contrato ou sequência de validação.
 
 ## Stop Conditions
 
@@ -212,16 +212,16 @@ Use estes campos literalmente; nenhum pode ser omitido:
 subagent({ agent: "artifact-guardian", model: "inherit", context: "fresh", cwd: "{canonical-project-root}", task: "..." })
 ```
 
-O guardian não edita arquivos nem valida task, fase ou sub-feature isolada (isso é do `execute`). Ele valida o **objetivo end-to-end**: o resultado combinado de todas as sub-features entrega o objetivo, a integração/aceite funciona e há evidência prática — sem achismo. Qualquer linha incompleta ou `Integration > E2E: pending` força `rejected`, inclusive em feature única.
+O guardian não edita arquivos nem valida task, fase ou sub-feature isolada (isso é do `batista-execute`). Ele valida o **objetivo end-to-end**: o resultado combinado de todas as sub-features entrega o objetivo, a integração/aceite funciona e há evidência prática — sem achismo. Qualquer linha incompleta ou `Integration > E2E: pending` força `rejected`, inclusive em feature única.
 
 Somente o `DELEGATION_RESULT` desta chamada, com `artifact` resolvendo para o `loop.md` raiz selecionado e evidência ligada ao `Integration > E2E` atual, pode atualizar o Outcome Guardian raiz. Em `evidence`, ligue cada critério do objetivo a `pass|fail` e à prova conferida; use `questions`, `blockers` e `resume` para decisão, gap e menor correção. Origem ou escopo não comprovável mantém `pending`; `status: rejected` abre uma iteração raiz.
 
 ## Rules
 
 - O objetivo do loop é resultado atingido com evidência, não docs escritos nem código que "parece certo".
-- Invocar `/skill:loop` autoriza autoria, execução, validação e iteração até uma `Stop Condition`; não peça uma segunda autorização entre manifest e execute.
-- Delegue autoria a `manifest` e execução a `execute`; não escreva `spec`/`ux`/`arch`/`plan` direto nem implemente produto.
-- Toda sub-feature passa por `manifest` (autoria + guardians) antes de `execute`.
+- Invocar `/skill:batista-loop` autoriza autoria, execução, validação e iteração até uma `Stop Condition`; não peça uma segunda autorização entre manifest e execute.
+- Delegue autoria a `batista-manifest` e execução a `batista-execute`; não escreva `batista-spec`/`batista-ux`/`batista-arch`/`batista-plan` direto nem implemente produto.
+- Toda sub-feature passa por `batista-manifest` (autoria + guardians) antes de `batista-execute`.
 - Execute batches paralelos como batches: spawn primeiro, wait depois; um worktree por feature paralela; merge só depois.
 - Não paralelize features com arquivo, migração, contrato ou validação compartilhados.
 - Cada iteração corrige o menor ponto que fecha o gap; não replaneje tudo por hábito.
@@ -234,18 +234,18 @@ Somente o `DELEGATION_RESULT` desta chamada, com `artifact` resolvendo para o `l
 
 ## Checkpoint (obrigatório)
 
-Antes de **cada** delegação a `manifest`/`execute`, merge ou de ceder o turno, grave no `loop.md`: `Updated:`, `Iterations used`, resume point, última linha do Convergence Ledger e Outcome Guardian. Não delegue com `loop.md` desatualizado.
+Antes de **cada** delegação a `batista-manifest`/`batista-execute`, merge ou de ceder o turno, grave no `loop.md`: `Updated:`, `Iterations used`, resume point, última linha do Convergence Ledger e Outcome Guardian. Não delegue com `loop.md` desatualizado.
 
 ## State & Memory
 
 - Fonte da verdade é o arquivo, não o contexto. Escreva o delta no `loop.md` (e docs de feature) antes de seguir para o próximo passo (write-before-forget).
 - O contexto de trabalho guarda só: épico dir, sub-feature/iteração atual, blockers abertos, próxima ação. O resto é ponteiro (path + resume point) e se re-lê sob demanda.
-- Antes de ceder o turno ou compactar: garanta resume point e evidência reais no arquivo; colapse o convergence ledger para os últimos 10 + rollup por sub-feature; descarte transcripts de `manifest`/`execute` (guarde só {docs, evidência, gap}).
+- Antes de ceder o turno ou compactar: garanta resume point e evidência reais no arquivo; colapse o convergence ledger para os últimos 10 + rollup por sub-feature; descarte transcripts de `batista-manifest`/`batista-execute` (guarde só {docs, evidência, gap}).
 - Compactar = projetar em ponteiro, nunca inventar. Resumo jamais faz upgrade de status. Em divergência, o arquivo vence e re-lê.
 
 ## Context Isolation
 
-- Passar a cada delegação (`manifest`/`execute`/guardian) só objetivo/sub-feature, paths, feature dir, worktree e docs necessários.
+- Passar a cada delegação (`batista-manifest`/`batista-execute`/guardian) só objetivo/sub-feature, paths, feature dir, worktree e docs necessários.
 - Nunca usar histórico completo da sessão como contexto da delegação.
 - Se `subagent` estiver indisponível, siga `../../references/PI_ADAPTATION.md`: grave blocker e não simule autoria, guardian ou execução inline.
 

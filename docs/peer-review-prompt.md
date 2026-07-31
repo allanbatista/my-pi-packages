@@ -31,6 +31,6 @@ Revise a análise e recomendações com foco em:
 ## Contexto adicional
 
 - O workflow está estável e funcional; o objetivo é acelerar sem quebrar.
-- O executor (`/skill:execute`) usa workers (flash sem reasoning) e validadores (flash xhigh) — essa política permanece inalterada.
-- O `loop` usa outcome guardian E2E que já valida o resultado combinado — a proposta é remover guardians intermediários e confiar nesse guardian final.
+- O executor (`/skill:batista-execute`) usa workers (flash sem reasoning) e validadores (flash xhigh) — essa política permanece inalterada.
+- O `batista-loop` usa outcome guardian E2E que já valida o resultado combinado — a proposta é remover guardians intermediários e confiar nesse guardian final.
 - A política de modelos (`references/MODEL_POLICY.md`) permanece inalterada.

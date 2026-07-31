@@ -4,7 +4,21 @@ const { test } = require("node:test");
 const assert = require("node:assert/strict");
 
 const ROOT = path.resolve(__dirname, "..");
-const EXPECTED = ["arch", "execute", "loop", "manifest", "plan", "spec", "ux"];
+const WORKFLOW = [
+  "batista-arch",
+  "batista-execute",
+  "batista-loop",
+  "batista-manifest",
+  "batista-plan",
+  "batista-spec",
+  "batista-ux",
+];
+const EXPECTED = [
+  ...WORKFLOW,
+  "batista-discord-webhook-messages",
+  "batista-entity-memory-playbook",
+  "batista-ship-pr-to-deploy",
+];
 const EXPECTED_AGENTS = ["artifact-guardian.md", "workflow-validator.md"];
 
 function readFrontmatter(skillPath) {
@@ -80,8 +94,8 @@ test("all seven skills exist with valid frontmatter", () => {
   }
 });
 
-test("all skill references resolve from the SKILL.md directory", () => {
-  for (const skill of EXPECTED) {
+test("all workflow skill references resolve from the SKILL.md directory", () => {
+  for (const skill of WORKFLOW) {
     const skillPath = path.join(ROOT, "skills", skill, "SKILL.md");
     const content = fs.readFileSync(skillPath, "utf8");
     const reference = "../../references/WORKFLOW_COMMON.md";
@@ -107,7 +121,7 @@ test("guardian contract is canonical and has no self-approval deadlock", () => {
   const common = fs.readFileSync(path.join(ROOT, "references", "WORKFLOW_COMMON.md"), "utf8");
   assert.match(agent, /exceto o gate autorreferente/);
   assert.match(common, /Não invente um segundo formato de retorno/);
-  for (const skill of ["spec", "ux", "arch", "plan", "loop"]) {
+  for (const skill of ["batista-spec", "batista-ux", "batista-arch", "batista-plan", "batista-loop"]) {
     const content = fs.readFileSync(path.join(ROOT, "skills", skill, "SKILL.md"), "utf8");
     assert.doesNotMatch(content, /Saída obrigatória do guardian/);
     assert.match(content, /DELEGATION_RESULT/);
@@ -115,12 +129,12 @@ test("guardian contract is canonical and has no self-approval deadlock", () => {
 });
 
 test("loop fails closed across sub-features and spec blocks material assumptions", () => {
-  const loop = fs.readFileSync(path.join(ROOT, "skills", "loop", "SKILL.md"), "utf8");
-  const execute = fs.readFileSync(path.join(ROOT, "skills", "execute", "SKILL.md"), "utf8");
-  const spec = fs.readFileSync(path.join(ROOT, "skills", "spec", "SKILL.md"), "utf8");
+  const loop = fs.readFileSync(path.join(ROOT, "skills", "batista-loop", "SKILL.md"), "utf8");
+  const execute = fs.readFileSync(path.join(ROOT, "skills", "batista-execute", "SKILL.md"), "utf8");
+  const spec = fs.readFileSync(path.join(ROOT, "skills", "batista-spec", "SKILL.md"), "utf8");
   const common = fs.readFileSync(path.join(ROOT, "references", "WORKFLOW_COMMON.md"), "utf8");
-  assert.match(loop, /\.\.\/manifest\/SKILL\.md/);
-  assert.match(loop, /\.\.\/execute\/SKILL\.md/);
+  assert.match(loop, /\.\.\/batista-manifest\/SKILL\.md/);
+  assert.match(loop, /\.\.\/batista-execute\/SKILL\.md/);
   assert.match(loop, /Não encerre pedindo ao usuário para executar a fase/);
   assert.match(loop, /\| Feature \| Dir \| Batch \| Depends on \| Write set \|/);
   assert.match(loop, /rebaixe o Outcome Guardian para `pending`/);
@@ -150,7 +164,7 @@ test("loop fails closed across sub-features and spec blocks material assumptions
   assert.match(loop, /Root Correction Reopen/);
   assert.match(loop, /Manager Tool Firewall/);
   assert.match(loop, /Runbook obrigatório para modelo simples/);
-  assert.match(loop, /são relativos ao diretório deste `loop\/SKILL\.md`/);
+  assert.match(loop, /são relativos ao diretório deste `batista-loop\/SKILL\.md`/);
   assert.match(loop, /worker → workflow-validator → artifact-guardian/);
   assert.match(loop, /Falha de chamada, `context` omitido, `\(no output\)`/);
   assert.match(loop, /qualquer outro path é produto e a chamada é proibida/);
@@ -191,8 +205,8 @@ test("skills use Pi invocation syntax not Codex", () => {
   for (const skill of EXPECTED) {
     const content = fs.readFileSync(path.join(ROOT, "skills", skill, "SKILL.md"), "utf8");
     assert.doesNotMatch(content, /\$my-feature-workflow/);
-    if (skill === "loop") {
-      assert.match(content, /\/skill:loop/);
+    if (skill === "batista-loop") {
+      assert.match(content, /\/skill:batista-loop/);
       assert.match(content, /manifest\/SKILL\.md/);
       assert.match(content, /execute\/SKILL\.md/);
     }
@@ -232,7 +246,7 @@ test("AGENTS.md and RULES describe Pi package", () => {
   const agents = fs.readFileSync(path.join(ROOT, "AGENTS.md"), "utf8");
   const rules = fs.readFileSync(path.join(ROOT, ".memory", "RULES_AND_DEFINITION.md"), "utf8");
   assert.match(agents, /pi package/i);
-  assert.match(agents, /\/skill:loop/);
-  assert.match(rules, /\/skill:loop/);
+  assert.match(agents, /\/skill:batista-loop/);
+  assert.match(rules, /\/skill:batista-loop/);
   assert.doesNotMatch(rules, /\.codex-plugin/);
 });

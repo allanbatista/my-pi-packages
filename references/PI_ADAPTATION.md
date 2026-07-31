@@ -8,11 +8,11 @@
 
 ## Managers na sessão raiz
 
-`loop`, `manifest` e `execute` permanecem na sessão raiz, que possui a ferramenta `subagent`:
+`batista-loop`, `batista-manifest` e `batista-execute` permanecem na sessão raiz, que possui a ferramenta `subagent`:
 
-- `loop` carrega `../skills/manifest/SKILL.md` e `../skills/execute/SKILL.md`, resolvidos a partir deste arquivo, com `read` e aplica essas rotinas inline, no mesmo turno.
-- `manifest` delega `spec`, `ux`, `arch` e `plan` a subagents folha.
-- `execute` delega implementação e validação a subagents separados.
+- `batista-loop` carrega `../skills/batista-manifest/SKILL.md` e `../skills/batista-execute/SKILL.md`, resolvidos a partir deste arquivo, com `read` e aplica essas rotinas inline, no mesmo turno.
+- `batista-manifest` delega `batista-spec`, `batista-ux`, `batista-arch` e `batista-plan` a subagents folha.
+- `batista-execute` delega implementação e validação a subagents separados.
 - Uma rotina manager carregada por outra rotina não emite sua `Final Response`; devolve o controle ao manager chamador.
 
 Não delegue um manager a um child comum: children comuns não recebem a ferramenta `subagent` e não conseguem orquestrar o próximo nível.

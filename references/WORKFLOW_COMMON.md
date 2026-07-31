@@ -6,7 +6,7 @@ Leia também `./PI_ADAPTATION.md` e `./MODEL_POLICY.md`, resolvendo os paths a p
 
 - `/skill:*` é entrada do usuário; nunca é mecanismo de chamada entre skills.
 - `/subagents` administra a extensão; managers chamam a ferramenta `subagent(...)`.
-- `loop`, `manifest` e `execute` rodam na sessão raiz. Um manager chama outro carregando o `SKILL.md` correspondente com `read` e continuando no mesmo turno.
+- `batista-loop`, `batista-manifest` e `batista-execute` rodam na sessão raiz. Um manager chama outro carregando o `SKILL.md` correspondente com `read` e continuando no mesmo turno.
 - Skills folha e validators rodam em subagents com `context: "fresh"` e `cwd` explícito.
 - Sem `subagent`, o workflow bloqueia com instrução de instalação; não falsifica independência inline.
 
@@ -27,7 +27,7 @@ Leia também `./PI_ADAPTATION.md` e `./MODEL_POLICY.md`, resolvendo os paths a p
 
 ## Dispatch
 
-Autoria de `spec`, `ux`, `arch` ou `plan`:
+Autoria de `batista-spec`, `batista-ux`, `batista-arch` ou `batista-plan`:
 
 Resolva primeiro o `SKILL.md` exato dentro deste package e confira seu `realpath`. Não use o parâmetro `skill: "{name}"`: a resolução por nome prioriza skills do projeto alvo e pode sofrer shadowing.
 
@@ -45,7 +45,7 @@ subagent({
 
 Guardian de planejamento/outcome: `artifact-guardian`, `model: "inherit"`, `context: "fresh"`, `cwd: "{canonical-project-root}"`, sem permissão de escrita. Na execução, toda chamada informa explicitamente `cwd: "{canonical-project-root}"` e `model: "deepseek/deepseek-v4-flash:off"` para `worker` ou `model: "deepseek/deepseek-v4-flash:xhigh"` para `workflow-validator`; feature dir como `cwd`, `inherit`, campo ausente ou valor efetivo divergente é dispatch inválido e não pode promover task, fase ou sub-feature. Settings são fallback, não evidência do modelo usado.
 
-Para `ux` e `arch` independentes, use uma única chamada `subagent({ tasks: [...], context: "fresh", concurrency: 2 })`. Não paralelize writers com write sets sobrepostos.
+Para `batista-ux` e `batista-arch` independentes, use uma única chamada `subagent({ tasks: [...], context: "fresh", concurrency: 2 })`. Não paralelize writers com write sets sobrepostos.
 
 Uma tentativa tem no máximo um dispatch por par papel+task. Não duplique child no mesmo batch e não repita chamada apenas para obter outro formato de output; consuma o primeiro retorno e só abra nova tentativa após rejeição persistida.
 

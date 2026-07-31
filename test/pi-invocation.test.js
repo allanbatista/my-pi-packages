@@ -7,7 +7,21 @@ const path = require("node:path");
 
 const ROOT = path.resolve(__dirname, "..");
 const SCRATCH = process.env.SCRATCH;
-const EXPECTED_SKILLS = ["arch", "execute", "loop", "manifest", "plan", "spec", "ux"];
+const WORKFLOW_SKILLS = [
+  "batista-arch",
+  "batista-execute",
+  "batista-loop",
+  "batista-manifest",
+  "batista-plan",
+  "batista-spec",
+  "batista-ux",
+];
+const EXPECTED_SKILLS = [
+  ...WORKFLOW_SKILLS,
+  "batista-discord-webhook-messages",
+  "batista-entity-memory-playbook",
+  "batista-ship-pr-to-deploy",
+];
 
 function piAvailable() {
   return spawnSync("pi", ["--version"], { encoding: "utf8" }).status === 0;
@@ -366,14 +380,16 @@ test("pi CLI is available when explicitly required", () => {
 test("skills encode Pi subagent dispatch instead of assistant slash chaining", () => {
   for (const skill of EXPECTED_SKILLS) {
     const content = fs.readFileSync(path.join(ROOT, "skills", skill, "SKILL.md"), "utf8");
-    assert.match(content, /## Runtime & Delegação/);
-    assert.match(content, /\.\.\/\.\.\/references\/WORKFLOW_COMMON\.md/);
     assert.doesNotMatch(content, /spawn_agent|inline por padrão no Pi/);
+    if (WORKFLOW_SKILLS.includes(skill)) {
+      assert.match(content, /## Runtime & Delegação/);
+      assert.match(content, /\.\.\/\.\.\/references\/WORKFLOW_COMMON\.md/);
+    }
   }
 });
 
 test(
-  "Pi RPC discovers the seven package skills from their real files",
+  "Pi RPC discovers the package skills from their real files",
   { skip: !hasPi ? "pi CLI not available" : false },
   () => {
     const response = runRpc("get_commands");
@@ -381,7 +397,7 @@ test(
     const commands = response.data.commands.filter((command) => command.source === "skill");
     assert.deepEqual(
       commands.map((command) => command.name.replace("skill:", "")).sort(),
-      EXPECTED_SKILLS
+      [...EXPECTED_SKILLS].sort()
     );
     for (const command of commands) {
       assert.equal(
@@ -424,13 +440,13 @@ test(
 );
 
 test(
-  "/skill:spec asks a material persistence question instead of assuming",
+  "/skill:batista-spec asks a material persistence question instead of assuming",
   { skip: liveSkip },
   (t) => {
     const sandbox = createSandbox(t);
     const featureDir = path.join(sandbox, ".features", "2099-01-01_0000-account-deletion");
     const prompt = [
-      `/skill:spec ${featureDir}`,
+      `/skill:batista-spec ${featureDir}`,
       `Project root: ${sandbox}`,
       "Objetivo: permitir exclusão de conta.",
       "Decisão material ainda não tomada: hard-delete ou anonimização com retenção.",
@@ -455,7 +471,7 @@ test(
 );
 
 test(
-  "/skill:loop resumes the supplied epic instead of creating a replacement",
+  "/skill:batista-loop resumes the supplied epic instead of creating a replacement",
   { skip: liveSkip },
   (t) => {
     const sandbox = createSandbox(t);
@@ -483,7 +499,7 @@ test(
         "- Blockers: usuário ainda não escolheu CLI ou Web",
       ].join("\n")
     );
-    const trace = runPi(`/skill:loop ${epicDir}\nRetome exatamente este épico.`, sandbox);
+    const trace = runPi(`/skill:batista-loop ${epicDir}\nRetome exatamente este épico.`, sandbox);
     maybeSaveEvidence("pi-loop-resume.log", traceEvidence(trace));
     const loop = fs.readFileSync(path.join(epicDir, "loop.md"), "utf8");
     assert.match(trace.text, /CLI|Web/);
@@ -498,7 +514,7 @@ test(
 );
 
 test(
-  "/skill:loop continues from execute pending through every sub-feature and root outcome",
+  "/skill:batista-loop continues from execute pending through every sub-feature and root outcome",
   {
     skip:
       liveSkip ||
@@ -566,7 +582,7 @@ Status: pending
     git(["commit", "-qm", "fixture"]);
 
     const trace = runPi(
-      `/skill:loop ${epicDir}\nRetome e continue automaticamente até uma stop condition.`,
+      `/skill:batista-loop ${epicDir}\nRetome e continue automaticamente até uma stop condition.`,
       sandbox,
       780_000,
       "read,write,edit,grep,find,ls,subagent,subagent_wait"
@@ -863,12 +879,12 @@ Status: pending
       assert.match(manifest, /^- Next action:\s*none\b/m);
       assert.match(plan, /^- Next task:\s*none\b/m);
     }
-    assert.doesNotMatch(trace.text, /fale.*execute|execute a Fase|delegar .*\/skill:execute/i);
+    assert.doesNotMatch(trace.text, /fale.*execute|execute a Fase|delegar .*\/skill:batista-execute/i);
   }
 );
 
 test(
-  "/skill:loop resumes after completed sub-feature without reopening it",
+  "/skill:batista-loop resumes after completed sub-feature without reopening it",
   {
     skip:
       liveSkip ||
@@ -940,7 +956,7 @@ Status: pending
     git(["commit", "-qm", "fixture"]);
 
     const trace = runPi(
-      `/skill:loop ${epicDir}\nRetome do estado persistido e continue automaticamente até uma stop condition.`,
+      `/skill:batista-loop ${epicDir}\nRetome do estado persistido e continue automaticamente até uma stop condition.`,
       sandbox,
       600_000,
       "read,write,edit,grep,find,ls,subagent,subagent_wait"
@@ -1016,7 +1032,7 @@ Status: pending
 );
 
 test(
-  "/skill:loop recovers from a rejected root outcome through a persisted correction",
+  "/skill:batista-loop recovers from a rejected root outcome through a persisted correction",
   {
     skip:
       liveSkip ||
@@ -1090,7 +1106,7 @@ Evidence: result-a.txt contém bad, esperado ok
     git(["commit", "-qm", "fixture"]);
 
     const trace = runPi(
-      `/skill:loop ${epicDir}\nRetome o outcome rejeitado, corrija a menor task e continue automaticamente até uma stop condition.`,
+      `/skill:batista-loop ${epicDir}\nRetome o outcome rejeitado, corrija a menor task e continue automaticamente até uma stop condition.`,
       sandbox,
       Number(process.env.PI_ROOT_CORRECTION_TIMEOUT || 600_000),
       "read,write,edit,grep,find,ls,subagent,subagent_wait"
