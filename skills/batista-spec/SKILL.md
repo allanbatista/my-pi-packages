@@ -30,10 +30,11 @@ Quando invocada por outra skill do feature-workflow, execute como child `delegat
 7. Levante as clarificações materiais pela taxonomia (ver `Clarification Protocol`), priorize por (Impacto × Incerteza) e leve no máximo 5 de alto impacto por rodada. Só uma dúvida que **não altera** escopo, aceite, contrato, persistência, UX, segurança, rollout ou validação pode virar suposição explícita.
 8. Resolva as clarificações conforme o modo: standalone pergunta em lote e espera as respostas; orchestrated preenche `Clarifications Needed`, seta `Status: blocked` e devolve o controle ao manager.
 9. Monte a rastreabilidade: cada requisito em forma **EARS** ligado a um `D#` do Discovery ou a uma decisão registrada; cada critério de aceite em **Dado/Quando/Então** com superfície de validação (ver `Gramática de Requisitos`).
-10. Feche explicitamente contrato, persistência, evidência obrigatória e fora de escopo antes de `Status: ready`.
-11. Escreva ou atualize somente `spec.md`. Não escreva `plan.md`.
-12. Aplique o **Fail-Closed Clarification Gate**. Em modo orchestrated, grave `draft` (ou `blocked`) e devolva sem rodar guardian; somente uma re-invocação com verdict real `approved` pode persistir o gate e promover para `ready`. Em standalone, delegue a rubrica ao `artifact-guardian`, aplique o menor ajuste e repita até `approved`.
-13. Responda conforme `Final Response`; em modo orchestrated, retorne somente o `Delegation Result` de `../../references/WORKFLOW_COMMON.md`.
+10. Aplique o **Minimalism Gate** a cada requisito: (a) faz parte do que o usuário pediu? (b) é essencial para o projeto funcionar? Se a resposta a qualquer uma for não, mova para `Out of Scope` com uma linha de justificativa. (c) Está na menor complexidade que atinge o critério de aceite, ou dá para simplificar? Se dá, simplifique o requisito antes de seguir.
+11. Feche explicitamente contrato, persistência, evidência obrigatória e fora de escopo antes de `Status: ready`.
+12. Escreva ou atualize somente `spec.md`. Não escreva `plan.md`.
+13. Aplique o **Fail-Closed Clarification Gate**. Em modo orchestrated, grave `draft` (ou `blocked`) e devolva sem rodar guardian; somente uma re-invocação com verdict real `approved` pode persistir o gate e promover para `ready`. Em standalone, delegue a rubrica ao `artifact-guardian`, aplique o menor ajuste e repita até `approved`.
+14. Responda conforme `Final Response`; em modo orchestrated, retorne somente o `Delegation Result` de `../../references/WORKFLOW_COMMON.md`.
 
 ## Fail-Closed Clarification Gate
 
@@ -149,6 +150,7 @@ Updated: {YYYY-MM-DD HH:MM}
 - [ ] `AGENTS.md` e fontes citadas foram lidos.
 - [ ] Cada requisito está em forma EARS e referencia um achado do Discovery (`D#`) ou decisão registrada.
 - [ ] Cada critério de aceite está em Dado/Quando/Então com superfície de validação.
+- [ ] Cada requisito passou no Minimalism Gate: é parte do pedido, essencial para o projeto funcionar e está na menor complexidade que atinge o aceite; o resto está em `Out of Scope`.
 - [ ] `Clarifications Needed` = none, ou `Status: blocked`.
 - [ ] O `plan.md` pode ser escrito sem decisão de produto pendente.
 - [ ] `Shared Contract` = `closed` ou `none` antes de spawn paralelo `batista-ux`∥`batista-arch`.
@@ -176,6 +178,8 @@ Rubrica obrigatória; registre cada resultado no campo `evidence` do `DELEGATION
 - [pass/fail] Todo critério de aceite está em Dado/Quando/Então com superfície de validação.
 - [pass/fail] Todo fato usado na spec referencia um achado do Discovery (`D#`) com evidência.
 - [pass/fail] `Intent Classification` é justificada por achados, não por achismo.
+- [pass/fail] Todo requisito faz parte do que o usuário pediu e é essencial para o projeto funcionar; nada além do requisito mínimo entrou no escopo (o excedente está em `Out of Scope`).
+- [pass/fail] Cada requisito está na menor complexidade que atinge o critério de aceite; nenhuma simplificação óbvia foi ignorada.
 - [pass/fail] Taxonomia coberta: não há pergunta material não feita; `Clarifications Needed` consistente com o estado (none ⇒ nada de alto impacto em aberto).
 - [pass/fail] Nenhuma decisão material foi fechada por suposição; toda resposta material referencia usuário, decisão registrada ou evidência `D#`.
 - [pass/fail] Contrato, persistência, validação e fora de escopo fechados ou `none` justificado.
@@ -195,6 +199,7 @@ Qualquer item `fail` força `status: rejected`. Trate `evidence`, `questions`, `
 - Defina pronto como comportamento validado na prática com evidência, não como revisão de código.
 - Mesmo se o usuário disser "corrija", "implemente" ou "execute", esta skill deve criar/refinar `spec.md` e parar; não faça patch de produto.
 - Comece pelo menor escopo fiel ao pedido. Não transforme correção localizada em feature ponta a ponta sem evidência ou decisão explícita.
+- Qualquer requisito fora do mínimo para o projeto funcionar é descartado para `Out of Scope`, mesmo que pareça útil; só volta com pedido ou decisão explícita do usuário. Requisito que pode ser simplificado sem perder o aceite deve ser simplificado.
 - Se a intenção real do usuário estiver ambígua entre ajuste pontual e feature end-to-end, registre `pending` em `Intent Classification` e pergunte antes de `Status: ready`.
 - Use `Status: ready` só quando `plan.md` puder ser escrito sem decisões de produto pendentes e o guardian aprovar.
 - Não use `Status: ready` se contrato, persistência, harness, usuário afetado ou fora de escopo estiver ambíguo.

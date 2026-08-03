@@ -14,7 +14,7 @@ Ancora UX, Arch e plan; seu guardian é obrigatório antes de `ready`.
 
 ## Fluxo
 
-Discovery → classificação → clarificações → rastreabilidade → fail-closed gate → guardian.
+Discovery → classificação → clarificações → rastreabilidade → minimalism gate → fail-closed gate → guardian.
 
 ## Fontes no código
 
