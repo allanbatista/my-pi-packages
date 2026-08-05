@@ -383,7 +383,7 @@ test("skills encode Pi subagent dispatch instead of assistant slash chaining", (
     const content = fs.readFileSync(path.join(ROOT, "skills", skill, "SKILL.md"), "utf8");
     assert.doesNotMatch(content, /spawn_agent|inline por padrão no Pi/);
     if (WORKFLOW_SKILLS.includes(skill)) {
-      assert.match(content, /## Runtime & Delegação/);
+      assert.match(content, /## Runtime & Delegation/);
       assert.match(content, /\.\.\/\.\.\/references\/WORKFLOW_COMMON\.md/);
     }
   }
@@ -457,11 +457,11 @@ test(
     maybeSaveEvidence("pi-spec-clarification.log", traceEvidence(trace));
     const spec = fs.readFileSync(path.join(featureDir, "spec.md"), "utf8");
     assert.match(trace.text, /C1|Clarifications Needed/i);
-    assert.match(trace.text, /hard-delete|anonimiza|retenção/i);
+    assert.match(trace.text, /hard-delete|anonimi[sz]a(?:tion|ção)|reten(?:ção|tion)/i);
     assert.match(spec, /Status:\s*blocked/);
     const clarifications = spec.match(/## Clarifications Needed([\s\S]*?)(?=\n## |$)/)?.[1] || "";
     assert.match(clarifications, /C1/);
-    assert.match(clarifications, /hard-delete|anonimiza|retenção/i);
+    assert.match(clarifications, /hard-delete|anonimi[sz]a(?:tion|ção)|reten(?:ção|tion)/i);
     const launches = subagentLaunches(trace);
     assert.equal(launches.length, 0);
     assert.equal(fs.existsSync(path.join(featureDir, "plan.md")), false);
@@ -507,7 +507,7 @@ test(
     assert.match(loop, /Status:\s*blocked/);
     assert.match(loop, /Iterations used:\s*2/);
     assert.match(loop, /SENTINEL-PRESERVE/);
-    assert.match(loop, /Próxima ação:.*CLI.*Web/i);
+    assert.match(loop, /Próxima ação:|Next action:[\s\S]*CLI[\s\S]*Web/i);
     const launches = subagentLaunches(trace);
     assert.equal(launches.length, 0);
     assert.equal(fs.readdirSync(path.join(sandbox, ".features")).length, 1);

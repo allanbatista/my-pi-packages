@@ -1,136 +1,129 @@
 ---
 name: batista-execute
-description: Coordena a execução de uma feature a partir de `manifest.md`, `spec.md` e `plan.md`, delegando implementação a subagents e validação a um subagent independente. Use como `/skill:batista-execute` quando o usuário pedir execução, retomada, coordenação de tasks/fases, paralelismo operacional ou validação independente do workflow.
+description: Orchestrates feature execution from `manifest.md`, `spec.md` and `plan.md`, delegating implementation to subagents and validation to an independent subagent. Use `/skill:batista-execute` when the user requests execution, resumption, task/phase coordination, operational parallelism, or independent workflow validation.
 ---
 
 # Feature Execute
 
+## Runtime & Delegation
 
-## Runtime & Delegação
+Follow `../../references/WORKFLOW_COMMON.md` (Pi runtime, delegation, isolation, state reconciliation, checkpoints).
 
-Leia e siga `../../references/WORKFLOW_COMMON.md` para runtime Pi, delegação, isolamento, reconciliação de estado e checkpoints.
-
-
-Use esta skill para transformar a sessão atual em manager de execução. O manager coordena, registra progresso e delega; não implementa código nem valida a própria implementação.
-
-O manager pode editar documentos de workflow da feature. Código de produto, testes, configs e migrations só podem ser alterados por um child **worker** lançado pela ferramenta `subagent`.
+This session becomes the execution manager: coordinates, records progress, delegates; never implements code nor validates its own implementation. The manager edits feature workflow docs only; product code, tests, configs, and migrations are editable only by a child **worker** launched via `subagent`.
 
 ### Write Boundary — fail-closed
 
-`write`/`edit` do manager têm allowlist fechada: `loop.md`, `manifest.md` e `plan.md` selecionados. Qualquer outro path pertence ao worker, inclusive arquivo trivial, teste, config, cópia, rename ou correção de path. Se o worker escrever no lugar errado ou deixar mudança incompleta, registre a rejeição e lance um novo worker de correção; o manager nunca move, copia, recria ou conserta o produto.
+Manager `write`/`edit` allowlist: selected `loop.md`, `manifest.md`, `plan.md` only. Every other path is the worker's (trivial files, tests, configs, copies, renames, path fixes). On wrong write or incomplete change: record the rejection, launch a correction worker; the manager never moves, copies, recreates, or fixes product files.
 
-Não use achismo: investigue antes de delegar ou concluir, exija evidência concreta de workers/validadores e registre blocker qualquer premissa que não puder confirmar por arquivo, comando, log, teste, browser ou resposta do usuário.
+No guessing: investigate before delegating or concluding; demand concrete evidence from workers/validators; record a blocker for any premise unconfirmable via file, command, log, test, browser, or user answer. "Done" = practical validation with working evidence on the affected path, not "the code looks right".
 
-Pronto não significa "o código parece certo". Pronto significa validação prática com evidência de funcionamento no caminho afetado.
-
-Workers e validadores recebem apenas contexto mínimo (task/fase, paths, spec/plan/manifest, evidência). Aplique `../../references/MODEL_POLICY.md`: worker `deepseek/deepseek-v4-flash:off`; `workflow-validator` com `deepseek/deepseek-v4-flash:xhigh`.
+Workers/validators get minimal context only (see Context Isolation). Apply `../../references/MODEL_POLICY.md`: worker `deepseek/deepseek-v4-flash:off`; `workflow-validator` `deepseek/deepseek-v4-flash:xhigh`.
 
 ## Workflow
 
-1. Leia o `AGENTS.md` e aplique o preflight de agents de `../../references/WORKFLOW_COMMON.md`; confirme `worker` builtin e `workflow-validator` do package com allowlist read-only exata.
-2. Canonicalize project root, feature dir e write sets conforme `../../references/WORKFLOW_COMMON.md`. Se o input resolver para feature dir ou arquivo existente, selecione-o e releia o estado; não crie outra feature.
-3. Reconcile `manifest.md`, `spec.md`, `plan.md` e slices de `ux.md`/`arch.md`. Só execute com manifest/spec/plan `ready`, guardians obrigatórios `approved`, gates `[x]`, zero pergunta material e task executável. Uma correção raiz de task existente é elegível somente após a transição completa de `Root Correction Reopen`; `done` parcial não é runnable.
-4. Se houver divergência ou lacuna de autoria, persista `blocked` e devolva ao `batista-manifest`; não corrija artefatos folha nem execute por suposição.
-5. Ao retomar task `running`, confira owner, diff e evidência persistida antes de relançar; não duplique trabalho já aplicado.
-6. Capture baseline do worktree e atualize `manifest.md`/`plan.md`: task/fase `running`, owner, write set, resume point e evidência exigida.
-7. Lance **worker** com `model: "deepseek/deepseek-v4-flash:off"`, `context: "fresh"`, `cwd: "{canonical-project-root}"` — nunca feature dir — e escopo fechado: task, write set, DoD, evidência prática, slices relevantes e testes focados permitidos.
-8. Para batch paralelo, use uma chamada `subagent({ tasks: [...], context: "fresh" })` somente com write sets disjuntos; inicie todos antes de aguardar.
-9. Após cada worker síncrono, compare o diff real com baseline/write set e persista arquivos, comandos, resultados e evidência. Resposta `(no output)` ou envelope ausente **não é falha nem autoriza retry**: inspecione o write set/evidência e siga ao validator se o resultado existir. Não chame `action: "status"` com nome de agent; status serve somente para run async com ID real. Relato do child não promove status.
-10. Lance **um único workflow-validator por task/tentativa** com `model: "deepseek/deepseek-v4-flash:xhigh"`, `context: "fresh"`, `cwd: "{canonical-project-root}"` e os artefatos/evidências reais. Aguarde e consuma esse retorno; nunca duplique o mesmo validator no mesmo batch nem o relance apenas para mudar `output`. Ele apenas inspeciona a evidência persistida com ferramentas read-only. Ausência de rejeição não basta: exija aprovação positiva explícita conforme `WORKFLOW_COMMON`; retorno `pending`, `blocked`, silencioso ou ambíguo não promove a task.
-11. Se rejeitado ou se diff/write set/path divergir, registre causa e delegue a menor correção a novo worker. Não corrija diretamente, nem mesmo uma linha ou move/copy; repetição da mesma causa sem evidência nova vira blocker.
-12. Ao fechar fase, delegue ao worker o gate final previsto no plano. Não rode suíte completa a cada task por hábito.
-13. Marque task/fase `done` somente após validator `approved`; com todas as fases e evidências aprovadas, feche o estado atomicamente antes de devolver o controle: primeiro `Status:` de `plan.md` e `manifest.md` em `done`, `manifest.md > State > Plan: done`, resume points sem próxima task e todas as tasks/fases `done`. Releia ambos; qualquer divergência mantém a execução `running`.
-14. Se esta rotina foi carregada pelo `batista-loop`, não emita `Final Response`: devolva o controle ao loop no mesmo turno. Em standalone, responda conforme `Final Response`.
+1. Read `AGENTS.md`; apply the agents preflight from `../../references/WORKFLOW_COMMON.md`; confirm builtin `worker` and the package's `workflow-validator` with the exact read-only allowlist.
+2. Canonicalize project root, feature dir, write sets per `../../references/WORKFLOW_COMMON.md`. Input resolving to an existing feature dir/file → select and re-read state; never create another feature.
+3. Reconcile `manifest.md`, `spec.md`, `plan.md`, relevant `ux.md`/`arch.md` slices. Execute only with manifest/spec/plan `ready`, mandatory guardians `approved`, gates `[x]`, zero material questions, runnable task. Root fix of an existing task: eligible only after full `Root Correction Reopen` transition; partial `done` is not runnable.
+4. Authorship divergence/gap → persist `blocked`, return to `batista-manifest`; never fix leaf artifacts nor execute by assumption.
+5. Resuming a `running` task: verify owner, diff, persisted evidence before relaunch; do not duplicate applied work.
+6. Capture worktree baseline; update `manifest.md`/`plan.md`: task/phase `running`, owner, write set, resume point, required evidence.
+7. Launch **worker**: `model: "deepseek/deepseek-v4-flash:off"`, `context: "fresh"`, `cwd: "{canonical-project-root}"` (never feature dir), closed scope: task, write set, DoD, practical evidence, relevant slices, permitted focused tests.
+8. Parallel batch = one `subagent({ tasks: [...], context: "fresh" })` with disjoint write sets only; start all before awaiting.
+9. After each synchronous worker: compare actual diff vs baseline/write set; persist files, commands, results, evidence. `(no output)` or missing envelope is **neither failure nor retry authorization** — inspect write set/evidence, proceed to validator if the result exists. Never `action: "status"` with an agent name (async runs with real IDs only). Child reports never promote status.
+10. Launch **exactly one workflow-validator per task/attempt**: `model: "deepseek/deepseek-v4-flash:xhigh"`, `context: "fresh"`, `cwd: "{canonical-project-root}"`, real artifacts/evidence. Await and consume its return; never duplicate it in a batch nor relaunch just to change `output`. It inspects persisted evidence read-only. Absence of rejection is insufficient: require explicit positive approval per `WORKFLOW_COMMON`; `pending`, `blocked`, silent, or ambiguous returns do not promote the task.
+11. Rejection or diff/write-set/path divergence → record cause, delegate the minimal fix to a new worker. Never fix directly (not one line, not a move/copy); same cause repeated without new evidence becomes a blocker.
+12. Phase close: delegate the plan's final gate to the worker; no full suites per task out of habit.
+13. Mark `done` only after validator `approved`. All phases and evidence approved → close state atomically before returning control: `Status:` of `plan.md` and `manifest.md` to `done`, `manifest.md > State > Plan: done`, resume points with no next task, all tasks/phases `done`; re-read both — any divergence keeps execution `running`.
+14. Loaded by `batista-loop` → emit no `Final Response`; return control to the loop in the same turn. Standalone → respond per `Final Response`.
 
 ## Manager Boundaries
 
-- Pode editar `manifest.md` e `plan.md` para status, blockers, evidência, loop ledger e resume point.
-- Pode pedir clarificação ao usuário quando uma decisão bloquear execução segura.
-- Não pode implementar código, corrigir testes, alterar arquivos de produto ou declarar validação própria como suficiente.
-- Se não houver ferramenta `subagent`, siga `../../references/PI_ADAPTATION.md`: bloqueie; não simule worker ou validador inline.
+- May edit `manifest.md`/`plan.md` (status, blockers, evidence, loop ledger, resume point).
+- May ask the user for clarification when a decision blocks safe execution.
+- May not implement code, fix tests, alter product files, or deem its own validation sufficient.
+- No `subagent` tool → follow `../../references/PI_ADAPTATION.md`: block; never simulate worker/validator inline.
 
 ## Delegation Prompts
 
 Implementation worker:
 
 ```text
-Você é o worker responsável por executar somente esta task/fase.
-Modelo: deepseek/deepseek-v4-flash:off.
-Leia AGENTS.md, spec.md, plan.md e o slice relevante de arch.md/ux.md.
-Escopo: {task/fase}
+You are the worker responsible for this task/phase only.
+Model: deepseek/deepseek-v4-flash:off.
+Read AGENTS.md, spec.md, plan.md, and the relevant arch.md/ux.md slice.
+Scope: {task/fase}
 Parallel batch: {batch-id | sequential}
-Arquivos/responsabilidade: {write set}
+Files/responsibility: {write set}
 DoD: {DoD}
-Evidência prática exigida: {required evidence}
-Testes automáticos permitidos: rode apenas testes focados no que esta task altera, salvo exigência explícita do plano.
-Não reverta mudanças de outros agentes; adapte-se a edições paralelas.
-Implemente o menor diff seguro.
-Retorne `DELEGATION_RESULT` e um delta estruturado: files_changed, commands_run com exit code, evidence_produced e follow_ups/blockers.
-Se notar uma receita que já se repetiu (≥2-3 vezes), sinalize como candidato a skill de projeto no follow_ups.
+Required practical evidence: {required evidence}
+Allowed automated tests: only tests focused on this task's changes, unless the plan explicitly requires more.
+Do not revert other agents' changes; adapt to parallel edits.
+Implement the smallest safe diff.
+Return `DELEGATION_RESULT` with a structured delta: files_changed, commands_run (exit code), evidence_produced, follow_ups/blockers.
+If a recipe repeats (>=2-3 times), flag it as a project-skill candidate in follow_ups.
 ```
 
 Validation worker:
 
 ```text
-Você é o validador independente desta task/fase.
-Modelo: deepseek/deepseek-v4-flash:xhigh.
-Leia AGENTS.md, spec.md, plan.md e o resultado do worker.
-Não implemente correções.
-Não execute comandos ou testes; eles pertencem ao worker ou ao gate final de fase.
-Confira a evidência executável/observável já produzida: browser, API, consumer, logs, smoke manual, comandos com outputs e artefatos.
-Reprove se houver apenas leitura de código, evidência genérica ou teste sem prova do comportamento afetado.
-Verifique alinhamento com requisitos, DoD, arquivos esperados, evidência prática produzida e regressões óbvias.
-Retorne somente `DELEGATION_RESULT` com approved/rejected, evidência conferida e correção mínima.
+You are the independent validator of this task/phase.
+Model: deepseek/deepseek-v4-flash:xhigh.
+Read AGENTS.md, spec.md, plan.md, and the worker result.
+Do not implement fixes; do not run commands or tests (worker or phase gate owns them).
+Check the executable/observable evidence already produced: browser, API, consumer, logs, manual smoke, commands with outputs, artifacts.
+Reject code-reading-only, generic evidence, or tests without proof of the affected behavior.
+Verify alignment with requirements, DoD, expected files, practical evidence, and obvious regressions.
+Return only `DELEGATION_RESULT` with approved/rejected, evidence checked, and minimal fix.
 ```
 
 ## Rules
 
-- Toda implementação passa por worker e todo aceite passa por validador separado.
-- Worker e validador devem seguir `../../references/MODEL_POLICY.md` (modelo/effort distintos do planejamento).
-- Worker e validador são children separados via `subagent`, ambos com `context: "fresh"`; nunca use histórico completo da sessão manager.
-- Execute batches paralelos como batches: spawn primeiro, wait depois; não serialize tasks independentes.
-- Workers podem rodar testes automáticos focados no escopo da task; suíte completa fica para gate final de fase ou exigência explícita.
-- Validadores não executam testes automáticos. Eles conferem evidência prática e bloqueiam entrega fraca.
-- Não aceite relato genérico de worker/validador; exija arquivos alterados, comandos executados, resultado e evidência conferível de funcionamento.
-- O manager registra, coordena e decide próximo passo operacional; não julga sozinho que a implementação está correta.
-- Não use paralelismo quando tasks compartilham arquivos, estado, migração, contrato ou sequência de validação.
-- Não marque `done` com blocker, pergunta pendente, evidência prática ausente, evidência `pending`, teste falho ou validação independente ausente.
-- Ao retomar uma feature, comece pelo resume point do manifesto/plano e revalide o estado antes de delegar.
+- Every implementation via worker; every acceptance via separate validator.
+- Worker and validator follow `../../references/MODEL_POLICY.md` (models/effort distinct from planning).
+- Both are separate `subagent` children with `context: "fresh"`; never full manager history.
+- Parallel batches: spawn first, wait after; never serialize independent tasks.
+- Workers may run focused automated tests; full suites only at phase gate or explicit requirement.
+- Validators never run automated tests; they check practical evidence and block weak delivery.
+- Reject generic reports; require changed files, executed commands, results, verifiable working evidence.
+- Manager records, coordinates, decides next step; never judges implementation correctness alone.
+- No parallelism for tasks sharing files, state, migration, contract, or validation sequence.
+- Never mark `done` with a blocker, open question, missing or `pending` evidence, failing test, or missing independent validation.
+- On resume: start at manifest/plan resume point; revalidate state before delegating.
 
 ## Skill Extraction
 
-Tarefa repetitiva vira skill do projeto, não boilerplate reexecutado a cada task.
+Repeatable tasks become project skills, not re-executed boilerplate.
 
-- Gatilho: a mesma receita (sequência de passos/comandos/validação) aparece ≥ 2–3 vezes, dentro da feature ou entre features (workers sinalizam candidatos no `follow_ups`). Registre no loop ledger/`plan.md`.
-- Ação: delegue a um `worker` a criação da skill project-local em `{project}/skills/{skill-name}/`, seguido de `workflow-validator`. As próximas tasks usam a skill em vez de re-derivar.
-- Roda **somente** no worktree principal, **após** merge, **uma extração por vez** — nunca em paralelo com worktrees de sub-feature nem com outra extração. Write set exclusivo: `{project}/skills/{skill-name}/`.
-- Guardrail (YAGNI de skill): one-off não vira skill. Só extraia com repetição real e procedimento estável.
+- Trigger: same recipe (step/command/validation sequence) ≥ 2–3 times within or across features (workers flag candidates in `follow_ups`); record in loop ledger/`plan.md`.
+- Action: delegate to a `worker` the creation of `{project}/skills/{skill-name}/`, then `workflow-validator`; later tasks use the skill instead of re-deriving.
+- Runs **only** on the main worktree, **after** merge, **one extraction at a time** — never parallel with sub-feature worktrees or another extraction. Exclusive write set: `{project}/skills/{skill-name}/`.
+- Guardrail (skill YAGNI): one-offs never become skills; extract only with real repetition and a stable procedure.
 
-## Checkpoint (obrigatório)
+## Checkpoint (mandatory)
 
-Antes de **cada** spawn de worker/validador ou de ceder o turno, grave em `plan.md`/`manifest.md`: task/fase `running` ou resultado, resume point e blockers. Não spawn worker com resume point desatualizado.
+Before **every** worker/validator spawn or yielding the turn, record in `plan.md`/`manifest.md`: task/phase `running` or result, resume point, blockers. Never spawn with a stale resume point.
 
 ## State & Memory
 
-- Fonte da verdade é o arquivo, não o contexto. Escreva o delta em `plan.md`/`manifest.md` (status, evidência, resume point) antes de liberar o próximo batch (write-before-forget).
-- O contexto do manager guarda só: feature dir, batch/task atual, blockers abertos, próxima ação. Transcripts de worker/validador viram delta {files, commands, evidence} no arquivo e saem do contexto.
-- Antes de ceder o turno ou compactar: garanta resume point e evidência reais; colapse ledgers longos para últimos 10 + rollup. Compactar = projetar em ponteiro, nunca inventar; resumo jamais faz upgrade de status; em divergência o arquivo vence.
-- Learnings flush: ao fechar a feature, promova o durável (convenções, decisões de arquitetura, procedimentos virados skill) para o projeto (`AGENTS.md`, skills project-local, `docs/adr`); o efêmero morre com `.features/{...}/`.
+- The file is the source of truth, not context. Write the delta (status, evidence, resume point) into `plan.md`/`manifest.md` before releasing the next batch (write-before-forget).
+- Manager context holds only: feature dir, current batch/task, open blockers, next action. Worker/validator transcripts become file deltas {files, commands, evidence} and leave context.
+- Before yielding or compacting: ensure real resume point and evidence; collapse long ledgers to last 10 + rollup. Compacting projects into pointers, never invents; summaries never upgrade status; on divergence the file wins.
+- Learnings flush on feature close: promote durable items (conventions, architecture decisions, procedures turned skills) to the project (`AGENTS.md`, project-local skills, `docs/adr`); ephemeral items die with `.features/{...}/`.
 
 ## Context Isolation
 
-- Passar a cada delegação (worker/validador) somente task/fase, paths, write set, DoD, evidência exigida, slice de `arch.md`/`ux.md` e docs da feature.
-- Não passar conversa inteira, raciocínio prévio ou contexto não referenciado nos documentos.
-- Se um subagent precisar de contexto extra, registrar qual artefato faltou e enviar só esse artefato.
+- Pass to each delegation only: task/phase, paths, write set, DoD, required evidence, `arch.md`/`ux.md` slice, feature docs.
+- Never pass full conversations, prior reasoning, or context unreferenced in the docs.
+- Subagent needing extra context → record the missing artifact and send only that artifact.
 
 ## Final Response
 
-Ao concluir, responda com:
+On completion, respond with:
 
-- `Executado`: tasks/fases concluídas, batches paralelos executados, workers usados, arquivos alterados e evidência aprovada.
-- `Falhou`: tasks/fases reprovadas, causa, evidência e próxima correção.
-- `Pendente`: blockers, decisões abertas, validações faltantes ou `none`.
-- `Como validar`: comandos/checks que o usuário pode rodar e resultado esperado.
-- `Resumo final`: status da feature, resume point e próxima ação.
+- `Executed`: completed tasks/phases, parallel batches run, workers used, files changed, approved evidence.
+- `Failed`: rejected tasks/phases, cause, evidence, next fix.
+- `Pending`: blockers, open decisions, missing validations, or `none`.
+- `How to validate`: commands/checks the user can run and expected result.
+- `Final summary`: feature status, resume point, next action.
 
-Quando carregada pelo `batista-loop`, não produza esta resposta humana; continue o controlador com o estado persistido.
+When loaded by `batista-loop`, skip this human response; continue the controller with persisted state.

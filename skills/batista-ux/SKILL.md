@@ -1,44 +1,38 @@
 ---
 name: batista-ux
-description: Cria, revisa e mantém apenas o `ux.md` de usabilidade de uma feature em `.features/{YYYY-MM-DD}_{HHMM}-{short-desc}/ux.md`, a partir de `spec.md` e condicional a haver superfície de frontend afetada. Use como `/skill:batista-ux` quando o usuário pedir usabilidade, fluxo de uso, estados de tela, prevenção de erro, feedback, acessibilidade ou revisão da experiência de uma feature com frontend.
+description: Creates, reviews and maintains only the `ux.md` usability document of a feature in `.features/{YYYY-MM-DD}_{HHMM}-{short-desc}/ux.md`, from `spec.md`, conditional on an affected frontend surface. Use as `/skill:batista-ux` when the user asks for usability, usage flow, screen states, error prevention, feedback, accessibility, or review of the experience of a frontend feature.
 ---
 
 # Feature UX
 
+## Runtime & Delegation
 
-## Runtime & Delegação
-
-Leia e siga `../../references/WORKFLOW_COMMON.md` para runtime Pi, delegação, isolamento, reconciliação de estado e checkpoints.
-
-
-Use esta skill para fechar a **usabilidade** da feature antes do plano técnico, quando há frontend afetado. Foco em usabilidade — não em estética, tokens ou pixel (isso fica para `frontend-design` na execução).
-
-Esta skill só pode editar documentos de workflow da feature. Não edite código de produto, testes, configs, migrations ou arquivos fora da pasta da feature.
-
-Não use achismo: investigue antes de concluir, cite evidência concreta e registre como `pending` qualquer afirmação que não puder confirmar por arquivo, comando, log, teste, browser ou resposta do usuário.
-
-Quando invocada por outra skill do feature-workflow, execute como child `delegate` com `context: "fresh"` (ver `../../references/PI_ADAPTATION.md`), recebendo apenas pedido, project root, feature dir e docs necessários.
+- Follow `../../references/WORKFLOW_COMMON.md` for Pi runtime, delegation, isolation, state reconciliation and checkpoints.
+- Close feature **usability** before the technical plan, when frontend is affected. Usability only — aesthetics, tokens or pixels go to `frontend-design` at execution.
+- Edit only feature workflow documents. Never product code, tests, configs, migrations or files outside the feature dir.
+- No guessing: investigate first, cite concrete evidence; mark `pending` any claim unconfirmed by file, command, log, test, browser or user answer.
+- Invoked by another feature-workflow skill → run as child `delegate` with `context: "fresh"` (see `../../references/PI_ADAPTATION.md`), receiving only request, project root, feature dir and needed docs.
 
 ## Applicability
 
-- Produza `ux.md` só quando `spec.md` indicar superfície de frontend/UI afetada (ver `Validation surfaces` da spec).
-- Se não houver frontend afetado, não crie o arquivo: responda `ux não aplicável` com a evidência (superfícies da spec) e devolva o controle.
-- Roda em paralelo com `/skill:batista-arch`; ambas partem da mesma spec como contrato âncora.
+- Create `ux.md` only when `spec.md` shows an affected frontend/UI surface (spec's `Validation surfaces`).
+- No frontend affected → don't create the file: answer `ux not applicable` with evidence (spec surfaces) and return control.
+- Runs in parallel with `/skill:batista-arch`; both anchor on the same spec contract.
 
 ## Workflow
 
-1. Leia o `AGENTS.md` do projeto.
-2. Determine o modo: **standalone** (usuário invocou direto) ou **orchestrated** (invocada por `batista-manifest` em subagent — não pergunte ao usuário no meio). Ver `Clarification Protocol`.
-3. Localize o `spec.md` da feature. Se não existir ou estiver `draft`/`blocked`, registre blocker, set `Status: blocked` e devolva ao manager; não emita `/skill:batista-spec`.
-4. Confirme a aplicabilidade (superfície frontend na spec). Se não aplicável, pare conforme `Applicability`.
-5. Se o input for um `ux.md` existente, trate como revisão: leia antes de decidir status.
-6. **Usability Discovery**: parta do `Discovery Ledger` da spec (`D#` recebidos via manifest). Trace fluxos de uso, telas/rotas, componentes reutilizáveis, estados e baseline de acessibilidade. Registre achados de UX não cobertos pela spec no `Usability Ledger` com `U#`, fonte e evidência. Se o ledger da spec for insuficiente para decisão de design, faça discovery completo e escale com `Open Questions`. Use Graphify quando `graphify-out/graph.json` existir.
-7. Para cada requisito de frontend da spec (forma EARS), desenhe a usabilidade alinhada ao `Shared Contract` da spec: fluxo de tarefa eficiente, estados (empty/loading/error/success), prevenção e recuperação de erro, feedback e visibilidade de estado, consistência, carga cognitiva e acessibilidade.
-8. Monte a rastreabilidade: cada decisão de usabilidade ligada a um requisito EARS da spec e a um `U#` do Discovery.
-9. Feche estados, a11y e fora de escopo antes de `Status: ready`. Dúvida de produto → orchestrated: `Open Questions` + `Status: blocked`; standalone: pergunte.
-10. Escreva ou atualize somente `ux.md`.
-11. Em modo orchestrated, grave `draft` (ou `blocked`) e devolva sem rodar guardian; somente uma re-invocação com verdict real `approved` pode persistir o gate e promover para `ready`. Em standalone, delegue a rubrica ao `artifact-guardian`, aplique o menor ajuste e repita até `approved`.
-12. Responda conforme `Final Response`; em modo orchestrated, retorne somente o `Delegation Result` de `../../references/WORKFLOW_COMMON.md`.
+1. Read the project `AGENTS.md`.
+2. Determine mode: **standalone** (user invoked directly) or **orchestrated** (`batista-manifest` subagent — don't ask mid-run). See `Clarification Protocol`.
+3. Locate the feature `spec.md`. Missing or `draft`/`blocked` → register blocker, set `Status: blocked`, return to manager; don't emit `/skill:batista-spec`.
+4. Confirm applicability (frontend surface in spec). Not applicable → stop per `Applicability`.
+5. Input is an existing `ux.md` → treat as review: read before deciding status.
+6. **Usability Discovery**: start from the spec `Discovery Ledger` (`D#` received via manifest). Trace usage flows, screens/routes, reusable components, states and a11y baseline. Log UX findings not covered by the spec in the `Usability Ledger` as `U#` with source and evidence. Spec ledger insufficient for the design decision → full discovery, escalate with `Open Questions`. Use Graphify when `graphify-out/graph.json` exists.
+7. For each spec frontend requirement (EARS form), design usability aligned to the spec `Shared Contract`: efficient task flow, states (empty/loading/error/success), error prevention and recovery, feedback and state visibility, consistency, cognitive load, accessibility.
+8. Build traceability: every usability decision linked to a spec EARS requirement and a Discovery `U#`.
+9. Close states, a11y and out of scope before `Status: ready`. Product doubt → orchestrated: `Open Questions` + `Status: blocked`; standalone: ask.
+10. Write or update only `ux.md`.
+11. Orchestrated: save `draft` (or `blocked`) and return without guardian; only a re-invocation with a real verdict `approved` may persist the gate and promote to `ready`. Standalone: delegate the rubric to `artifact-guardian`, apply the minimal fix and repeat until `approved`.
+12. Respond per `Final Response`; orchestrated: return only the `Delegation Result` from `../../references/WORKFLOW_COMMON.md`.
 
 ## Template
 
@@ -52,127 +46,125 @@ Updated: {YYYY-MM-DD HH:MM}
 
 ## Applicability
 
-- Frontend afetado: {sim | não} — evidência: {superfícies da spec}
+- Frontend affected: {yes | no} — evidence: {spec surfaces}
 
 ## Usability Ledger
 
 | ID | Source | Finding | Evidence | Impact | Status |
 |---|---|---|---|---|---|
-| U1 | {tela/rota/componente/fluxo/doc/resposta} | {fato ou lacuna de usabilidade} | {path, trecho, screenshot, comando} | {como muda o fluxo/estado} | confirmed/pending |
+| U1 | {screen/route/component/flow/doc/response} | {usability fact or gap} | {path, excerpt, screenshot, command} | {how flow/state changes} | confirmed/pending |
 
 ## Affected Screens & Flows
 
-- Telas/rotas: {lista}
-- Fluxo de tarefa alvo: {passo a passo eficiente para o usuário concluir}
+- Screens/routes: {list}
+- Target task flow: {efficient step-by-step for the user to complete}
 
 ## Component & State Inventory
 
-- Componentes: {reusados/novos}
+- Components: {reused/new}
 - Estados por tela: empty | loading | error | success
 
 ## Usability Traceability
 
-| Requisito (EARS front) | Decisão de usabilidade | Estados cobertos | Acessibilidade | Validação | Basis | Status |
+| Requirement (EARS front) | Usability decision | Covered states | Accessibility | Validation | Basis | Status |
 |---|---|---|---|---|---|---|
-| {req da spec} | {fluxo/interação/feedback} | {empty/loading/error/success} | {a11y concreta} | {browser/step/probe} | {U# ou decisão} | defined/pending |
+| {spec requirement} | {flow/interaction/feedback} | {empty/loading/error/success} | {concrete a11y} | {browser/step/probe} | {U# or decision} | defined/pending |
 
 ## Error Prevention & Recovery
 
-- Prevenção: {como o design evita o erro}
-- Recuperação: {como o usuário se recupera}
+- Prevention: {how the design avoids the error}
+- Recovery: {how the user recovers}
 
 ## Accessibility
 
-- {navegação por teclado, foco, contraste, labels, roles — concreto por tela}
+- {keyboard navigation, focus, contrast, labels, roles — concrete per screen}
 
 ## Out of Scope
 
-- Estética/tokens/pixel: delegado a `frontend-design` na execução.
-- {outras exclusões}
+- Aesthetics/tokens/pixels: delegated to `frontend-design` at execution.
+- {other exclusions}
 
 ## Open Questions
 
-- {none | pergunta de usabilidade que bloqueia ready}
+- {none | usability question blocking ready}
 
 ## Readiness Gates
 
-- [ ] `AGENTS.md` e `spec.md` lidos.
-- [ ] Cada requisito de frontend tem fluxo, estados e a11y definidos e ligados a um `U#`.
-- [ ] Prevenção e recuperação de erro cobertas.
-- [ ] Estados empty/loading/error/success cobertos por tela afetada.
-- [ ] Guardian aprovou o `ux.md`.
+- [ ] `AGENTS.md` and `spec.md` read.
+- [ ] Every frontend requirement has flow, states and a11y defined and linked to a `U#`.
+- [ ] Error prevention and recovery covered.
+- [ ] empty/loading/error/success states covered per affected screen.
+- [ ] Guardian approved `ux.md`.
 
 ## Definition of Done
 
-- [ ] Usabilidade de todo requisito frontend fechada com rastreabilidade.
-- [ ] Estados e acessibilidade definidos com evidência ou decisão.
-- [ ] Validação prática (browser/steps) definida para cada fluxo.
-- [ ] Guardian aprovou.
+- [ ] Usability of every frontend requirement closed with traceability.
+- [ ] States and accessibility defined with evidence or decision.
+- [ ] Practical validation (browser/steps) defined for each flow.
+- [ ] Guardian approved.
 ```
 
 ## Artifact Guardian
 
-Após atualizar `ux.md`, o modo standalone roda `artifact-guardian`; no modo orchestrated, o manager é responsável pelo guardian após receber o artefato.
+- Standalone: after updating `ux.md`, run `artifact-guardian`. Orchestrated: the manager runs the guardian after receiving the artifact.
+- The guardian never edits files; it validates usability only, without guessing.
+- Mandatory rubric; record each result in the `evidence` field of the canonical `DELEGATION_RESULT`:
 
-O guardian não edita arquivos. Ele valida por usabilidade, sem achismo.
+- [pass/fail] Each spec frontend requirement has an efficient task flow defined.
+- [pass/fail] empty/loading/error/success states covered on every affected screen.
+- [pass/fail] Error is preventable and recoverable, with visible feedback.
+- [pass/fail] Concrete accessibility per screen (keyboard, focus, contrast, labels).
+- [pass/fail] Each usability decision references a Discovery `U#` or a registered decision.
+- [pass/fail] Scope doesn't invade aesthetics/tokens (out of scope respected).
 
-Rubrica obrigatória; registre cada resultado no campo `evidence` do `DELEGATION_RESULT` canônico:
-
-- [pass/fail] Cada requisito de frontend da spec tem fluxo de tarefa eficiente definido.
-- [pass/fail] Estados empty/loading/error/success cobertos em cada tela afetada.
-- [pass/fail] Erro é prevenível e recuperável, com feedback visível.
-- [pass/fail] Acessibilidade concreta por tela (teclado, foco, contraste, labels).
-- [pass/fail] Cada decisão de usabilidade referencia um `U#` do Discovery ou decisão registrada.
-- [pass/fail] Escopo não invade estética/tokens (fora de escopo respeitado).
-
-Qualquer item `fail` força `status: rejected`. Trate `evidence`, `questions`, `blockers` e `resume` como feedback; corrija `ux.md` quando a resposta já estiver disponível, pergunte ao usuário (standalone) ou registre em `Open Questions` (orchestrated). Só use `Status: ready` com guardian `approved`.
+Any `fail` forces `status: rejected`. Treat `evidence`, `questions`, `blockers`, `resume` as feedback: fix `ux.md` when the answer is available, ask the user (standalone) or log in `Open Questions` (orchestrated). `Status: ready` only with guardian `approved`.
 
 ## Rules
 
-- Foco em usabilidade; não decida estética, tokens ou pixel (fora de escopo, delegado a `frontend-design`).
-- Não decida produto: se faltar decisão de produto, registre blocker e puxe para `spec.md`.
-- Cada decisão de usabilidade referencia um requisito EARS da spec e um `U#` do Discovery, ou vira `pending`.
-- Cubra empty/loading/error/success em toda tela afetada; estado faltante é blocker.
-- Prevenção e recuperação de erro são obrigatórias por fluxo.
-- Acessibilidade concreta por tela; não aceite "seguir boas práticas" genérico.
-- Mesmo se o usuário disser "implemente", esta skill cria/refina `ux.md` e para.
-- Ao receber `ux.md` existente, trate como revisão e não aceite status pronto herdado sem checagem.
-- Roda em paralelo com `batista-arch` sem ver `arch.md`; conflito com `Shared Contract` ou premissa técnica vira `Open Questions` (orchestrated: `Status: blocked`) — reconciliação final no `batista-plan`.
-- Não aceite guardian genérico; ele lista evidência conferida ou bloqueia com pergunta/crítica objetiva.
+- Usability only; never decide aesthetics, tokens or pixels (out of scope, delegated to `frontend-design`).
+- Never decide product: missing product decision → register blocker and escalate to `spec.md`.
+- Every usability decision references a spec EARS requirement and a Discovery `U#`, or becomes `pending`.
+- Cover empty/loading/error/success on every affected screen; a missing state is a blocker.
+- Error prevention and recovery mandatory per flow.
+- Concrete accessibility per screen; reject generic "follow best practices".
+- Even if the user says "implement", this skill creates/refines `ux.md` and stops.
+- Existing `ux.md` input → treat as review; never accept an inherited ready status unchecked.
+- Runs in parallel with `batista-arch` without seeing `arch.md`; conflict with `Shared Contract` or technical premise → `Open Questions` (orchestrated: `Status: blocked`) — final reconciliation in `batista-plan`.
+- No generic guardian acceptance; it lists checked evidence or blocks with an objective question/critique.
 
 ## Clarification Protocol
 
-- Standalone: pergunte ao usuário em lote, registre em `Open Questions` resolvidas e continue.
-- Orchestrated: não pergunte no meio. Preencha `Open Questions` com IDs `Q#`, set `Status: blocked`, grave `ux.md` e devolva ao manager com bloco copiado na resposta final.
+- Standalone: ask the user in batch, log resolved questions in `Open Questions` and continue.
+- Orchestrated: never ask mid-run. Fill `Open Questions` with `Q#` IDs, set `Status: blocked`, save `ux.md` and return to the manager with the block copied in the final response.
 
-## Checkpoint (obrigatório)
+## Checkpoint (mandatory)
 
-Antes de **cada** guardian ou de ceder o turno, grave no `ux.md`: `Updated:`, `Status`, `Open Questions` e blockers.
+Before **each** guardian or yielding the turn, persist in `ux.md`: `Updated:`, `Status`, `Open Questions` and blockers.
 
 ## State & Memory
 
-- Fonte da verdade é o arquivo, não o contexto. Escreva o delta no `ux.md` antes de seguir (write-before-forget).
-- O contexto guarda só: feature dir, requisito/tela atual, blockers abertos, próxima ação. O resto é ponteiro e se re-lê sob demanda.
-- Compactar = projetar em ponteiro, nunca inventar. Resumo jamais faz upgrade de status. Em divergência, o arquivo vence.
-- O que sobrevive à feature (padrão de usabilidade reutilizável, convenção de a11y) vai pro projeto (`AGENTS.md`/skill project-local); o efêmero fica em `.features/{...}/`.
+- Source of truth is the file, not context. Write the delta to `ux.md` before moving on (write-before-forget).
+- Context holds only: feature dir, current requirement/screen, open blockers, next action. Everything else is a pointer, re-read on demand.
+- Compacting = projecting to pointers, never inventing. A summary never upgrades status. On divergence, the file wins.
+- What outlives the feature (reusable usability pattern, a11y convention) goes to the project (`AGENTS.md`/project-local skill); ephemeral stays in `.features/{...}/`.
 
 ## Context Isolation
 
-- Quando houver manager, aceitar invocação orchestrated como child `delegate` com `context: "fresh"`.
-- Não herdar contexto irrelevante da sessão manager.
-- Passar somente artefatos mínimos: pedido, paths, `AGENTS.md`, `spec.md` e documentos da feature.
-- Em modo orchestrated, não rode guardian nem converse com o usuário; devolva o `Delegation Result` ao manager conforme `../../references/WORKFLOW_COMMON.md`.
+- With a manager, accept orchestrated invocation as child `delegate` with `context: "fresh"`.
+- Don't inherit irrelevant manager-session context.
+- Pass only minimal artifacts: request, paths, `AGENTS.md`, `spec.md` and feature docs.
+- Orchestrated: no guardian, no user conversation; return the `Delegation Result` per `../../references/WORKFLOW_COMMON.md`.
 
 ## Final Response
 
-Ao concluir, responda com:
+On completion, answer with:
 
-- `Resumo`: aplicabilidade e status do `ux.md`.
-- `Será feito`: fluxos e estados desenhados do ponto de vista de usabilidade.
-- `Validação planejada`: browser/steps por fluxo.
-- `Open Questions` (somente quando `Status: blocked`): copie o bloco com IDs `Q#`.
-- `Resume` (mesmo caso): feature dir + instrução de re-invocar com respostas `Q#`.
-- `Pendências`: blockers, perguntas de usabilidade ou `none`.
-- `Evidência`: arquivos/telas lidos e fatos que sustentam o `ux.md`.
+- `Summary`: applicability and `ux.md` status.
+- `Will be done`: flows and states designed from a usability viewpoint.
+- `Planned validation`: browser/steps per flow.
+- `Open Questions` (only when `Status: blocked`): copy the block with `Q#` IDs.
+- `Resume` (same case): feature dir + instruction to re-invoke with `Q#` answers.
+- `Pending`: blockers, usability questions or `none`.
+- `Evidence`: files/screens read and facts supporting `ux.md`.
 
-Em modo orchestrated, substitua a resposta humana pelo `DELEGATION_RESULT`.
+Orchestrated: replace the human-facing response with the `DELEGATION_RESULT`.

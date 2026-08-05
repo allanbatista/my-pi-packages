@@ -1,82 +1,78 @@
 ---
 name: batista-manifest
-description: Orquestra e revisa o workflow completo de feature em `.features/{YYYY-MM-DD}_{HHMM}-{short-desc}/`, criando e mantendo `manifest.md`, `spec.md`, `ux.md`, `arch.md` e `plan.md`. Use como `/skill:batista-manifest` quando o usuário pedir o fluxo completo (spec → ux ∥ arch → plan), plano de execução persistido, criação ou revisão de feature, status geral, retomada, long-running work ou paralelismo. Para execução, use `/skill:batista-execute`.
+description: Orchestrates and reviews the full feature workflow in `.features/{YYYY-MM-DD}_{HHMM}-{short-desc}/`, creating and maintaining `manifest.md`, `spec.md`, `ux.md`, `arch.md` and `plan.md`. Use as `/skill:batista-manifest` when the user asks for the complete flow (spec → ux ∥ arch → plan), a persisted execution plan, feature creation/review, overall status, resumption, long-running work or parallelism. For execution, use `/skill:batista-execute`.
 ---
 
 # Feature Manifest
 
+## Runtime & Delegation
 
-## Runtime & Delegação
+Read `../../references/WORKFLOW_COMMON.md` (Pi runtime, delegation, isolation, state reconciliation, checkpoints) and `../../references/PI_ADAPTATION.md`.
 
-Leia e siga `../../references/WORKFLOW_COMMON.md` para runtime Pi, delegação, isolamento, reconciliação de estado e checkpoints.
+Authorship orchestrator: coordinates `batista-spec`, `batista-ux`, `batista-arch`, `batista-plan` via `subagent`, never emitting `/skill:*`. Execution: `batista-execute`. External entry point: `/skill:batista-loop`.
 
+Scope: the feature's workflow documents only — never product code, tests, configs, migrations or files outside the feature folder.
 
-Use esta skill como orquestrador de autoria do plugin. Ela coordena as skills `batista-spec`, `batista-ux`, `batista-arch` e `batista-plan` via subagents; execução operacional fica na rotina `batista-execute`. O entry point externo é `/skill:batista-loop`.
-
-Esta skill só pode editar documentos de workflow da feature. Não edite código de produto, testes, configs, migrations ou arquivos fora da pasta da feature.
-
-Não use achismo: investigue antes de concluir, cite evidência concreta para fatos e registre como blocker/pending qualquer premissa que não puder confirmar por arquivo, comando, log, teste, browser ou resposta do usuário.
-
-Esta skill atua como manager raiz. Delegue `batista-spec`, `batista-ux`, `batista-arch` e `batista-plan` pela ferramenta `subagent`, nunca emitindo `/skill:*`; veja `../../references/PI_ADAPTATION.md`.
+No guessing: investigate first, cite concrete evidence, record premises unconfirmed via file, command, log, test, browser or user answer as blocker/pending.
 
 ## Workflow
 
-1. Leia o `AGENTS.md`, valide paths e aplique o preflight `list` + `get` de `../../references/WORKFLOW_COMMON.md` para `delegate` e `artifact-guardian`.
-2. Se o input resolver para feature dir ou arquivo existente, selecione-o e releia seus artefatos; não crie outra feature. Para pedido novo, crie `.features/{YYYY-MM-DD}_{HHMM}-{short-desc}/`.
-3. Reconcile status, perguntas, gates, guardians e evidência conforme `State Reconciliation`; o arquivo mais específico vence o manifesto.
-4. Crie ou atualize `manifest.md` com links, estado real e resume point.
-5. Despache a partir do primeiro artefato ausente, bloqueado, inválido ou indicado no resume point; não reinicie pela spec quando ela já estiver realmente `ready` e aprovada.
-6. Para `batista-spec`, aplique `Author → Guardian Handshake`. Se retornar `blocked`, persista as `Clarifications Needed`, apresente-as ao usuário e ceda o turno; não responda por suposição.
-7. Com spec válida, aplique o **Solution Gate**: confirme `Shared Contract` fechado e grave UX/Arch como `not-applicable` ou `draft` antes da delegação.
-8. Para cada solução aplicável, aplique `Author → Guardian Handshake`; `batista-ux` e `batista-arch` podem compartilhar uma chamada paralela quando os write sets forem disjuntos. Passe o `Discovery Ledger` (`D#`) da spec. Pergunta de produto/contrato volta à spec.
-9. Só planeje quando spec e soluções aplicáveis estiverem `ready`+guardian `approved`, soluções não aplicáveis estiverem explicitamente `not-applicable` e o contrato compartilhado estiver fechado.
-10. Para `batista-plan`, aplique `Author → Guardian Handshake`. Blocker de produto/contrato reabre a menor skill fonte; o manager não edita o artefato folha.
-11. Releia todos os artefatos e marque manifest `ready` somente com estados, gates e guardians persistidos e zero pergunta material.
-12. Se esta rotina foi carregada pelo `batista-loop`, não emita `Final Response`: devolva o controle ao passo seguinte do loop no mesmo turno. Em invocação standalone, responda conforme `Final Response`.
+1. Read `AGENTS.md`, validate paths; apply the `list` + `get` preflight from `../../references/WORKFLOW_COMMON.md` for `delegate` and `artifact-guardian`.
+2. Existing feature dir/file input → select and re-read artifacts; do not create another feature. New request → create `.features/{YYYY-MM-DD}_{HHMM}-{short-desc}/`.
+3. Reconcile status, questions, gates, guardians, evidence per `State Reconciliation`; most specific file beats the manifest.
+4. Create/update `manifest.md` with links, real state and resume point.
+5. Dispatch from the first missing/blocked/invalid artifact or the resume point; don't restart from spec already `ready` and approved.
+6. `batista-spec`: `Author → Guardian Handshake`. `blocked` → persist `Clarifications Needed`, present to user, yield turn; never answer by assumption.
+7. Valid spec → apply **Solution Gate**: `Shared Contract` closed; UX/Arch recorded `not-applicable` or `draft` before delegation.
+8. Each applicable solution: `Author → Guardian Handshake`; `batista-ux` ∥ `batista-arch` may share one call if write sets are disjoint. Pass the spec's `Discovery Ledger` (`D#`). Product/contract questions return to spec.
+9. Plan only when: spec + applicable solutions `ready` with guardian `approved`, non-applicable solutions explicitly `not-applicable`, shared contract closed.
+10. `batista-plan`: `Author → Guardian Handshake`. Product/contract blocker reopens the smallest source skill; manager never edits the leaf artifact.
+11. Re-read all artifacts; mark `ready` only with states/gates/guardians persisted and zero material questions.
+12. Loaded by `batista-loop` → no `Final Response`; return control to the loop's next step in the same turn. Standalone → respond per `Final Response`.
 
 ### Resume Dispatch
 
-| Estado real | Próxima ação |
+| Real state | Next action |
 |---|---|
-| Spec ausente/draft/blocked/rejected | `batista-spec` |
-| Spec pronta; UX/Arch aplicável incompleto | `batista-ux`/`batista-arch` |
-| Soluções prontas; plan incompleto | `batista-plan` |
-| Pergunta material aberta | manifest `blocked`; perguntar ao usuário |
-| Tudo pronto e aprovado | manifest `ready`; retornar ao `batista-loop` |
+| Spec missing/draft/blocked/rejected | `batista-spec` |
+| Spec ready; applicable UX/Arch incomplete | `batista-ux`/`batista-arch` |
+| Solutions ready; plan incomplete | `batista-plan` |
+| Material question open | manifest `blocked`; ask the user |
+| All ready and approved | manifest `ready`; return to `batista-loop` |
 
 ### Author → Guardian Handshake
 
-1. Resolva o `SKILL.md` exato desta instalação e delegue a folha com `delegate`, `model: "inherit"`, `context: "fresh"`, `cwd` explícito e o prompt de `../../references/WORKFLOW_COMMON.md`; não selecione skill apenas pelo nome.
-2. Releia o artefato. Se houver pergunta material, persista `blocked` no manifesto e não rode guardian.
-3. Sem perguntas e com gates internos completos — exceto o gate autorreferente de aprovação — delegue a rubrica ao `artifact-guardian`; ele não edita arquivos.
-4. Se rejeitado, incremente o iteration budget, re-invoque o autor com o feedback ou bloqueie quando faltar decisão/evidência.
-5. Se aprovado, re-invoque o autor somente para persistir a aprovação, marcar o gate do guardian e promover o artefato a `ready`; então releia o arquivo antes de atualizar o manifesto.
+1. Resolve this installation's exact `SKILL.md`; delegate the leaf with `delegate`, `model: "inherit"`, `context: "fresh"`, explicit `cwd`, prompt from `../../references/WORKFLOW_COMMON.md`; never pick a skill by name only.
+2. Re-read the artifact. Material question → persist `blocked` in the manifest, skip the guardian.
+3. No questions, internal gates complete (except the self-referential approval gate) → delegate the rubric to `artifact-guardian`; it never edits files.
+4. Rejected → increment iteration budget, re-invoke author with feedback, or block when decision/evidence is missing.
+5. Approved → re-invoke the author only to persist approval, mark the guardian gate, promote to `ready`; re-read the file before updating the manifest.
 
 ## Solution Gate
 
-Precedência (aplique nesta ordem):
+Precedence (apply in this order):
 
-1. **`Validation surfaces`** definem o escopo técnico. Mapeamento:
+1. **`Validation surfaces`** define the technical scope. Mapping:
    - `frontend` → `/skill:batista-ux`
    - `backend`, `API`, `job`, `consumer`, `infra` → `/skill:batista-arch`
-   - `browser` sem mudança de UI → validação no `batista-plan`/`batista-execute` (harness); não dispara `batista-ux`
-   - `browser` com mudança de UI/fluxo → também dispara `batista-ux`
-2. **`Intent Classification`** só reduz solução quando **ambos** forem verdadeiros:
-   - `User intent: pontual/localizada`
-   - `Coverage expectation: somente fluxo afetado`
-   - E as surfaces relevantes forem subconjunto mínimo (ex.: um handler, um componente, um endpoint) sem novo contrato compartilhado em `Shared Contract`
-3. Se `Intent Classification` e surfaces divergirem, **surfaces vencem** — rode `batista-ux`/`batista-arch` aplicáveis ou reabra a spec.
-4. **`Shared Contract`** na spec deve estar `closed` ou `none` antes do spawn de `batista-ux`/`batista-arch`. Se `pending`, re-invoque `batista-spec` — não paralelize solução com contrato compartilhado aberto.
+   - `browser` without UI change → validation in `batista-plan`/`batista-execute` (harness); does not trigger `batista-ux`
+   - `browser` with UI/flow change → also triggers `batista-ux`
+2. **`Intent Classification`** only reduces the solution when **both** hold:
+   - `User intent: punctual/localized`
+   - `Coverage expectation: only affected flow`
+   - And the relevant surfaces are a minimal subset (e.g., one handler, one component, one endpoint) with no new shared contract in `Shared Contract`
+3. If `Intent Classification` and surfaces diverge, **surfaces win** — run applicable `batista-ux`/`batista-arch` or reopen the spec.
+4. `Shared Contract` must be `closed` or `none` before spawning `batista-ux`/`batista-arch`; `pending` → re-invoke `batista-spec`. Never parallelize a solution with an open shared contract.
 
-Casos de referência:
+Reference cases:
 
-| Caso | UX | Arch |
+| Case | UX | Arch |
 |---|---|---|
-| Só frontend | `batista-ux` | `not-applicable` |
-| Só backend/infra | `not-applicable` | `batista-arch` |
+| Frontend only | `batista-ux` | `not-applicable` |
+| Backend/infra only | `not-applicable` | `batista-arch` |
 | Fullstack | `batista-ux` ∥ `batista-arch` | `batista-ux` ∥ `batista-arch` |
-| Infra/config pura | `not-applicable` | `batista-arch` |
-| Fix pontual (intent + coverage ok, sem shared contract) | `not-applicable` | `not-applicable` → direto ao `batista-plan` |
+| Pure infra/config | `not-applicable` | `batista-arch` |
+| Punctual fix (intent + coverage ok, no shared contract) | `not-applicable` | `not-applicable` → straight to `batista-plan` |
 
 ## `manifest.md` Template
 
@@ -124,51 +120,51 @@ Iterations used: {0}
 
 ## Rules
 
-- `manifest.md` é índice, não substitui `spec.md` nem `plan.md`.
-- Não consolide status, resume point, blockers ou evidência por suposição; confirme nos documentos/comandos ou registre pendência.
-- Mesmo se o usuário disser "corrija", "implemente" ou "execute", esta rotina deve criar/refinar os artefatos via subagents e retornar ao `batista-loop`; apenas a invocação standalone indica `/skill:batista-execute` ao usuário. Não faça patch de produto.
-- Não coloque detalhe técnico extenso no manifesto.
-- Quando a spec devolver `Clarifications Needed`, relé as perguntas ao usuário e re-invoque a spec com as respostas; nunca marque `ready` com clarificações abertas nem responda por achismo.
-- Se `spec.md` bloquear por decisão de produto, deixe `plan.md` ausente ou marcado como bloqueado.
-- Se `plan.md` divergir de `spec.md`, pare e atualize a spec primeiro.
-- Ao finalizar, o manifesto deve apontar evidências suficientes para validar o DoD.
-- Não marque `ready` quando a próxima execução ainda precisar adivinhar contrato, persistência, harness ou arquivos alvo.
-- Aplique o `Solution Gate` com precedência surfaces > intent; registre `not-applicable` no manifesto quando a skill não criar arquivo.
-- `not-applicable` no manifesto satisfaz o gate de solução; `missing` após o passo de solução é blocker.
-- Guardians de spec, ux/arch aplicáveis e plan são sempre obrigatórios e independentes.
-- **Iteration budget**: incremente `Iterations used` em toda rejeição ou reinvocação de autor; com 3 tentativas sem evidência nova, force `Status: blocked` e reporte.
-- Mudança em spec invalida UX/Arch/Plan e seus guardians; mudança em UX/Arch invalida Plan e seu guardian; mudança no plan invalida seu guardian. Persista os resets antes do próximo dispatch.
-- O que sobrevive à feature (convenção, decisão de arquitetura durável, procedimento repetido) vai pro projeto (`AGENTS.md`, skills project-local, `docs/adr`); o efêmero fica em `.features/{...}/`.
-- Ao receber arquivo ou diretório existente, trate a tarefa como revisão: corrija/refine `manifest.md`, `spec.md` e/ou `plan.md` antes de concluir e não aceite status pronto herdado sem checagem.
-- Não marque `done` se spec, plan ou manifesto ainda tiver pergunta pendente, blocker, evidência `pending`, guardian rejeitado/pendente ou ponto de retomada indefinido.
-- Quando o usuário pedir execução, retomada operacional ou coordenação de workers, encaminhe para `/skill:batista-execute`.
+- `manifest.md` is an index, not a substitute for `spec.md` or `plan.md`.
+- Never assume status, resume point, blockers or evidence; confirm in docs/commands or record pending.
+- User says "fix"/"implement"/"execute" → still refine artifacts via subagents and return to `batista-loop`; only standalone invocation points to `/skill:batista-execute`. No product patch.
+- No extensive technical detail in the manifest.
+- Spec returns `Clarifications Needed` → relay questions to user, re-invoke spec with answers; never `ready` with open clarifications nor answer by guessing.
+- `spec.md` blocked on a product decision → leave `plan.md` missing or marked blocked.
+- `plan.md` diverges from `spec.md` → stop and update the spec first.
+- On completion, the manifest must point to enough evidence to validate the DoD.
+- Never `ready` when the next run would have to guess contract, persistence, harness or target files.
+- Apply the `Solution Gate` with surfaces > intent precedence; record `not-applicable` in the manifest when the skill creates no file.
+- `not-applicable` in the manifest satisfies the solution gate; `missing` after the solution step is a blocker.
+- Spec, applicable ux/arch and plan guardians are always mandatory and independent.
+- **Iteration budget**: increment `Iterations used` on every rejection or author re-invocation; after 3 attempts without new evidence, force `Status: blocked` and report.
+- Spec changes invalidate UX/Arch/Plan and their guardians; UX/Arch changes invalidate Plan and its guardian; plan changes invalidate its guardian. Persist the resets before the next dispatch.
+- Durable outcomes (convention, architecture decision, repeated procedure) → project (`AGENTS.md`, project-local skills, `docs/adr`); ephemeral stays in `.features/{...}/`.
+- Existing file/dir input → review mode: fix/refine `manifest.md`, `spec.md` and/or `plan.md` before concluding; never accept inherited `ready` unchecked.
+- Never mark `done` with a pending question, blocker, `pending` evidence, rejected/pending guardian or undefined resume point in spec, plan or manifest.
+- Execution, operational resumption or worker-coordination requests → route to `/skill:batista-execute`.
 
-## Checkpoint (obrigatório)
+## Checkpoint (mandatory)
 
-Antes de **cada** chamada `subagent` ou de ceder o turno, grave no `manifest.md`: `Updated:`, status de Spec/UX/Arch/Plan e guardians, resume point e blockers. Não delegue com `manifest.md` desatualizado.
+Before **every** `subagent` call or yielding the turn, write to `manifest.md`: `Updated:`, Spec/UX/Arch/Plan + guardian statuses, resume point, blockers. Never delegate with stale `manifest.md`.
 
 ## State & Memory
 
-- Fonte da verdade é o arquivo, não o contexto. Escreva o delta em `manifest.md` (status, resume point) antes de seguir (write-before-forget).
-- O contexto guarda só: feature dir, artefato/etapa atual, blockers abertos, próxima ação. O resto é ponteiro (path + resume point) e se re-lê sob demanda.
-- Antes de ceder o turno ou compactar: garanta que `manifest.md` reflete o estado real; descarte transcripts de subagent (guarde só {docs produzidos, status, evidência}).
-- Compactar = projetar em ponteiro, nunca inventar. Resumo jamais faz upgrade de status. Em divergência, o arquivo vence e re-lê.
-- Learnings flush: ao fechar a feature, promova o subconjunto durável (convenções, decisões de arquitetura, procedimentos repetidos) para o projeto; o resto morre com `.features/{...}/`.
+- Source of truth is the file, not the context. Write the delta (status, resume point) to `manifest.md` before proceeding (write-before-forget).
+- Context keeps only: feature dir, current artifact/step, open blockers, next action. Everything else is a pointer (path + resume point), re-read on demand.
+- Before yielding the turn or compacting: ensure `manifest.md` reflects real state; discard subagent transcripts (keep only {produced docs, status, evidence}).
+- Compacting = projecting into pointers, never inventing. A summary never upgrades status. On divergence, the file wins; re-read.
+- Learnings flush: on feature close, promote the durable subset (conventions, architecture decisions, repeated procedures) to the project; the rest dies with `.features/{...}/`.
 
 ## Context Isolation
 
-- O manager não deve executar spec/ux/arch/plan inline quando puder delegar.
-- Delegar spec, ux, arch, plan e guardians pela ferramenta `subagent`, sempre com `context: "fresh"` e `cwd` explícito (ver `../../references/PI_ADAPTATION.md`).
-- Rodar `batista-ux` e `batista-arch` aplicáveis em paralelo quando suportado; senão serialize; passar só spec como contrato âncora e docs necessários.
-- Passar contexto mínimo: pedido, paths, `AGENTS.md`, feature dir e docs relevantes.
-- Se `subagent` não estiver disponível, siga `../../references/PI_ADAPTATION.md`: grave blocker e não simule guardian ou autoria inline.
+- Never run spec/ux/arch/plan inline when delegation is possible.
+- Delegate spec, ux, arch, plan and guardians via `subagent`, always with `context: "fresh"` and explicit `cwd` (see `../../references/PI_ADAPTATION.md`).
+- Run applicable `batista-ux`/`batista-arch` in parallel when supported; otherwise serialize; pass only the spec as anchor contract plus needed docs.
+- Pass minimal context: request, paths, `AGENTS.md`, feature dir and relevant docs.
+- `subagent` unavailable → follow `../../references/PI_ADAPTATION.md`: record a blocker; never simulate guardian or inline authorship.
 
 ## Final Response
 
-Ao concluir, responda com:
+On completion, respond with:
 
-- `Resumo`: spec/plan/manifest criados ou refinados e status geral.
-- `Será feito`: escopo planejado em linguagem de produto, sem detalhe excessivo.
-- `Próxima ação`: em standalone, execução com `/skill:batista-execute`; quando carregada pelo loop, retorno ao controlador; ou clarificação necessária.
-- `Pendências`: blockers, perguntas abertas ou `none`.
-- `Evidência`: arquivos lidos/atualizados e fatos confirmados.
+- `Summary`: spec/plan/manifest created or refined and overall status.
+- `Will be done`: planned scope in product language, no excessive detail.
+- `Next action`: standalone → execution with `/skill:batista-execute`; loaded by the loop → return to the controller; or needed clarification.
+- `Pending`: blockers, open questions or `none`.
+- `Evidence`: files read/updated and confirmed facts.

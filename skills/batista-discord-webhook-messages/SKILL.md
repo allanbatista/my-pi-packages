@@ -1,157 +1,155 @@
 ---
 name: batista-discord-webhook-messages
-description: "Publicar e gerenciar mensagens e anexos do Discord via bot, sempre em threads agrupadas por sessão e com identidade hierárquica do agente; enviar atualizações em Markdown, consultar, editar ou excluir mensagens, fazer perguntas livres com espera por resposta e perguntas estruturadas por poll. Use como `/skill:batista-discord-webhook-messages` para notificações de Codex, Pi ou Claude nos canais working, pull-requests, releases e geral, incluindo release notes amigáveis para usuários."
+description: "Publish and manage Discord bot messages and attachments, always in session-scoped threads with hierarchical agent identity; send Markdown updates, fetch, edit or delete messages, ask free-form questions waiting for a reply and structured poll questions. Use as `/skill:batista-discord-webhook-messages` for Codex, Pi or Claude notifications on the working, pull-requests, releases and geral channels, including user-friendly release notes."
 ---
 
-# Mensagens do Discord por sessão
+# Session-scoped Discord messages
 
-Usar somente `scripts/discord_message.py` (caminho relativo a esta pasta de skill: `skills/batista-discord-webhook-messages/scripts/discord_message.py`). Exigir `DISCORD_APP_MY_MY_DEV_BOT_TOKEN_BOT`; tratar todas as credenciais como segredo e nunca exibi-las.
+Use only `scripts/discord_message.py` (skill-relative: `skills/batista-discord-webhook-messages/scripts/discord_message.py`). Require `DISCORD_APP_MY_MY_DEV_BOT_TOKEN_BOT`; treat credentials as secrets, never display them.
 
-| Variável | Uso |
+| Variable | Use |
 | --- | --- |
-| `DISCORD_APP_MY_MY_DEV_BOT_APP_ID` | identificar e validar o aplicativo/bot |
-| `DISCORD_APP_MY_MY_DEV_BOT_PUBBLIC_KEY` | verificar assinaturas de interações recebidas |
-| `DISCORD_APP_MY_MY_DEV_BOT_TOKEN_BOT` | autenticar as chamadas REST deste script |
-| `DISCORD_APP_MY_MY_DEV_BOT_WEBHOOK_TOKEN` | responder interações/webhooks quando esse fluxo existir |
+| `DISCORD_APP_MY_MY_DEV_BOT_APP_ID` | identify/validate app/bot |
+| `DISCORD_APP_MY_MY_DEV_BOT_PUBBLIC_KEY` | verify signatures of received interactions |
+| `DISCORD_APP_MY_MY_DEV_BOT_TOKEN_BOT` | authenticate REST calls |
+| `DISCORD_APP_MY_MY_DEV_BOT_WEBHOOK_TOKEN` | reply to interactions/webhooks when that flow exists |
 
-O fluxo atual é exclusivamente de saída pela API REST do bot e consome somente `DISCORD_APP_MY_MY_DEV_BOT_TOKEN_BOT`. Não usar webhook para publicar mensagens nem reutilizar as variáveis antigas da RedQueen.
+Flow is outbound-only via the bot REST API, consuming only `DISCORD_APP_MY_MY_DEV_BOT_TOKEN_BOT`. Never use webhooks to publish nor reuse old RedQueen variables.
 
-## Canais
+## Channels
 
-| Nome | ID | Uso |
+| Name | ID | Use |
 | --- | --- | --- |
-| `releases` | `1529459842937393213` | somente release notes após merge confirmado em `main` ou `master` |
-| `working` | `1529460052958908537` | plano, execução, testes e conclusão local antes de abrir PR |
-| `pull-requests` | `1529517597064691712` | PR aberto, CI, review, correções e espera pelo merge |
-| `geral` | `1529425753756799119` | mensagens sem vínculo com uma task |
+| `releases` | `1529459842937393213` | release notes only, after merge confirmed in `main` or `master` |
+| `working` | `1529460052958908537` | plan, execution, tests and local completion before opening the PR |
+| `pull-requests` | `1529517597064691712` | open PR, CI, review, fixes and wait for merge |
+| `geral` | `1529425753756799119` | messages not tied to a task |
 
-Seguir o fluxo `working` → `pull-requests` → `releases`. Manter em `working` enquanto a mudança estiver local ou apenas na branch. Após abrir o PR, publicar em `pull-requests` até o merge, incluindo CI, review, correções, bloqueios e estado pronto para merge. Usar `releases` somente depois de confirmar que o merge entrou em `main` ou `master`. Se a tarefa não tiver PR, concluir em `working`; se o PR não for incorporado, concluir ou bloquear em `pull-requests`; nunca publicar em `releases` antes do merge.
+Follow `working` → `pull-requests` → `releases`. Stay in `working` while local or branch-only; after opening the PR, post in `pull-requests` until merge (CI, review, fixes, blockers, ready state). `releases` only after merge confirmed in `main`/`master`. No PR → conclude in `working`; PR unmerged → conclude/block in `pull-requests`; never `releases` pre-merge.
 
-Antes de publicar em `releases`, confirmar que o SHA incorporado possui uma tag de versão publicada no remoto. Respeitar a convenção do repositório; se não existir, iniciar em `v1.0.0` e incrementar PATCH a cada merge. Reutilizar uma tag SemVer que já aponte exatamente ao mesmo SHA. Nunca mover, sobrescrever ou publicar tag com force. O envio para `releases` exige `**Versão:** \`vMAJOR.MINOR.PATCH\`` no conteúdo.
+Before `releases`, confirm the merged SHA has a version tag on the remote. Follow repo convention; if none, start `v1.0.0`, bump PATCH per merge. Reuse a SemVer tag already pointing exactly at the same SHA. Never move, overwrite or force-publish a tag. Content must include `**Version:** \`vMAJOR.MINOR.PATCH\``.
 
-Publicar sempre dentro de uma thread. O script cria uma thread por sessão e canal e reutiliza seu ID nas próximas mensagens. Usar `PI_SESSION_ID` (Pi), `CODEX_THREAD_ID` (Codex) ou os identificadores equivalentes disponíveis; quando ausentes, usar repositório + branch como chave. Em `working` e `pull-requests`, usar uma branch específica como nome da thread, sem incluir repositório ou diretório; em `main`, `master`, detached HEAD ou fora de Git, usar toda a cadeia de `--name`, sem o code agent. Em `releases`, informar sempre `--thread-name` com um título editorial curto e compreensível para usuários. Não usar branch, diretório, número de PR, hash, "merge/deploy" ou nome interno de task no título. Exemplo: usar `Mais controle nas investigações e políticas`, não `feature/permitir-edicao-agent-discovery` nem `Merge e deploy PR 129`. Usar `Sessão geral` somente quando nenhuma sessão estiver disponível. Aceitar `--session-id` para sobrescrever a sessão.
+Always post inside a thread; the script creates one per session+channel and reuses its ID. Session key: `PI_SESSION_ID` (Pi), `CODEX_THREAD_ID` (Codex) or equivalent; absent → repo+branch. In `working`/`pull-requests`, thread name = specific branch (no repo/dir); in `main`, `master`, detached HEAD or outside Git, use the full `--name` chain without the code agent. In `releases`, always pass `--thread-name` with a short user-friendly editorial title. Never use branch, dir, PR number, hash, "merge/deploy" or internal task name in titles. Example: `More control over investigations and policies`, not `feature/allow-editing-agent-discovery` nor `Merge and deploy PR 129`. `General session` only when no session is available. `--session-id` overrides the session.
 
-## Identidade hierárquica
+## Hierarchical identity
 
-Informar `--name` em todo `send`, `ask` e `edit`. Passar somente a cadeia de sessões, separada por ` > `; o script acrescenta o `--agent` no início. A sessão raiz usa `--name "Ajustes Discord"`; um subagent preserva a cadeia recebida e acrescenta o próprio nome, por exemplo `--name "Ajustes Discord > Testes"`. O autor visual será `Codex > Ajustes Discord > Testes`. Em `releases`, usar no `--name` o mesmo título amigável da release, sem descrever a operação de merge ou deploy.
+Pass `--name` on every `send`/`ask`/`edit`: only the session chain, ` > `-separated; the script prepends `--agent`. Root: `--name "Discord Tweaks"`; a subagent keeps the chain and appends its name, e.g. `--name "Discord Tweaks > Tests"`. Visual author: `Codex > Discord Tweaks > Tests`. In `releases`, `--name` uses the same friendly release title, without describing merge/deploy.
 
-## Enviar
+## Send
 
 ```bash
 set -a; source /home/allanbatista/.secrets; set +a
 rtk proxy python3 skills/batista-discord-webhook-messages/scripts/discord_message.py send \
-  --agent Codex --name "Ajustes Discord" --channel working \
-  --content $'### 🔄 Em andamento\nImplementando o agrupamento por sessão.\n\n**Próximo:** validar o envio real.'
+  --agent Codex --name "Discord Tweaks" --channel working \
+  --content $'### 🔄 In progress\nImplementing session-based grouping.\n\n**Next:** validate the real send.'
 
 rtk proxy python3 skills/batista-discord-webhook-messages/scripts/discord_message.py send \
-  --agent Codex --name "Mais controle nas investigações" --channel releases \
-  --thread-name "Mais controle nas investigações" \
-  --content $'### 🚀 Mais controle nas investigações\nAgora é possível ajustar a descrição antes de usar uma investigação.\n\n### 🔧 Detalhes técnicos\n- **Versão:** `v1.0.0`\n- **Merge:** PR #123 incorporado em `main`.\n- **Validação:** smoke pós-merge aprovado.' \
+  --agent Codex --name "More control over investigations" --channel releases \
+  --thread-name "More control over investigations" \
+  --content $'### 🚀 More control over investigations\nThe description can now be adjusted before using an investigation.\n\n### 🔧 Technical details\n- **Version:** `v1.0.0`\n- **Merge:** PR #123 merged into `main`.\n- **Validation:** post-merge smoke passed.' \
   --mention-everyone \
   --file ./report.txt
 ```
 
-Escrever Markdown no `--content` e separar título, corpo e ações com quebras de linha. O script converte sequências não escapadas `\n` e `\r\n` recebidas pelo CLI em quebras reais; usar `\\n` quando precisar exibir a sequência literalmente. O bot aparece como autor real `my-dev-bot`; o embed mostra a identidade hierárquica e o logo de Codex, Pi ou Claude. Repetir `--file` para anexar múltiplos arquivos.
+Write Markdown in `--content`; separate title, body and actions with line breaks. The script converts unescaped `\n`/`\r\n` from CLI into real breaks; `\\n` shows the literal sequence. Author is the real bot `my-dev-bot`; embed shows hierarchical identity + Codex/Pi/Claude logo. Repeat `--file` per attachment.
 
-Usar templates curtos de timeline:
+Timeline templates:
 
 ```markdown
-### 🔄 Em andamento
-<estado atual>
+### 🔄 In progress
+<current status>
 
-**Próximo:** <ação>
+**Next:** <action>
 ```
 
 ```markdown
-### ✅ Concluído
-<resultado>
+### ✅ Completed
+<result>
 
-**Validação:** <evidência>
+**Validation:** <evidence>
 ```
 
-Usar `Concluído` em `working` enquanto não houver merge. Depois do merge confirmado, publicar em `releases` com linguagem de produto. Começar pelo que mudou e pelo benefício para o usuário; deixar PR, commit, serviços, CI e deploy apenas na última seção técnica. Incluir somente as categorias que tiverem conteúdo:
+Use `Completed` in `working` until merge. After confirmed merge, post in `releases` in product language: start with what changed and the user benefit; PR/commit/services/CI/deploy only in the final technical section. Include only categories with content:
 
 ```markdown
 ### 🔎 Pull request
-<PR aberto ou etapa relevante concluída>
+<open PR or relevant completed step>
 
-**Estado:** <CI, review ou prontidão>
-**Próximo:** <ação>
+**State:** <CI, review, or readiness>
+**Next:** <action>
 ```
 
 ```markdown
-### 🚀 <título orientado ao benefício>
-<resumo em linguagem simples, compreensível sem contexto técnico>
+### 🚀 <benefit-oriented title>
+<plain-language summary, understandable without technical context>
 
-### ✨ Novidades
-- <nova capacidade para o usuário>
+### ✨ What's new
+- <new user capability>
 
-### 📈 Melhorias
-- <experiência ou comportamento aprimorado>
+### 📈 Improvements
+- <improved experience or behavior>
 
-### 🐛 Correções
-- <problema corrigido e efeito percebido>
+### 🐛 Fixes
+- <problem fixed and perceived effect>
 
-### 🔧 Detalhes técnicos
-- **Versão:** `vMAJOR.MINOR.PATCH`
-- **Merge:** <PR ou commit em main/master>
-- **Validação:** <smoke pós-merge>
+### 🔧 Technical details
+- **Version:** `vMAJOR.MINOR.PATCH`
+- **Merge:** <PR or commit in main/master>
+- **Validation:** <post-merge smoke>
 ```
 
 ```markdown
-### ⛔ Bloqueado
-<motivo>
+### ⛔ Blocked
+<reason>
 
-**Preciso de:** <decisão ou dado>
+**Need:** <decision or input>
 ```
 
-Não repetir task, branch ou contexto em toda mensagem; a thread já preserva essa timeline.
+Do not repeat task, branch or context per message; the thread already keeps that timeline.
 
-## Menções
+## Mentions
 
-Mencionar usuários somente quando a notificação for necessária. Em `send`, repetir `--mention-user-id` para até 100 IDs ou usar `--mention-everyone` em releases:
-
-O usuário principal é `cafeina_infinita` (`321460958998560768`). Marcar esse ID quando um problema realmente interromper a task. Toda nova release, depois de confirmar o merge em `main` ou `master`, deve usar `--mention-everyone`. Não marcar por falhas transitórias recuperadas sem interrupção. Usar somente o ID de `cafeina_infinita` em `ask --user-id` quando a continuidade depender de resposta.
+Mention only when needed. In `send`, repeat `--mention-user-id` (up to 100 IDs) or use `--mention-everyone` in releases. Main user: `cafeina_infinita` (`321460958998560768`) — mention it when a problem really interrupts the task. Every new release, after merge confirmed in `main`/`master`, must use `--mention-everyone`. Do not mention for recovered transient failures. In `ask --user-id`, use only `cafeina_infinita`'s ID when continuity depends on the answer.
 
 ```bash
 rtk proxy python3 skills/batista-discord-webhook-messages/scripts/discord_message.py send \
-  --agent Codex --name "Ajustes Discord" --channel working \
-  --content $'### ⛔ Decisão necessária\nPreciso confirmar o ambiente.' \
+  --agent Codex --name "Discord Tweaks" --channel working \
+  --content $'### ⛔ Decision needed\nI need to confirm the environment.' \
   --mention-user-id 321460958998560768
 ```
 
-O script escreve `<@USER_ID>` no conteúdo e restringe `allowed_mentions.users` aos IDs informados; `--mention-everyone` escreve `@everyone` e permite apenas essa menção. Sem essas opções, nenhuma menção é interpretada. Em `ask`, `--user-id` menciona uma pessoa e também restringe a resposta esperada a ela.
+The script writes `<@USER_ID>` in content and restricts `allowed_mentions.users` to given IDs; `--mention-everyone` writes `@everyone` and allows only that mention. Without options, no mention is parsed. In `ask`, `--user-id` also restricts the expected reply to that person.
 
-## Perguntar e aguardar
+## Ask and wait
 
-Fazer pergunta livre e aceitar a primeira resposta humana na thread, ou restringir com `--user-id`:
-
-```bash
-rtk proxy python3 skills/batista-discord-webhook-messages/scripts/discord_message.py ask \
-  --agent Codex --name "Ajustes Discord" --channel working \
-  --question "Qual ambiente devo validar?" --user-id USER_ID
-```
-
-Fazer pergunta estruturada com 2–10 opções usando uma poll nativa:
+Free-form question: accept the first human reply in the thread, or restrict via `--user-id`:
 
 ```bash
 rtk proxy python3 skills/batista-discord-webhook-messages/scripts/discord_message.py ask \
-  --agent Codex --name "Ajustes Discord" --channel working --question "Como devo prosseguir?" \
-  --option "Aplicar agora" --option "Manter somente local" --user-id USER_ID
+  --agent Codex --name "Discord Tweaks" --channel working \
+  --question "Which environment should I validate?" --user-id USER_ID
 ```
 
-Consultar uma vez a cada 15 segundos e encerrar após a resposta ou 24 horas. Aceitar `--timeout` entre 1 e `86400` segundos. O processo pode permanecer aberto; ao receber um session ID da ferramenta de execução, continuar acompanhando-o sem bloquear atualizações ao usuário por mais de 60 segundos. A resposta final sai como JSON.
+Structured question: 2–10 options via native poll:
 
-## Consultar, editar e excluir
+```bash
+rtk proxy python3 skills/batista-discord-webhook-messages/scripts/discord_message.py ask \
+  --agent Codex --name "Discord Tweaks" --channel working --question "How should I proceed?" \
+  --option "Apply now" --option "Keep local only" --user-id USER_ID
+```
 
-Resolver a thread pela sessão e pelo canal; usar `--thread-id` somente para operar uma thread explícita.
+Poll every 15 seconds; stop on reply or 24 hours. `--timeout` 1–`86400` s. Process may stay open: when receiving a session ID from the execution tool, keep following it without blocking user updates for more than 60 seconds. Final reply comes as JSON.
+
+## Fetch, edit and delete
+
+Resolve thread by session+channel; `--thread-id` only for an explicit thread.
 
 ```bash
 rtk proxy python3 skills/batista-discord-webhook-messages/scripts/discord_message.py get MESSAGE_ID --channel working
-rtk proxy python3 skills/batista-discord-webhook-messages/scripts/discord_message.py edit MESSAGE_ID --channel working --agent Codex --name "Ajustes Discord" --content "### ✅ Atualizado\nNovo conteúdo."
+rtk proxy python3 skills/batista-discord-webhook-messages/scripts/discord_message.py edit MESSAGE_ID --channel working --agent Codex --name "Discord Tweaks" --content "### ✅ Updated\nNew content."
 rtk proxy python3 skills/batista-discord-webhook-messages/scripts/discord_message.py delete MESSAGE_ID --channel working --yes
 ```
 
-Exigir confirmação explícita antes de excluir. Não anexar segredos nem arquivos fora do escopo do usuário. Impedir menções automáticas; mencionar deliberadamente somente com `send --mention-user-id`, `send --mention-everyone` ou `ask --user-id`.
+Require explicit confirmation before deleting. Never attach secrets or files outside the user's scope. No automatic mentions; mention deliberately only via `send --mention-user-id`, `send --mention-everyone` or `ask --user-id`.
 
-Fontes: https://docs.discord.com/developers/resources/channel, https://docs.discord.com/developers/resources/message, https://docs.discord.com/developers/resources/poll e https://docs.discord.com/developers/reference#uploading-files
+Sources: https://docs.discord.com/developers/resources/channel, https://docs.discord.com/developers/resources/message, https://docs.discord.com/developers/resources/poll and https://docs.discord.com/developers/reference#uploading-files

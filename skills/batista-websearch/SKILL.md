@@ -1,64 +1,64 @@
 ---
 name: batista-websearch
-description: "Buscar informações atuais na web com respostas fundamentadas e citações via OpenRouter Web Search Plugin (chat completions), com modelo default `~deepseek/deepseek-v4-flash-latest`. Use como `/skill:batista-websearch` quando o usuário pedir pesquisa, busca, notícias, documentação atual, preços, eventos, verificação de fatos ou qualquer informação que o conhecimento do modelo não cobre com segurança."
+description: "Search current information on the web with sourced answers and citations via OpenRouter Web Search Plugin (chat completions), default model `~deepseek/deepseek-v4-flash-latest`. Use as `/skill:batista-websearch` when the user asks for search, research, news, current documentation, prices, events, fact-checking, or any information the model's knowledge cannot cover safely."
 ---
 
 # Web Search via OpenRouter
 
-Usar somente `scripts/websearch.py` (caminho relativo a esta pasta de skill: `skills/batista-websearch/scripts/websearch.py`). Exigir `OPENROUTER_API_KEY`; tratar como segredo e nunca exibi-la.
+Use only `scripts/websearch.py` (relative to this skill folder: `skills/batista-websearch/scripts/websearch.py`). Requires `OPENROUTER_API_KEY`; treat as secret, never display it.
 
-| Variável | Uso |
+| Variable | Purpose |
 | --- | --- |
-| `OPENROUTER_API_KEY` | autenticar as chamadas REST ao OpenRouter |
+| `OPENROUTER_API_KEY` | authenticates REST calls to OpenRouter |
 
-## Buscar
+## Search
 
 ```bash
 set -a; source /home/allanbatista/.secrets; set +a
-rtk proxy python3 skills/batista-websearch/scripts/websearch.py --query "última versão estável do Node.js"
+rtk proxy python3 skills/batista-websearch/scripts/websearch.py --query "latest stable Node.js version"
 ```
 
-O modelo default é `~deepseek/deepseek-v4-flash-latest` (balanceamento de provedores do OpenRouter). Sobrescrever com `--model` quando outro modelo for necessário.
+Default model: `~deepseek/deepseek-v4-flash-latest` (OpenRouter provider balancing). Override with `--model` when needed.
 
-## Opções
+## Options
 
-| Opção | Default | Descrição |
+| Option | Default | Description |
 | --- | --- | --- |
-| `--query` | obrigatória | pergunta ou termo da busca; incluir contexto e data quando relevantes |
-| `--model` | `~deepseek/deepseek-v4-flash-latest` | modelo que responde com os resultados |
-| `--engine` | auto | `exa`, `native`, `firecrawl`, `parallel` ou `perplexity`; sem flag, usa native quando o modelo suporta, senão Exa |
-| `--max-results` | `5` | máximo de resultados (1–10) |
-| `--include-domain` | — | restringe a domínios (repetível; suporta `*.substack.com` e path `openai.com/blog`) |
-| `--exclude-domain` | — | exclui domínios (repetível) |
-| `--json` | — | imprime o resultado completo em JSON (content + citações com `url`, `title`, `content`) |
+| `--query` | required | search question/term; include context and date when relevant |
+| `--model` | `~deepseek/deepseek-v4-flash-latest` | model that answers from the results |
+| `--engine` | auto | `exa`, `native`, `firecrawl`, `parallel` or `perplexity`; without flag, uses native when the model supports it, else Exa |
+| `--max-results` | `5` | max results (1–10) |
+| `--include-domain` | — | restrict to domains (repeatable; supports `*.substack.com` and path `openai.com/blog`) |
+| `--exclude-domain` | — | exclude domains (repeatable) |
+| `--json` | — | print full result as JSON (content + citations with `url`, `title`, `content`) |
 
 ```bash
 rtk proxy python3 skills/batista-websearch/scripts/websearch.py \
-  --query "anúncios recentes do React 19" \
+  --query "recent React 19 announcements" \
   --max-results 3 --include-domain react.dev --include-domain github.com
 
 rtk proxy python3 skills/batista-websearch/scripts/websearch.py \
-  --query "preço do OpenRouter exa por request" --engine exa --json
+  --query "OpenRouter exa price per request" --engine exa --json
 ```
 
-## Preço
+## Pricing
 
-- **Exa** (default para modelos sem native search, incluindo o default DeepSeek): `$0.005` por request, com até 10 resultados; resultado adicional `$0.001` cada.
-- **Parallel**: `$0.001` por request (até 10 resultados).
-- **Perplexity**: `$0.005` por request.
-- **Native**: pass-through do provedor (varia por modelo).
-- **Firecrawl**: BYOK, cobra créditos Firecrawl.
+- **Exa** (default for models without native search, including the default DeepSeek): `$0.005` per request, up to 10 results; extra result `$0.001` each.
+- **Parallel**: `$0.001` per request (up to 10 results).
+- **Perplexity**: `$0.005` per request.
+- **Native**: provider pass-through (varies by model).
+- **Firecrawl**: BYOK, charges Firecrawl credits.
 
-Usar `--max-results` baixo (1–3) quando só a resposta objetiva importa; reservar 5+ para pesquisa.
+Use low `--max-results` (1–3) when only the objective answer matters; keep 5+ for research.
 
-## Regras
+## Rules
 
-- Responder ao usuário usando somente o conteúdo das citações retornadas (`url`, `title`, `content`); nunca inventar URLs nem fatos. No modo texto, o script já lista as fontes; conferir o `content` de cada citação antes de afirmar algo.
-- Citar fontes com links markdown nomeados pelo domínio, exemplo: `[nodejs.org](https://nodejs.org)`.
-- Se os resultados não responderem à pergunta, dizer explicitamente o que não foi encontrado e sugerir nova query com outros termos ou domínios.
-- Incluir data e recorte na `--query` quando a informação for sensível a tempo (notícias, preços, versões, eventos).
-- Nunca exibir `OPENROUTER_API_KEY` em comando, log, output ou conversa; erros HTTP já vêm sem segredo no detalhe.
-- Erro da API é bloqueio: reportar status HTTP e detalhe retornado; não contornar com achismo.
-- Limite `--max-results` a 1–10 (validação do script).
+- Answer using only the returned citations' content (`url`, `title`, `content`); never invent URLs or facts. In text mode the script lists sources; check each citation's `content` before asserting.
+- Cite sources with markdown links named by domain, e.g. `[nodejs.org](https://nodejs.org)`.
+- If results don't answer the question, state explicitly what wasn't found and suggest a new query with other terms or domains.
+- Include date and scope in `--query` when the info is time-sensitive (news, prices, versions, events).
+- Never display `OPENROUTER_API_KEY` in commands, logs, output or conversation; HTTP errors already exclude the secret from detail.
+- API error is a blocker: report the HTTP status and returned detail; don't work around it with guessing.
+- Keep `--max-results` within 1–10 (script validation).
 
-Fonte: https://openrouter.ai/docs/guides/features/plugins/web-search
+Source: https://openrouter.ai/docs/guides/features/plugins/web-search

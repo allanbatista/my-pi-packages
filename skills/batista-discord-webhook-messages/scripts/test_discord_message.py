@@ -49,10 +49,10 @@ class DiscordMessageTests(unittest.TestCase):
     def test_uses_branch_or_root_session_as_thread_name(self):
         with patch.object(discord_message, "git_context", return_value=None):
             self.assertEqual(
-                discord_message.default_thread_name("Auditoria > Testes"),
-                "Auditoria > Testes",
+                discord_message.default_thread_name("Audit > Tests"),
+                "Audit > Tests",
             )
-            self.assertEqual(discord_message.default_thread_name(), "Sessão geral")
+            self.assertEqual(discord_message.default_thread_name(), "General session")
         with patch.object(
             discord_message,
             "git_context",
@@ -62,7 +62,7 @@ class DiscordMessageTests(unittest.TestCase):
             },
         ):
             self.assertEqual(
-                discord_message.default_thread_name("Auditoria"), "feature/messages"
+                discord_message.default_thread_name("Audit"), "feature/messages"
             )
         with patch.object(
             discord_message,
@@ -70,8 +70,8 @@ class DiscordMessageTests(unittest.TestCase):
             return_value={"root": "/workspace/repo", "branch": "master"},
         ):
             self.assertEqual(
-                discord_message.default_thread_name("Auditoria > Execute"),
-                "Auditoria > Execute",
+                discord_message.default_thread_name("Audit > Execute"),
+                "Audit > Execute",
             )
 
     def test_builds_multipart_payload_with_multiple_files(self):
@@ -82,7 +82,7 @@ class DiscordMessageTests(unittest.TestCase):
             report.write_text("report data")
 
             body, content_type = discord_message.build_multipart(
-                {"embeds": [{"description": "**Evidências**"}]}, [image, report]
+                {"embeds": [{"description": "**Evidence**"}]}, [image, report]
             )
 
         payload_start = body.index(b"\r\n\r\n") + 4
@@ -103,23 +103,23 @@ class DiscordMessageTests(unittest.TestCase):
     def test_formats_markdown_as_agent_embed_and_optional_mention(self):
         payload = discord_message.message_payload(
             "Codex",
-            "Sessão pai > Testes",
-            "### ✅ Concluído\n**Validação:** passou",
+            "Parent session > Tests",
+            "### ✅ Completed\n**Validation:** passed",
             "123456",
         )
         self.assertEqual(payload["content"], "<@123456>")
         self.assertEqual(payload["allowed_mentions"]["users"], ["123456"])
         self.assertEqual(
             payload["embeds"][0]["author"]["name"],
-            "Codex > Sessão pai > Testes",
+            "Codex > Parent session > Tests",
         )
-        self.assertIn("### ✅ Concluído", payload["embeds"][0]["description"])
+        self.assertIn("### ✅ Completed", payload["embeds"][0]["description"])
 
     def test_allows_only_explicit_deduplicated_user_mentions(self):
         payload = discord_message.message_payload(
             "Codex",
-            "Sessão pai",
-            "Decisão necessária.",
+            "Parent session",
+            "Decision needed.",
             mention_user_ids=["123456", "789012", "123456"],
         )
 
@@ -128,14 +128,14 @@ class DiscordMessageTests(unittest.TestCase):
             payload["allowed_mentions"],
             {"parse": [], "users": ["123456", "789012"]},
         )
-        with self.assertRaisesRegex(ValueError, "no máximo 100"):
+        with self.assertRaisesRegex(ValueError, "at most 100"):
             discord_message.normalized_user_ids(
                 mention_user_ids=[str(value) for value in range(1, 102)]
             )
 
     def test_allows_explicit_everyone_mention(self):
         payload = discord_message.message_payload(
-            "Codex", "Release", "Nova versão.", mention_everyone=True
+            "Codex", "Release", "New version.", mention_everyone=True
         )
 
         self.assertEqual(payload["content"], "@everyone")
@@ -144,18 +144,18 @@ class DiscordMessageTests(unittest.TestCase):
     def test_converts_escaped_newlines_without_changing_escaped_literals(self):
         payload = discord_message.message_payload(
             "Codex",
-            "Correção de Markdown",
-            r"### 🔄 Em andamento\nCorpo normal\n\n**Próximo:** validar `\\n` literal.",
+            "Markdown fix",
+            r"### 🔄 In progress\nNormal body\n\n**Next:** validate `\\n` literal.",
         )
 
         self.assertEqual(
             payload["embeds"][0]["description"],
-            "### 🔄 Em andamento\nCorpo normal\n\n**Próximo:** validar `\\\\n` literal.",
+            "### 🔄 In progress\nNormal body\n\n**Next:** validate `\\\\n` literal.",
         )
-        self.assertEqual(discord_message.normalize_markdown(r"um\r\ndois"), "um\ndois")
+        self.assertEqual(discord_message.normalize_markdown(r"one\r\ntwo"), "one\ntwo")
 
     def test_rejects_invalid_hierarchical_name(self):
-        for name in ("", "Pai > ", "Pai\nFilho"):
+        for name in ("", "Parent > ", "Parent\nChild"):
             with self.subTest(name=name), self.assertRaises(ValueError):
                 discord_message.actor_name("Codex", name)
 
@@ -163,7 +163,7 @@ class DiscordMessageTests(unittest.TestCase):
         args = SimpleNamespace(
             session_id="session-1",
             agent="Codex",
-            name="Sessão pai",
+            name="Parent session",
             channel="working",
             thread_id=None,
             thread_name="repo · branch",
@@ -196,7 +196,7 @@ class DiscordMessageTests(unittest.TestCase):
                     {
                         "id": "102",
                         "type": 0,
-                        "content": "Pode seguir.",
+                        "content": "You may proceed.",
                         "attachments": [],
                         "timestamp": "2026-07-22T00:00:00Z",
                         "author": {
@@ -216,7 +216,7 @@ class DiscordMessageTests(unittest.TestCase):
             "200", "100", None, 60, request, clock, sleeper
         )
 
-        self.assertEqual(response["content"], "Pode seguir.")
+        self.assertEqual(response["content"], "You may proceed.")
         sleeper.assert_called_once_with(15)
 
     def test_reads_structured_poll_answer(self):
@@ -224,8 +224,8 @@ class DiscordMessageTests(unittest.TestCase):
             return_value={
                 "poll": {
                     "answers": [
-                        {"answer_id": 1, "poll_media": {"text": "Sim"}},
-                        {"answer_id": 2, "poll_media": {"text": "Não"}},
+                        {"answer_id": 1, "poll_media": {"text": "Yes"}},
+                        {"answer_id": 2, "poll_media": {"text": "No"}},
                     ],
                     "results": {
                         "answer_counts": [
@@ -242,10 +242,10 @@ class DiscordMessageTests(unittest.TestCase):
         )
 
         self.assertEqual(response["answer_id"], "1")
-        self.assertEqual(response["answer"], "Sim")
+        self.assertEqual(response["answer"], "Yes")
 
     def test_polling_timeout_is_reported(self):
-        with self.assertRaisesRegex(TimeoutError, "Nenhuma resposta"):
+        with self.assertRaisesRegex(TimeoutError, "No response"):
             discord_message.poll_for_text_reply(
                 "200",
                 "100",
@@ -273,7 +273,7 @@ class DiscordMessageTests(unittest.TestCase):
                 "--name",
                 "Release",
                 "--content",
-                "### 🚀 Novidade",
+                "### 🚀 News",
             ],
         ):
             with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as error:
@@ -289,15 +289,15 @@ class DiscordMessageTests(unittest.TestCase):
                 "--channel",
                 "releases",
                 "--name",
-                "Mais controle nas investigações",
+                "More control over investigations",
                 "--thread-name",
-                "Mais controle nas investigações",
+                "More control over investigations",
                 "--content",
-                "### 🚀 Mais controle nas investigações\n\n**Versão:** `v1.0.0`",
+                "### 🚀 More control over investigations\n\n**Version:** `v1.0.0`",
             ],
         ):
             args = discord_message.parse_args()
-        self.assertEqual(args.thread_name, "Mais controle nas investigações")
+        self.assertEqual(args.thread_name, "More control over investigations")
 
         with patch.object(
             sys,
@@ -308,11 +308,30 @@ class DiscordMessageTests(unittest.TestCase):
                 "--channel",
                 "releases",
                 "--name",
-                "Mais controle nas investigações",
+                "More control over investigations",
                 "--thread-name",
-                "Mais controle nas investigações",
+                "More control over investigations",
                 "--content",
-                "### 🚀 Mais controle nas investigações",
+                "### 🚀 More control over investigations\n\n**Versão:** `v1.0.0`",
+            ],
+        ):
+            args = discord_message.parse_args()
+        self.assertEqual(args.thread_name, "More control over investigations")
+
+        with patch.object(
+            sys,
+            "argv",
+            [
+                "discord_message.py",
+                "send",
+                "--channel",
+                "releases",
+                "--name",
+                "More control over investigations",
+                "--thread-name",
+                "More control over investigations",
+                "--content",
+                "### 🚀 More control over investigations",
             ],
         ):
             with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as error:
@@ -323,18 +342,18 @@ class DiscordMessageTests(unittest.TestCase):
             "discord_message.py",
             "ask",
             "--name",
-            "Sessão pai > Decisão",
+            "Parent session > Decision",
             "--question",
-            "Continuar?",
+            "Continue?",
             "--option",
-            "Sim",
+            "Yes",
             "--option",
-            "Não",
+            "No",
         ]
         with patch.object(sys, "argv", argv):
             args = discord_message.parse_args()
-        self.assertEqual(args.name, "Sessão pai > Decisão")
-        self.assertEqual(args.option, ["Sim", "Não"])
+        self.assertEqual(args.name, "Parent session > Decision")
+        self.assertEqual(args.option, ["Yes", "No"])
         self.assertEqual(args.timeout, 86400)
 
         with patch.object(
@@ -344,9 +363,9 @@ class DiscordMessageTests(unittest.TestCase):
                 "discord_message.py",
                 "send",
                 "--name",
-                "Sessão pai",
+                "Parent session",
                 "--content",
-                "Aviso",
+                "Notice",
                 "--mention-user-id",
                 "123456",
                 "--mention-user-id",
@@ -365,7 +384,7 @@ class DiscordMessageTests(unittest.TestCase):
                 "--name",
                 "Release",
                 "--content",
-                "Aviso",
+                "Notice",
                 "--mention-everyone",
             ],
         ):
@@ -373,7 +392,7 @@ class DiscordMessageTests(unittest.TestCase):
         self.assertTrue(args.mention_everyone)
 
     def test_rejects_missing_file(self):
-        with self.assertRaisesRegex(ValueError, "Arquivo não encontrado"):
+        with self.assertRaisesRegex(ValueError, "File not found"):
             discord_message.build_multipart({}, ["/missing/evidence.png"])
 
 

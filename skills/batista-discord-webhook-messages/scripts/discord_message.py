@@ -21,7 +21,7 @@ from urllib.request import Request, urlopen
 API_BASE_URL = "https://discord.com/api/v10"
 POLL_INTERVAL_SECONDS = 15
 MAX_POLL_SECONDS = 24 * 60 * 60
-FALLBACK_THREAD_NAME = "Sessão geral"
+FALLBACK_THREAD_NAME = "General session"
 DEFAULT_BRANCH_NAMES = {"main", "master"}
 CHANNEL_IDS = {
     "releases": "1529459842937393213",
@@ -42,8 +42,9 @@ SESSION_ENV_NAMES = (
     "PI_SESSION_ID",
 )
 ESCAPED_NEWLINE_PATTERN = re.compile(r"(?<!\\)(?:\\r\\n|\\n)")
+# Accept both the legacy pt-BR ("Versão") and the en-US ("Version") label.
 RELEASE_VERSION_PATTERN = re.compile(
-    r"\*\*Versão:\*\*\s*`?v(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)`?"
+    r"\*\*(?:Versão|Version):\*\*\s*`?v(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)`?"
 )
 
 
@@ -59,20 +60,20 @@ class DiscordAPIError(RuntimeError):
         except json.JSONDecodeError:
             pass
         suffix = f" (code {self.code})" if self.code is not None else ""
-        super().__init__(f"Discord retornou HTTP {status}: {message}{suffix}")
+        super().__init__(f"Discord returned HTTP {status}: {message}{suffix}")
 
 
 def bot_token():
     token = os.environ.get("DISCORD_APP_MY_MY_DEV_BOT_TOKEN_BOT")
     if not token:
-        raise ValueError("DISCORD_APP_MY_MY_DEV_BOT_TOKEN_BOT é obrigatório")
+        raise ValueError("DISCORD_APP_MY_MY_DEV_BOT_TOKEN_BOT is required")
     return token
 
 
 def validate_snowflake(value, label):
     value = str(value or "")
     if not value.isdigit():
-        raise ValueError(f"{label} deve ser um ID numérico do Discord")
+        raise ValueError(f"{label} must be a numeric Discord ID")
     return value
 
 
@@ -81,13 +82,13 @@ def build_multipart(payload, paths):
     for raw_path in paths:
         path = Path(raw_path)
         if not path.is_file():
-            raise ValueError(f"Arquivo não encontrado ou inválido: {path}")
+            raise ValueError(f"File not found or invalid: {path}")
         if "\r" in path.name or "\n" in path.name:
-            raise ValueError(f"Nome de arquivo inválido: {path.name!r}")
+            raise ValueError(f"Invalid file name: {path.name!r}")
         try:
             content = path.read_bytes()
         except OSError as error:
-            raise ValueError(f"Não foi possível ler o arquivo {path}: {error}") from error
+            raise ValueError(f"Could not read file {path}: {error}") from error
         content_type = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
         uploads.append((path.name, content_type, content))
 
@@ -146,7 +147,7 @@ def api_request(method, path, payload=None, files=None):
         detail = error.read().decode(errors="replace")
         raise DiscordAPIError(error.code, detail) from error
     except URLError as error:
-        raise RuntimeError(f"Falha ao chamar o Discord: {error.reason}") from error
+        raise RuntimeError(f"Failed to call Discord: {error.reason}") from error
 
 
 def git_output(*args, cwd=None):
@@ -218,9 +219,9 @@ def load_thread_id(path):
         return None
     try:
         state = json.loads(path.read_text())
-        return validate_snowflake(state["thread_id"], "thread_id salvo")
+        return validate_snowflake(state["thread_id"], "saved thread_id")
     except (OSError, KeyError, json.JSONDecodeError, ValueError) as error:
-        raise ValueError(f"Estado de thread inválido em {path}: {error}") from error
+        raise ValueError(f"Invalid thread state at {path}: {error}") from error
 
 
 def save_thread(path, thread_id, thread_name, channel):
@@ -248,7 +249,7 @@ def resolve_thread(args, create):
     if thread_id:
         return thread_id, thread_name, False, path
     if not create:
-        raise ValueError("Nenhuma thread registrada para esta sessão; informe --thread-id")
+        raise ValueError("No thread registered for this session; provide --thread-id")
     channel_id = CHANNEL_IDS[args.channel]
     thread = api_request(
         "POST",
@@ -259,20 +260,20 @@ def resolve_thread(args, create):
             "auto_archive_duration": 1440,
         },
     )
-    thread_id = validate_snowflake(thread.get("id"), "thread_id retornado")
+    thread_id = validate_snowflake(thread.get("id"), "returned thread_id")
     save_thread(path, thread_id, thread_name, args.channel)
     return thread_id, thread_name, True, path
 
 
 def actor_name(agent, session_name):
     if not session_name or "\n" in session_name or "\r" in session_name:
-        raise ValueError("--name deve informar a sessão do agente")
+        raise ValueError("--name must provide the agent session")
     segments = [segment.strip() for segment in session_name.split(">")]
     if any(not segment for segment in segments):
-        raise ValueError("--name deve usar nomes não vazios separados por >")
+        raise ValueError("--name must use non-empty names separated by >")
     name = " > ".join([agent, *segments])
     if len(name) > 256:
-        raise ValueError("a identidade do agente deve ter até 256 caracteres")
+        raise ValueError("agent identity must be at most 256 characters")
     return name
 
 
@@ -284,7 +285,7 @@ def normalized_user_ids(user_id=None, mention_user_ids=None):
     values = ([user_id] if user_id else []) + list(mention_user_ids or [])
     user_ids = list(dict.fromkeys(validate_snowflake(value, "user_id") for value in values))
     if len(user_ids) > 100:
-        raise ValueError("uma mensagem pode mencionar no máximo 100 usuários")
+        raise ValueError("a message can mention at most 100 users")
     return user_ids
 
 
@@ -297,9 +298,9 @@ def message_payload(
     mention_user_ids=None,
     mention_everyone=False,
 ):
-    description = normalize_markdown(content) if content else "📎 **Anexo**"
+    description = normalize_markdown(content) if content else "📎 **Attachment**"
     if len(description) > 4096:
-        raise ValueError("A mensagem Markdown excede 4096 caracteres")
+        raise ValueError("Markdown message exceeds 4096 characters")
     payload = {
         "embeds": [
             {
@@ -439,7 +440,7 @@ def poll_for_text_reply(
                 return response
         remaining = deadline - clock()
         if remaining <= 0:
-            raise TimeoutError(f"Nenhuma resposta recebida em {timeout} segundos")
+            raise TimeoutError(f"No response received in {timeout} seconds")
         sleeper(min(POLL_INTERVAL_SECONDS, remaining))
 
 
@@ -493,7 +494,7 @@ def poll_for_structured_reply(
             }
         remaining = deadline - clock()
         if remaining <= 0:
-            raise TimeoutError(f"Nenhuma resposta recebida em {timeout} segundos")
+            raise TimeoutError(f"No response received in {timeout} seconds")
         sleeper(min(POLL_INTERVAL_SECONDS, remaining))
 
 
@@ -513,7 +514,7 @@ def send_command(args):
 
 def ask_command(args):
     poll = None
-    content = f"### ❓ Pergunta\n{args.question}\n\n_Responda nesta thread._"
+    content = f"### ❓ Question\n{args.question}\n\n_Reply in this thread._"
     if args.option:
         poll = {
             "question": {"text": args.question},
@@ -522,7 +523,7 @@ def ask_command(args):
             "allow_multiselect": False,
             "layout_type": 1,
         }
-        content = f"### ❓ Decisão necessária\n{args.question}\n\n_Selecione uma opção abaixo._"
+        content = f"### ❓ Decision needed\n{args.question}\n\n_Select an option below._"
     result = publish(args, content, poll)
     thread_id = result["thread_id"]
     message_id = result["message"]["id"]
@@ -595,9 +596,9 @@ def timeout_seconds(value):
     try:
         parsed = int(value)
     except ValueError as error:
-        raise argparse.ArgumentTypeError("timeout deve ser inteiro") from error
+        raise argparse.ArgumentTypeError("timeout must be an integer") from error
     if not 1 <= parsed <= MAX_POLL_SECONDS:
-        raise argparse.ArgumentTypeError("timeout deve estar entre 1 e 86400 segundos")
+        raise argparse.ArgumentTypeError("timeout must be between 1 and 86400 seconds")
     return parsed
 
 
@@ -613,7 +614,7 @@ def add_thread_arguments(parser, include_files=False):
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Gerencia mensagens do Discord em threads por sessão."
+        description="Manages session-scoped Discord messages in threads."
     )
     commands = parser.add_subparsers(dest="command", required=True)
 
@@ -649,27 +650,27 @@ def parse_args():
 
     args = parser.parse_args()
     if args.command == "send" and not args.content and not args.file:
-        parser.error("send exige --content e/ou --file")
+        parser.error("send requires --content and/or --file")
     if args.command == "send" and args.channel == "releases" and not args.thread_name:
         parser.error(
-            "send em releases exige --thread-name com título amigável para usuários"
+            "send in releases requires --thread-name with a user-friendly title"
         )
     if (
         args.command == "send"
         and args.channel == "releases"
         and not RELEASE_VERSION_PATTERN.search(normalize_markdown(args.content or ""))
     ):
-        parser.error("send em releases exige **Versão:** `vMAJOR.MINOR.PATCH`")
+        parser.error("send in releases requires **Version:** `vMAJOR.MINOR.PATCH`")
     if args.command == "ask" and args.option and not 2 <= len(args.option) <= 10:
-        parser.error("ask exige entre 2 e 10 opções estruturadas")
+        parser.error("ask requires between 2 and 10 structured options")
     if args.command == "ask" and len(args.question) > 300:
-        parser.error("a pergunta deve ter até 300 caracteres")
+        parser.error("the question must be at most 300 characters")
     if args.command == "ask" and any(len(option) > 55 for option in args.option):
-        parser.error("cada opção deve ter até 55 caracteres")
+        parser.error("each option must be at most 55 characters")
     if args.command == "delete" and not args.yes:
-        parser.error("delete exige --yes após confirmação explícita")
+        parser.error("delete requires --yes after explicit confirmation")
     if args.thread_name and not 1 <= len(args.thread_name) <= 100:
-        parser.error("thread-name deve ter entre 1 e 100 caracteres")
+        parser.error("thread-name must be between 1 and 100 characters")
     return args
 
 
@@ -694,5 +695,5 @@ if __name__ == "__main__":
         print(error, file=sys.stderr)
         sys.exit(1)
     except KeyboardInterrupt:
-        print("Espera interrompida", file=sys.stderr)
+        print("Wait interrupted", file=sys.stderr)
         sys.exit(130)

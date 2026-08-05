@@ -1,65 +1,61 @@
 ---
 name: batista-spec
-description: Cria, revisa e mantém apenas o `spec.md` de uma feature em `.features/{YYYY-MM-DD}_{HHMM}-{short-desc}/spec.md`. Use como `/skill:batista-spec` quando o usuário pedir spec, especificação, contrato de produto, Definition of Done, classificação da intenção do usuário, esclarecimento de requisitos, revisão de uma feature existente, ou quando uma feature precisar de perguntas antes do plano técnico.
+description: Creates, reviews, and maintains only the `spec.md` of a feature in `.features/{YYYY-MM-DD}_{HHMM}-{short-desc}/spec.md`. Use as `/skill:batista-spec` when the user asks for a spec, specification, product contract, Definition of Done, user intent classification, requirement clarification, review of an existing feature, or when a feature needs questions before the technical plan.
 ---
 
 # Feature Spec
 
+## Runtime & Delegation
 
-## Runtime & Delegação
+Read and follow `../../references/WORKFLOW_COMMON.md` for Pi runtime, delegation, isolation, state reconciliation, and checkpoints.
 
-Leia e siga `../../references/WORKFLOW_COMMON.md` para runtime Pi, delegação, isolamento, reconciliação de estado e checkpoints.
+Use this skill to close the product contract before any technical plan. It may only edit feature workflow docs — never product code, tests, configs, migrations, or files outside the feature folder.
 
+No guesswork: investigate before concluding, cite concrete evidence, and record any claim you cannot confirm via file, command, log, test, browser, or user response as `pending`.
 
-Use esta skill para fechar o contrato de produto antes de qualquer plano técnico.
-
-Esta skill só pode editar documentos de workflow da feature. Não edite código de produto, testes, configs, migrations ou arquivos fora da pasta da feature.
-
-Não use achismo: investigue antes de concluir, cite evidência concreta para fatos e registre como `pending` qualquer afirmação que não puder confirmar por arquivo, comando, log, teste, browser ou resposta do usuário.
-
-Quando invocada por outra skill do feature-workflow, execute como child `delegate` com `context: "fresh"` (ver `../../references/PI_ADAPTATION.md`), recebendo apenas pedido, project root, feature dir e docs necessários.
+When invoked by another feature-workflow skill, run as a child `delegate` with `context: "fresh"` (see `../../references/PI_ADAPTATION.md`), receiving only the request, project root, feature dir, and needed docs.
 
 ## Workflow
 
-1. Identifique o project root e a pasta da feature. Em dúvida real: standalone pergunta; orchestrated registra em `Clarifications Needed`. Use uma pasta existente `.features/{YYYY-MM-DD}_{HHMM}-{short-desc}/` quando indicada; senão crie uma nova com data/hora local e `short-desc` em kebab-case ASCII.
-2. Persista a instrução literal do usuário em `user-instructions.md` na pasta da feature, com data/hora, antes de qualquer processamento (nunca resuma, edite ou remova instruções anteriores).
-3. Leia o `AGENTS.md` do projeto.
-4. Determine o modo de execução: **standalone** (o usuário invocou a skill direto e pode responder perguntas) ou **orchestrated** (invocada por outra skill do feature-workflow com contexto isolado, sem poder perguntar ao usuário no meio da execução). Ver `Clarification Protocol`.
-5. Se o input for um diretório de feature ou arquivo (`manifest.md`, `spec.md` ou `plan.md`), trate a tarefa como revisão: leia os arquivos existentes da feature antes de decidir status (perguntas pendentes, decisões contraditórias, DoD fraco, contrato/persistência ausentes, divergência entre spec/plan/manifest e evidência faltante).
-6. Faça `Phase 0: Discovery` como método, não como desejo: percorra as dimensões — contratos/APIs, schemas/persistência, rotas/handlers, consumers/jobs/filas, configs/flags, testes existentes, dependências externas, telemetria/logs e owners — e **trace pelo menos um fluxo atual ponta a ponta**. Registre cada achado no `Discovery Ledger` com `ID` (`D#`), fonte, evidência e impacto. Afirmação sem evidência vira `pending`. Use Graphify quando `graphify-out/graph.json` existir.
-7. Reflita e registre a intenção real do usuário (pontual/localizada vs feature ponta a ponta) com justificativa baseada em achados do Discovery.
-8. Levante as clarificações materiais pela taxonomia (ver `Clarification Protocol`), priorize por (Impacto × Incerteza) e leve no máximo 5 de alto impacto por rodada. Só uma dúvida que **não altera** escopo, aceite, contrato, persistência, UX, segurança, rollout ou validação pode virar suposição explícita.
-9. Resolva as clarificações conforme o modo: standalone pergunta em lote e espera as respostas; orchestrated preenche `Clarifications Needed`, seta `Status: blocked` e devolve o controle ao manager.
-10. Monte a rastreabilidade: cada requisito em forma **EARS** ligado a um `D#` do Discovery ou a uma decisão registrada; cada critério de aceite em **Dado/Quando/Então** com superfície de validação (ver `Gramática de Requisitos`).
-11. Aplique o **Minimalism Gate** a cada requisito: (a) faz parte do que o usuário pediu (confira na instrução literal em `user-instructions.md`)? (b) é essencial para a task do usuário? Se a resposta a qualquer uma for não, mova para `Out of Scope` com uma linha de justificativa. (c) Está na menor complexidade que atinge o critério de aceite, ou dá para simplificar? Se dá, simplifique o requisito antes de seguir. Questione sempre a motivação do requisito: quem pediu e por quê.
-12. Feche explicitamente contrato, persistência, evidência obrigatória e fora de escopo antes de `Status: ready`.
-13. Escreva ou atualize somente `spec.md`. Não escreva `plan.md`.
-14. Aplique o **Fail-Closed Clarification Gate**. Em modo orchestrated, grave `draft` (ou `blocked`) e devolva sem rodar guardian; somente uma re-invocação com verdict real `approved` pode persistir o gate e promover para `ready`. Em standalone, delegue a rubrica ao `artifact-guardian`, aplique o menor ajuste e repita até `approved`.
-15. Responda conforme `Final Response`; em modo orchestrated, retorne somente o `Delegation Result` de `../../references/WORKFLOW_COMMON.md`.
+1. Identify project root and feature folder. In real doubt: standalone asks; orchestrated records in `Clarifications Needed`. Use an existing `.features/{YYYY-MM-DD}_{HHMM}-{short-desc}/` when indicated; otherwise create one with local date/time and kebab-case ASCII `short-desc`.
+2. Persist the literal user instruction in `user-instructions.md` (feature folder) with date/time before any processing; never summarize, edit, or remove earlier instructions.
+3. Read the project `AGENTS.md`.
+4. Determine execution mode: **standalone** (user invoked the skill directly; can answer questions) or **orchestrated** (invoked by another feature-workflow skill with isolated context; cannot ask mid-run). See `Clarification Protocol`.
+5. If input is a feature dir or file (`manifest.md`, `spec.md`, `plan.md`), treat as review: read existing feature files before deciding status (pending questions, contradictory decisions, weak DoD, missing contract/persistence, spec/plan/manifest divergence, missing evidence).
+6. Run `Phase 0: Discovery` as method, not wish: sweep dimensions — contracts/APIs, schemas/persistence, routes/handlers, consumers/jobs/queues, configs/flags, existing tests, external dependencies, telemetry/logs, owners — and **trace at least one current flow end to end**. Record every finding in the `Discovery Ledger` with `ID` (`D#`), source, evidence, impact. Claims without evidence become `pending`. Use Graphify when `graphify-out/graph.json` exists.
+7. Reflect and record the user's real intent (localized/focused vs end-to-end feature) with justification from Discovery findings.
+8. Raise material clarifications via the taxonomy (see `Clarification Protocol`), prioritized by (Impact × Uncertainty), max 5 high-impact per round. Only a doubt that **does not change** scope, acceptance, contract, persistence, UX, security, rollout, or validation may become an explicit assumption.
+9. Resolve per mode: standalone asks in batch and waits; orchestrated fills `Clarifications Needed`, sets `Status: blocked`, returns control to the manager.
+10. Build traceability: every requirement in **EARS** form linked to a Discovery `D#` or a recorded decision; every acceptance criterion in **Given/When/Then** with a validation surface (see `Requirements Grammar`).
+11. Apply the **Minimalism Gate** to every requirement: (a) part of what the user asked (check literal instruction in `user-instructions.md`)? (b) essential to the user's task? If either is no, move to `Out of Scope` with a one-line justification. (c) At the lowest complexity meeting the acceptance criterion, or simplifiable? If so, simplify before proceeding. Always question motivation: who asked and why.
+12. Explicitly close contract, persistence, mandatory evidence, and out-of-scope before `Status: ready`.
+13. Write or update only `spec.md`. Do not write `plan.md`.
+14. Apply the **Fail-Closed Clarification Gate**. Orchestrated: record `draft` (or `blocked`) and return without running guardian; only a re-invocation with a real `approved` verdict may persist the gate and promote to `ready`. Standalone: delegate the rubric to `artifact-guardian`, apply the minimal fix, repeat until `approved`.
+15. Respond per `Final Response`; orchestrated returns only the `Delegation Result` from `../../references/WORKFLOW_COMMON.md`.
 
 ## Fail-Closed Clarification Gate
 
-Antes de guardian ou `Status: ready`, procure decisões materiais com `A: a definir`, `pending` ou origem `suposição explícita`. Converta cada uma em `Clarifications Needed`, grave `Status: blocked` e devolva as perguntas. Não rode guardian e não continue para UX/Arch/Plan enquanto existir qualquer ocorrência.
+Before guardian or `Status: ready`, look for material decisions with `A: TBD`, `pending`, or origin `explicit assumption`. Convert each into `Clarifications Needed`, record `Status: blocked`, and return the questions. Do not run guardian or continue to UX/Arch/Plan while any occurrence exists.
 
-## Gramática de Requisitos (EARS + Gherkin)
+## Requirements Grammar (EARS + Gherkin)
 
-Escreva cada requisito em uma forma EARS (gatilho + sujeito + resposta = testável):
+Write each requirement in EARS form (trigger + subject + response = testable):
 
-- Ubíquo (sempre ativo): `O sistema deve <resposta>.`
-- Evento: `Quando <gatilho>, o sistema deve <resposta>.`
-- Estado: `Enquanto <pré-condição>, o sistema deve <resposta>.`
-- Opcional: `Onde <funcionalidade presente>, o sistema deve <resposta>.`
-- Indesejado: `Se <gatilho>, então o sistema deve <resposta>.`
-- Complexo: combine gatilho + estado na mesma sentença.
+- Ubiquitous (always active): `The system must <response>.`
+- Event: `When <trigger>, the system must <response>.`
+- State: `While <precondition>, the system must <response>.`
+- Optional: `Where <feature present>, the system must <response>.`
+- Unwanted: `If <trigger>, then the system must <response>.`
+- Complex: combine trigger + state in one sentence.
 
-Escreva cada critério de aceite em Gherkin: `Dado <contexto>, Quando <ação>, Então <resultado observável>` (use `E` para passos extras). Prefira 1-3 critérios por requisito; 4+ sugere requisito grande demais (divida).
+Write each acceptance criterion in Gherkin: `Given <context>, When <action>, Then <observable result>` (use `And` for extra steps). Prefer 1-3 criteria per requirement; 4+ means the requirement is too large (split it).
 
-Calibração:
+Calibration:
 
-- Requisito fraco (vago, sem gatilho, não testável): "O sistema deve tratar cupom inválido corretamente."
-- Requisito bom (EARS evento): "Quando o usuário aplica um cupom expirado no checkout, o sistema deve rejeitar o cupom e exibir 'Cupom expirado'."
-- Aceite fraco: "Cupom inválido não funciona."
-- Aceite bom (Gherkin): "Dado um carrinho com cupom expirado, Quando o usuário confirma o checkout, Então nenhum desconto é aplicado E a mensagem 'Cupom expirado' aparece."
+- Weak requirement (vague, no trigger, untestable): "The system must handle invalid coupons correctly."
+- Good requirement (EARS event): "When the user applies an expired coupon at checkout, the system must reject the coupon and show 'Coupon expired'."
+- Weak acceptance: "Invalid coupons don't work."
+- Good acceptance (Gherkin): "Given a cart with an expired coupon, When the user confirms checkout, Then no discount is applied And the 'Coupon expired' message appears."
 
 ## Template
 
@@ -72,48 +68,48 @@ Updated: {YYYY-MM-DD HH:MM}
 
 ## Objective
 
-{O que deve existir ou mudar do ponto de vista do usuário/sistema.}
+{What must exist or change from the user/system point of view.}
 
 ## Context
 
-{Por que isso é necessário, estado atual conhecido e restrições relevantes.}
+{Why this is needed, known current state, relevant constraints.}
 
 ## Discovery Ledger
 
 | ID | Source | Finding | Evidence | Impact | Status |
 |---|---|---|---|---|---|
-| D1 | {arquivo/comando/doc/resposta do usuário} | {fato confirmado ou lacuna} | {path, trecho curto, comando ou decisão} | {como muda escopo/contrato/validação} | confirmed/pending |
+| D1 | {file/command/doc/user response} | {confirmed fact or gap} | {path, short excerpt, command, or decision} | {how scope/contract/validation changes} | confirmed/pending |
 
 ## Intent Classification
 
-- User intent: {pontual/localizada | feature ponta a ponta | pending}
-- Rationale: {por que essa classificação é correta}
-- Coverage expectation: {somente fluxo afetado | contrato completo end-to-end | pending}
+- User intent: {focused/localized | end-to-end feature | pending}
+- Rationale: {why this classification is correct}
+- Coverage expectation: {only affected flow | full end-to-end contract | pending}
 
 ## Actors and Flows
 
-- Actors/systems affected: {usuários, sistemas, jobs, consumers, APIs ou none}
-- Current flow: {fluxo atual traçado ponta a ponta, referenciando D# do Discovery; `pending` só se a feature for greenfield comprovado}
-- Target flow: {comportamento esperado}
+- Actors/systems affected: {users, systems, jobs, consumers, APIs, or none}
+- Current flow: {current flow traced end to end, referencing Discovery D#; `pending` only if the feature is provably greenfield}
+- Target flow: {expected behavior}
 
 ## Scope
 
-- {Incluído}
+- {Included}
 
 ## Out of Scope
 
-- {Excluído}
+- {Excluded}
 
 ## Questions and Decisions
 
-- [C1] Q: {pergunta}
-  A: {resposta/decisão} — origem: {usuário | decisão registrada | suposição explícita}
+- [C1] Q: {question}
+  A: {answer/decision} — origin: {user | recorded decision | explicit assumption}
 
 ## Requirements Traceability
 
-| Need | Requirement (EARS) | Acceptance criterion (Dado/Quando/Então) | Validation surface | Basis | Status |
+| Need | Requirement (EARS) | Acceptance criterion (Given/When/Then) | Validation surface | Basis | Status |
 |---|---|---|---|---|---|
-| {necessidade do usuário/sistema} | {requisito em forma EARS} | {critério em Dado/Quando/Então} | {frontend/backend/job/infra/browser/API/consumer} | {D# do Discovery ou decisão} | defined/pending |
+| {user/system need} | {EARS requirement} | {Given/When/Then criterion} | {frontend/backend/job/infra/browser/API/consumer} | {Discovery D# or decision} | defined/pending |
 
 ## Contract and Persistence
 
@@ -124,139 +120,139 @@ Updated: {YYYY-MM-DD HH:MM}
 
 ## Shared Contract
 
-> Contrato mínimo compartilhado entre `batista-ux` e `batista-arch` antes do spawn paralelo. Use `none` quando só uma superfície roda ou fix pontual sem contrato novo.
+> Minimum contract shared between `batista-ux` and `batista-arch` before the parallel spawn. Use `none` when only one surface runs or a point fix has no new contract.
 
 - Status: closed | none | pending
-- Payloads/campos: {campos, tipos, nullability, ou none}
-- Estados e erros: {códigos HTTP/erros de domínio, mensagens expostas ao usuário, ou none}
-- Sequência mínima: {quem chama quem, ordem, ou none}
-- Basis: {D# ou decisão}
+- Payloads/fields: {fields, types, nullability, or none}
+- States and errors: {HTTP codes/domain errors, messages exposed to the user, or none}
+- Minimum sequence: {who calls whom, order, or none}
+- Basis: {D# or decision}
 
 ## Acceptance Criteria
 
-- {Dado <contexto>, Quando <ação>, Então <resultado observável>}
+- {Given <context>, When <action>, Then <observable result>}
 
 ## Clarifications Needed
 
-> none = nada bloqueia `ready`. Máx. 5 itens de alto impacto, priorizados por (Impacto × Incerteza). Dúvida trivial não entra aqui: vira suposição explícita em `Questions and Decisions` ou `Out of Scope`.
+> none = nothing blocks `ready`. Max 5 high-impact items, prioritized by (Impact × Uncertainty). Trivial doubts don't belong here: they become explicit assumptions in `Questions and Decisions` or `Out of Scope`.
 
-- [C1] Categoria: {escopo funcional | modelo de dados | fluxo/UX | não-funcional | integração/dependências | edge cases/falhas | contrato | persistência | rollout | terminologia}
-  Pergunta: {pergunta de alto impacto}
-  Bloqueia: {escopo | contrato | persistência | aceite | rollout | validação}
-  Opções: {A) ... | B) ... | resposta curta}
-  Recomendado: {opção + 1 frase de justificativa}
+- [C1] Category: {functional scope | data model | flow/UX | non-functional | integration/dependencies | edge cases/failures | contract | persistence | rollout | terminology}
+  Question: {high-impact question}
+  Blocks: {scope | contract | persistence | acceptance | rollout | validation}
+  Options: {A) ... | B) ... | short answer}
+  Recommended: {option + 1-sentence justification}
 
 ## Spec Readiness Gates
 
-- [ ] `AGENTS.md` e fontes citadas foram lidos.
-- [ ] Cada requisito está em forma EARS e referencia um achado do Discovery (`D#`) ou decisão registrada.
-- [ ] Cada critério de aceite está em Dado/Quando/Então com superfície de validação.
-- [ ] Cada requisito passou no Minimalism Gate: é parte do pedido, essencial para o projeto funcionar e está na menor complexidade que atinge o aceite; o resto está em `Out of Scope`.
-- [ ] `Clarifications Needed` = none, ou `Status: blocked`.
-- [ ] O `plan.md` pode ser escrito sem decisão de produto pendente.
-- [ ] `Shared Contract` = `closed` ou `none` antes de spawn paralelo `batista-ux`∥`batista-arch`.
+- [ ] `AGENTS.md` and cited sources were read.
+- [ ] Every requirement is in EARS form and references a Discovery finding (`D#`) or a recorded decision.
+- [ ] Every acceptance criterion is in Given/When/Then with a validation surface.
+- [ ] Every requirement passed the Minimalism Gate: part of the request, essential for the project to work, at the lowest complexity meeting acceptance; the rest is in `Out of Scope`.
+- [ ] `Clarifications Needed` = none, or `Status: blocked`.
+- [ ] `plan.md` can be written with no pending product decision.
+- [ ] `Shared Contract` = `closed` or `none` before the parallel spawn `batista-ux`∥`batista-arch`.
 
 ## Definition of Done
 
-- [ ] Resultado de produto completo.
-- [ ] Discovery e rastreabilidade sustentam escopo e critérios de aceite.
-- [ ] Contratos públicos/internos alterados estão listados.
-- [ ] Validação prática com evidência real ou bloqueio exato registrado.
-- [ ] Testes automáticos necessários estão separados entre foco da task e gate final de fase.
-- [ ] Evidência real exigida para frontend/backend/job/infra está definida.
-- [ ] Guardian aprovou a spec.
+- [ ] Complete product result.
+- [ ] Discovery and traceability support scope and acceptance criteria.
+- [ ] Changed public/internal contracts are listed.
+- [ ] Practical validation with real evidence or exact blocker recorded.
+- [ ] Needed automated tests are split between task focus and final phase gate.
+- [ ] Required real evidence for frontend/backend/job/infra is defined.
+- [ ] Guardian approved the spec.
 ```
 
 ## Artifact Guardian
 
-Após atualizar `spec.md`, o modo standalone roda `artifact-guardian`; no modo orchestrated, o manager é responsável pelo guardian após receber o artefato.
+After updating `spec.md`, standalone mode runs `artifact-guardian`; orchestrated: the manager runs the guardian after receiving the artifact.
 
-O guardian não edita arquivos. Ele valida se a spec fecha discovery, objetivo, escopo, fora de escopo, atores/usuários afetados, fluxos, requisitos rastreáveis, contratos, persistência, validação, DoD e perguntas pendentes sem achismo.
+The guardian does not edit files. It validates that the spec closes discovery, objective, scope, out-of-scope, affected actors/users, flows, traceable requirements, contracts, persistence, validation, DoD, and pending questions without guesswork.
 
-Rubrica obrigatória; registre cada resultado no campo `evidence` do `DELEGATION_RESULT` canônico:
+Mandatory rubric; record each result in the `evidence` field of the canonical `DELEGATION_RESULT`:
 
-- [pass/fail] Todo requisito está em forma EARS (Quando/Enquanto/Onde/Se-Então/ubíquo).
-- [pass/fail] Todo critério de aceite está em Dado/Quando/Então com superfície de validação.
-- [pass/fail] Todo fato usado na spec referencia um achado do Discovery (`D#`) com evidência.
-- [pass/fail] `Intent Classification` é justificada por achados, não por achismo.
-- [pass/fail] Todo requisito faz parte do que o usuário pediu (instrução literal em `user-instructions.md`) e é essencial para completar a task do usuário; nada além do mínimo pedido entrou no escopo (o excedente está em `Out of Scope`).
-- [pass/fail] A motivação de cada requisito foi questionada: quem pediu e por quê; requisito sem pedido literal nem essencialidade para a task está em `Out of Scope` ou virou pergunta ao usuário.
-- [pass/fail] Cada requisito está na menor complexidade que atinge o critério de aceite; nenhuma simplificação óbvia foi ignorada.
-- [pass/fail] Taxonomia coberta: não há pergunta material não feita; `Clarifications Needed` consistente com o estado (none ⇒ nada de alto impacto em aberto).
-- [pass/fail] Nenhuma decisão material foi fechada por suposição; toda resposta material referencia usuário, decisão registrada ou evidência `D#`.
-- [pass/fail] Contrato, persistência, validação e fora de escopo fechados ou `none` justificado.
-- [pass/fail] `Shared Contract` = `closed` ou `none` quando `batista-ux` e `batista-arch` rodarão em paralelo; campos/erros/sequência não podem ficar `pending`.
+- [pass/fail] Every requirement is in EARS form (When/While/Where/If-Then/ubiquitous).
+- [pass/fail] Every acceptance criterion is in Given/When/Then with a validation surface.
+- [pass/fail] Every fact used in the spec references a Discovery finding (`D#`) with evidence.
+- [pass/fail] `Intent Classification` is justified by findings, not guesswork.
+- [pass/fail] Every requirement is part of what the user asked (literal instruction in `user-instructions.md`) and is essential to complete the user's task; nothing beyond the minimum requested entered scope (excess is in `Out of Scope`).
+- [pass/fail] Every requirement's motivation was questioned: who asked and why; a requirement with no literal request nor task essentiality is in `Out of Scope` or became a user question.
+- [pass/fail] Every requirement is at the lowest complexity meeting the acceptance criterion; no obvious simplification was ignored.
+- [pass/fail] Taxonomy covered: no material question left unasked; `Clarifications Needed` consistent with state (none ⇒ no open high-impact item).
+- [pass/fail] No material decision closed by assumption; every material answer references user, recorded decision, or `D#` evidence.
+- [pass/fail] Contract, persistence, validation, and out-of-scope closed or `none` justified.
+- [pass/fail] `Shared Contract` = `closed` or `none` when `batista-ux` and `batista-arch` run in parallel; fields/errors/sequence cannot stay `pending`.
 
-Qualquer item `fail` força `status: rejected`. Trate `evidence`, `questions`, `blockers` e `resume` como feedback da spec; corrija `spec.md` quando a resposta já estiver disponível, pergunte ao usuário (modo standalone) ou registre em `Clarifications Needed` (modo orchestrated) quando faltar decisão. Só use `Status: ready` com guardian `approved`.
+Any `fail` forces `status: rejected`. Treat `evidence`, `questions`, `blockers`, and `resume` as spec feedback; fix `spec.md` when the answer is available, ask the user (standalone) or record in `Clarifications Needed` (orchestrated) when a decision is missing. Use `Status: ready` only with guardian `approved`.
 
 ## Rules
 
-- Mantenha o conteúdo sem detalhes técnicos de implementação.
-- Faça perguntas só depois de investigar o que o repo, docs e artefatos existentes conseguem responder.
-- Pergunte tudo que molda materialmente escopo, aceite, contrato, persistência, UX, segurança, rollout ou validação, em lote e priorizado pela taxonomia (máx. 5 por rodada). Só registre suposição quando ela não alterar nenhuma dessas superfícies.
-- Todo requisito em forma EARS; todo critério de aceite em Dado/Quando/Então. O guardian rejeita desvio de forma.
-- Todo fato na spec referencia um `D#` do `Discovery Ledger` com evidência, ou uma decisão registrada; sem isso vira `pending`.
-- Persista a instrução literal do usuário em `user-instructions.md` (pasta da feature) antes de qualquer processamento; ao definir escopo e requisitos, confira contra a instrução literal e questione a motivação.
-- Não marque requisitos, escopo, contratos, persistência ou validação como definidos sem evidência ou decisão registrada.
-- Não use `Status: ready` sem `Discovery Ledger`, `Requirements Traceability` e `Spec Readiness Gates` preenchidos e `Clarifications Needed` = none.
-- Defina pronto como comportamento validado na prática com evidência, não como revisão de código.
-- Mesmo se o usuário disser "corrija", "implemente" ou "execute", esta skill deve criar/refinar `spec.md` e parar; não faça patch de produto.
-- Comece pelo menor escopo fiel ao pedido. Não transforme correção localizada em feature ponta a ponta sem evidência ou decisão explícita.
-- Qualquer requisito fora do mínimo para completar a task do usuário é descartado para `Out of Scope`, mesmo que pareça útil; só volta com pedido ou decisão explícita do usuário (conferir a instrução literal em `user-instructions.md`). Requisito que pode ser simplificado sem perder o aceite deve ser simplificado. Sempre se questione da motivação.
-- Se a intenção real do usuário estiver ambígua entre ajuste pontual e feature end-to-end, registre `pending` em `Intent Classification` e pergunte antes de `Status: ready`.
-- Use `Status: ready` só quando `plan.md` puder ser escrito sem decisões de produto pendentes e o guardian aprovar.
-- Não use `Status: ready` se contrato, persistência, harness, usuário afetado ou fora de escopo estiver ambíguo.
-- Quando uma ambiguidade bloquear execução segura, pergunte ao usuário (standalone) ou registre o item em `Clarifications Needed` e set `Status: blocked` (orchestrated).
-- Ao receber arquivo ou diretório existente, trate a tarefa como revisão: corrija/refine o `spec.md` antes de concluir e não aceite status pronto herdado sem checagem.
-- Se `plan.md` ou `manifest.md` revelarem lacuna de produto, puxe a lacuna para `spec.md` como pergunta/decisão pendente.
-- Se existir `manifest.md`, atualize apenas links/status da spec quando isso for necessário para manter consistência.
-- Não aceite guardian genérico; ele deve listar evidência conferida ou bloquear com pergunta/crítica objetiva.
+- Keep content free of implementation details.
+- Ask only after investigating what the repo, docs, and existing artifacts can answer.
+- Ask everything that materially shapes scope, acceptance, contract, persistence, UX, security, rollout, or validation, batched and prioritized by taxonomy (max 5 per round). Record an assumption only when it changes none of those surfaces.
+- Every requirement in EARS form; every acceptance criterion in Given/When/Then. The guardian rejects form deviations.
+- Every fact references a `D#` from the `Discovery Ledger` with evidence, or a recorded decision; otherwise `pending`.
+- Persist the literal user instruction in `user-instructions.md` (feature folder) before any processing; define scope and requirements against it and question motivation.
+- Do not mark requirements, scope, contracts, persistence, or validation as defined without evidence or a recorded decision.
+- No `Status: ready` without `Discovery Ledger`, `Requirements Traceability`, and `Spec Readiness Gates` filled and `Clarifications Needed` = none.
+- Done = behavior validated in practice with evidence, not code review.
+- Even if the user says "fix", "implement", or "execute", create/refine `spec.md` and stop; no product patches.
+- Start with the smallest scope faithful to the request; do not turn a localized fix into an end-to-end feature without evidence or an explicit decision.
+- Any requirement beyond the minimum to complete the task goes to `Out of Scope`, even if useful; it returns only with an explicit user request or decision (check the literal instruction). A requirement simplifiable without losing acceptance must be simplified. Always question motivation.
+- If real intent is ambiguous between point fix and end-to-end feature, record `pending` in `Intent Classification` and ask before `Status: ready`.
+- `Status: ready` only when `plan.md` can be written without pending product decisions and the guardian approves.
+- No `Status: ready` if contract, persistence, harness, affected user, or out-of-scope is ambiguous.
+- When ambiguity blocks safe execution, ask the user (standalone) or record in `Clarifications Needed` and set `Status: blocked` (orchestrated).
+- On receiving an existing file or directory, treat as review: fix/refine `spec.md` before concluding; never accept an inherited ready status unchecked.
+- If `plan.md` or `manifest.md` reveals a product gap, pull it into `spec.md` as a pending question/decision.
+- If `manifest.md` exists, update only spec links/status as needed for consistency.
+- Do not accept a generic guardian; it must list checked evidence or block with an objective question/critique.
 
 ## Clarification Protocol
 
-Esclareça sem violar o isolamento. Detecte o modo no início (passo 4 do Workflow).
+Clarify without violating isolation. Detect the mode at the start (Workflow step 4).
 
-- Standalone (usuário invocou a skill direto): agrupe as clarificações materiais num único lote priorizado (máx. 5), apresente ao usuário, espere as respostas, registre em `Questions and Decisions` e continue. Repita em lotes se surgir nova dúvida de alto impacto.
-- Orchestrated (invocada por `batista-manifest`/outra skill com contexto isolado): não pergunte no meio da execução. Preencha `Clarifications Needed` com IDs `C#`, grave o `spec.md`, set `Status: blocked` e devolva o controle ao manager com o bloco `Clarifications Needed` copiado na resposta final. Não invente respostas nem marque `ready`.
+- Standalone (user invoked the skill directly): group material clarifications into one prioritized batch (max 5), present to the user, wait for answers, record in `Questions and Decisions`, continue. Repeat in batches if a new high-impact doubt arises.
+- Orchestrated (invoked by `batista-manifest`/another skill with isolated context): never ask mid-run. Fill `Clarifications Needed` with `C#` IDs, save `spec.md`, set `Status: blocked`, and return control to the manager with the `Clarifications Needed` block copied into the final response. Do not invent answers or mark `ready`.
 
-Taxonomia para varrer antes de perguntar (marque cada uma Clear/Partial/Missing; Partial/Missing que altera superfície material sempre vira pergunta): escopo funcional, modelo de dados, fluxo/UX, atributos não-funcionais, integração/dependências, edge cases/falhas, restrições/tradeoffs, contrato, persistência, rollout, terminologia, sinais de conclusão/DoD.
+Taxonomy to sweep before asking (mark each Clear/Partial/Missing; Partial/Missing that changes a material surface always becomes a question): functional scope, data model, flow/UX, non-functional attributes, integration/dependencies, edge cases/failures, constraints/tradeoffs, contract, persistence, rollout, terminology, completion signals/DoD.
 
-Retomada (orchestrated), ao ser re-invocada com respostas referenciadas por `C#`:
+Resume (orchestrated), when re-invoked with answers referenced by `C#`:
 
-1. Leia `spec.md` (fonte da verdade) e as respostas recebidas.
-2. Mova cada item resolvido de `Clarifications Needed` para `Questions and Decisions` com resposta e origem; propague o impacto para Scope, Requirements, Contract/Persistence e Acceptance.
-3. Re-rode discovery apenas nas áreas afetadas pelas respostas.
-4. Se surgir nova clarificação de alto impacto, reabra `Clarifications Needed` (respeitando o cap de 5) e devolva; senão siga para o guardian e `ready`.
+1. Read `spec.md` (source of truth) and the received answers.
+2. Move each resolved item from `Clarifications Needed` to `Questions and Decisions` with answer and origin; propagate impact to Scope, Requirements, Contract/Persistence, Acceptance.
+3. Re-run discovery only in areas affected by the answers.
+4. If a new high-impact clarification arises, reopen `Clarifications Needed` (respecting the cap of 5) and return; otherwise proceed to guardian and `ready`.
 
-## Checkpoint (obrigatório)
+## Checkpoint (mandatory)
 
-Antes de **cada** guardian ou de ceder o turno, grave no `spec.md`: `Updated:`, `Status`, resume point implícito (próxima clarificação ou guardian) e blockers. Não dispare guardian com `spec.md` desatualizado.
+Before **each** guardian or yielding the turn, record in `spec.md`: `Updated:`, `Status`, implicit resume point (next clarification or guardian), and blockers. Never run guardian with an outdated `spec.md`.
 
 ## State & Memory
 
-- Fonte da verdade é o arquivo, não o contexto. Escreva o delta no `spec.md` (Discovery Ledger, decisões, status) antes de seguir (write-before-forget).
-- O contexto guarda só: feature dir, requisito/clarificação atual, blockers abertos, próxima ação. O resto é ponteiro (path) e se re-lê sob demanda.
-- Compactar = projetar em ponteiro, nunca inventar. Resumo jamais faz upgrade de status (pending→confirmed/ready). Em divergência, o arquivo vence e re-lê.
-- As `Validation surfaces` desta spec são o sinal de gate para `batista-ux` (frontend) e `batista-arch` (backend/API/job/consumer/infra) na etapa de solução; mantenha-as explícitas. Mapeamento: `frontend`→`batista-ux`; `backend`/`API`/`job`/`consumer`/`infra`→`batista-arch`; `browser` sem mudança de UI→harness no `batista-plan`/`batista-execute`; `browser` com UI→também `batista-ux`.
-- `Shared Contract` deve estar fechado antes do manifest spawnar `batista-ux`∥`batista-arch`; conflitos não resolvidos aqui viram `pending` e impedem `ready`.
-- O que sobrevive à feature (convenção, terminologia de domínio) vai pro projeto (`AGENTS.md`); o efêmero fica em `.features/{...}/`.
+- The file is the source of truth, not the context. Write the delta into `spec.md` (Discovery Ledger, decisions, status) before moving on (write-before-forget).
+- Context keeps only: feature dir, current requirement/clarification, open blockers, next action. Everything else is a pointer (path) re-read on demand.
+- Compacting = projecting into pointers, never inventing. A summary never upgrades status (pending→confirmed/ready). On divergence, the file wins and is re-read.
+- This spec's `Validation surfaces` are the gate signal for `batista-ux` (frontend) and `batista-arch` (backend/API/job/consumer/infra) at the solution stage; keep them explicit. Mapping: `frontend`→`batista-ux`; `backend`/`API`/`job`/`consumer`/`infra`→`batista-arch`; `browser` without UI change→harness in `batista-plan`/`batista-execute`; `browser` with UI→also `batista-ux`.
+- `Shared Contract` must be closed before the manifest spawns `batista-ux`∥`batista-arch`; conflicts unresolved here become `pending` and block `ready`.
+- What survives the feature (convention, domain terminology) goes to the project (`AGENTS.md`); ephemeral content stays in `.features/{...}/`.
 
 ## Context Isolation
 
-- Quando houver manager, aceitar invocação orchestrated como child `delegate` com `context: "fresh"`.
-- Não herdar contexto irrelevante da sessão manager.
-- Passar somente artefatos mínimos: pedido, paths, `AGENTS.md` e documentos da feature.
-- Em modo orchestrated, não rode guardian nem converse com o usuário; devolva o `Delegation Result` ao manager conforme `../../references/WORKFLOW_COMMON.md`.
+- When a manager exists, accept orchestrated invocation as a child `delegate` with `context: "fresh"`.
+- Do not inherit irrelevant context from the manager session.
+- Pass only minimal artifacts: request, paths, `AGENTS.md`, and feature docs.
+- Orchestrated: do not run guardian or talk to the user; return the `Delegation Result` to the manager per `../../references/WORKFLOW_COMMON.md`.
 
 ## Final Response
 
-Ao concluir, responda com:
+On completion, respond with:
 
-- `Resumo`: intenção classificada, objetivo e escopo acordado.
-- `Será feito`: resultados esperados do ponto de vista do usuário/sistema.
-- `Clarifications Needed` (somente quando `Status: blocked` por clarificação): copie o bloco com IDs `C#`, categoria, pergunta, o que bloqueia e a opção recomendada.
-- `Resume` (mesmo caso): feature dir + instrução de que a re-invocação deve passar as respostas referenciadas por `C#`.
-- `Pendências`: perguntas, blockers ou `none`.
-- `Evidência`: arquivos lidos/atualizados e fatos confirmados que sustentam a spec.
+- `Summary`: classified intent, objective, and agreed scope.
+- `Will be done`: expected results from the user/system point of view.
+- `Clarifications Needed` (only when `Status: blocked` by clarification): copy the block with `C#` IDs, category, question, what it blocks, and the recommended option.
+- `Resume` (same case): feature dir + instruction that the re-invocation must pass the answers referenced by `C#`.
+- `Open items`: questions, blockers, or `none`.
+- `Evidence`: files read/updated and confirmed facts supporting the spec.
 
-Em modo orchestrated, substitua a resposta humana pelo `DELEGATION_RESULT`; o manager raiz é responsável por apresentar perguntas ao usuário.
+Orchestrated: replace the human response with the `DELEGATION_RESULT`; the root manager presents questions to the user.

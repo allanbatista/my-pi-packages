@@ -1,42 +1,38 @@
 ---
 name: batista-plan
-description: Cria, revisa e mantém apenas o `plan.md` técnico de uma feature em `.features/{YYYY-MM-DD}_{HHMM}-{short-desc}/plan.md`, a partir de `spec.md` e das soluções `ux.md`/`arch.md` quando aplicáveis. Use como `/skill:batista-plan` quando o usuário pedir plano técnico, mapa de impacto, investigação técnica, fases, tasks, subagents, paralelismo, plano paralelizável, validação, harness, loop engineering ou revisão de uma feature existente. Para executar o plano, use `/skill:batista-execute`.
+description: Creates, reviews and maintains only the technical `plan.md` of a feature in `.features/{YYYY-MM-DD}_{HHMM}-{short-desc}/plan.md`, from `spec.md` and the `ux.md`/`arch.md` solutions when applicable. Use as `/skill:batista-plan` when the user asks for a technical plan, impact map, technical investigation, phases, tasks, subagents, parallelism, parallelizable plan, validation, harness, loop engineering or review of an existing feature. To execute the plan, use `/skill:batista-execute`.
 ---
 
 # Feature Plan
 
+## Runtime & Delegation
 
-## Runtime & Delegação
+Read and follow `../../references/WORKFLOW_COMMON.md` for Pi runtime, delegation, isolation, state reconciliation and checkpoints.
 
-Leia e siga `../../references/WORKFLOW_COMMON.md` para runtime Pi, delegação, isolamento, reconciliação de estado e checkpoints.
+Scope: feature workflow docs only — never product code, tests, configs, migrations or files outside the feature folder.
 
+No guessing: investigate before concluding, cite concrete evidence, register as blocker any premise unconfirmable via file, command, log, test, browser or user answer.
 
-Use esta skill para transformar uma spec pronta em plano técnico executável.
-
-Esta skill só pode editar documentos de workflow da feature. Não edite código de produto, testes, configs, migrations ou arquivos fora da pasta da feature.
-
-Não use achismo: investigue antes de concluir, cite evidência concreta para fatos e registre como blocker qualquer premissa que não puder confirmar por arquivo, comando, log, teste, browser ou resposta do usuário.
-
-Quando invocada por outra skill do feature-workflow, execute como child `delegate` com `context: "fresh"` (ver `../../references/PI_ADAPTATION.md`), recebendo apenas pedido, project root, feature dir e docs necessários.
+Invoked by another feature-workflow skill? Run as child `delegate`, `context: "fresh"` (see `../../references/PI_ADAPTATION.md`), receiving only request, project root, feature dir and needed docs.
 
 ## Workflow
 
-1. Leia o `AGENTS.md` do projeto.
-2. Determine o modo: **standalone** (usuário invocou direto) ou **orchestrated** (child de `batista-manifest`). Se o input for um diretório de feature ou arquivo, leia os artefatos existentes antes de decidir status.
-3. Localize o `spec.md` da feature. Se não existir, registre blocker e devolva ao manager; não emita `/skill:batista-spec`. Leia também `ux.md` e `arch.md` quando existirem (fontes de solução: usabilidade e arquitetura); reconcilie conflito de contrato entre elas e registre blocker se não resolvível.
-4. Revise o estado existente: perguntas pendentes, decisões contraditórias, DoD fraco, contrato/persistência/harness ausentes, divergência entre spec/plan/manifest e evidência faltante.
-5. Se `spec.md` estiver `draft` ou `blocked`, não invente decisões de produto; registre o bloqueio.
-6. Antes de planejar implementação, faça preflight: AGENTS, Graphify quando existir, worktree, contratos afetados, arquivos existentes/novos e comandos de validação disponíveis.
-7. Produza `Impact Map` antes de fases/tasks: superfícies afetadas, evidência, arquivos/owners, necessidade de mudança, validação e risco. Tasks de backend derivam de decisões do `arch.md`; tasks de frontend derivam de decisões do `ux.md`. O plano é o ponto de reconciliação das duas soluções paralelas.
-8. Cada task/fase deve nascer de uma ou mais linhas do `Impact Map`.
-9. Monte um DAG de fases/tasks: dependências, write sets, validações compartilhadas e pontos de sincronização.
-10. Agrupe em batches paralelos sempre que tasks/fases forem independentes, tiverem write sets disjuntos e validação própria.
-11. Se contrato, persistência, harness, Impact Map ou arquivos alvo estiverem ambíguos, registre blocker no `plan.md` com `Escalation: spec | ux | arch | manifest` e devolva ao manager — esta skill **não** edita `spec.md`, `ux.md` nem `arch.md`; não crie plano executável por chute.
-12. Crie ou atualize somente `plan.md`.
-13. Em modo orchestrated, grave `draft` (ou `blocked`) e devolva sem rodar guardian; somente uma re-invocação com verdict real `approved` pode persistir o gate e promover para `ready`. Em standalone, delegue a rubrica ao `artifact-guardian`.
-14. Em standalone, se o guardian rejeitar, aplique o menor ajuste necessário no `plan.md` ou registre blocker e repita a validação. Não conclua com guardian pendente ou rejeitado.
-15. Atualize status antes e depois de cada task durante execução.
-16. Responda conforme `Final Response`; em modo orchestrated, retorne somente o `Delegation Result` de `../../references/WORKFLOW_COMMON.md`.
+1. Read project `AGENTS.md`.
+2. Determine mode: **standalone** (direct invocation) or **orchestrated** (child of `batista-manifest`). If input is a feature dir or file, read existing artifacts before deciding status.
+3. Locate the feature `spec.md`. If missing, register blocker and return to manager; do not emit `/skill:batista-spec`. Read `ux.md` and `arch.md` when present (solution sources: usability/architecture); reconcile contract conflicts, register blocker if unresolvable.
+4. Review existing state: open questions, contradictory decisions, weak DoD, missing contract/persistence/harness, spec/plan/manifest divergence, missing evidence.
+5. If `spec.md` is `draft` or `blocked`, do not invent product decisions; record the block.
+6. Preflight before planning implementation: AGENTS, Graphify when present, worktree, affected contracts, existing/new files, available validation commands.
+7. Produce `Impact Map` before phases/tasks: affected surfaces, evidence, files/owners, need for change, validation, risk. Backend tasks derive from `arch.md` decisions; frontend tasks from `ux.md`. The plan reconciles both parallel solutions.
+8. Each task/phase derives from one or more `Impact Map` rows.
+9. Build a DAG of phases/tasks: dependencies, write sets, shared validations, sync points.
+10. Group parallel batches when tasks/phases are independent, have disjoint write sets and own validation.
+11. If contract, persistence, harness, Impact Map or target files are ambiguous, register blocker in `plan.md` with `Escalation: spec | ux | arch | manifest` and return to manager — this skill never edits `spec.md`/`ux.md`/`arch.md`; never create an executable plan by guessing.
+12. Create/update only `plan.md`.
+13. Orchestrated: record `draft` (or `blocked`) and return without guardian; only a re-invocation with real verdict `approved` persists the gate and promotes to `ready`. Standalone: delegate the rubric to `artifact-guardian`.
+14. Standalone: if guardian rejects, apply the smallest needed fix in `plan.md` or register blocker and re-validate. Never conclude with guardian pending or rejected.
+15. Update status before and after each task during execution.
+16. Orchestrated: return only the `Delegation Result` (see `../../references/WORKFLOW_COMMON.md`); else respond per `Final Response`.
 
 ## Template
 
@@ -49,30 +45,30 @@ Updated: {YYYY-MM-DD HH:MM}
 
 ## Execution Rules
 
-- Atualizar status antes e depois de cada task.
-- Não marcar `done` sem evidência prática de funcionamento.
-- Registrar arquivos reais quando divergirem dos planejados.
-- Registrar blocker com causa, impacto e próxima ação.
-- Não iniciar implementação se contrato, persistência, harness ou arquivos alvo exigirem adivinhação.
-- Testes automáticos focados pertencem ao worker da task; suíte ampla pertence ao gate final da fase.
+- Update status before and after each task.
+- Never mark `done` without practical working evidence.
+- Record real files when they diverge from planned.
+- Record blockers with cause, impact and next action.
+- Do not start implementation if contract, persistence, harness or target files require guessing.
+- Focused automated tests belong to the task worker; the broad suite belongs to the phase-final gate.
 
 ## Readiness Gates
 
-- [ ] `AGENTS.md` lido.
-- [ ] Solução consumida: `ux.md` e `arch.md` aplicáveis lidos e reconciliados (ou `not-applicable`).
-- [ ] Graphify verificado e usado quando configurado.
-- [ ] Worktree sujo registrado, com regra para não sobrescrever mudanças paralelas.
-- [ ] Contratos públicos/internos e persistência definidos ou marcados como `none`.
-- [ ] Arquivos alvo existentes/novos conferidos.
-- [ ] Impact Map completo, com evidência para cada superfície.
-- [ ] Harness mínimo definido com baseline, teste focado e validação final.
-- [ ] Guardian aprovou o plano contra a spec e as soluções (`batista-ux`/`batista-arch`) aplicáveis.
+- [ ] `AGENTS.md` read.
+- [ ] Solution consumed: applicable `ux.md`/`arch.md` read and reconciled (or `not-applicable`).
+- [ ] Graphify checked and used when configured.
+- [ ] Dirty worktree recorded, with rule not to overwrite parallel changes.
+- [ ] Public/internal contracts and persistence defined or marked `none`.
+- [ ] Existing/new target files verified.
+- [ ] Impact Map complete, with evidence per surface.
+- [ ] Minimal harness defined with baseline, focused test and final validation.
+- [ ] Guardian approved the plan against spec and applicable solutions (`batista-ux`/`batista-arch`).
 
 ## Impact Map
 
 | Surface | Evidence | Why it matters | Files/Owners | Change? | Validation | Risk/Notes |
 |---|---|---|---|---|---|---|
-| {backend/frontend/job/infra/API/browser/etc.} | {arquivo, comando, log, teste, browser ou decisão} | {impacto no requisito} | {paths/owners} | {yes/no/pending} | {check concreto} | {risco ou blocker} |
+| {backend/frontend/job/infra/API/browser/etc.} | {file, command, log, test, browser or decision} | {impact on requirement} | {paths/owners} | {yes/no/pending} | {concrete check} | {risk or blocker} |
 
 ## Phase 0: Preflight
 
@@ -80,9 +76,9 @@ Status: pending | running | done | fail
 Owner/Subagent: main
 Dependencies: none
 DoD:
-- [ ] Execução consegue começar sem adivinhar decisões.
+- [ ] Execution can start without guessing decisions.
 Required Evidence:
-- `AGENTS.md` lido, Graphify/worktree verificados, Impact Map completo, arquivos alvo conferidos, comandos de validação definidos.
+- `AGENTS.md` read, Graphify/worktree verified, Impact Map complete, target files verified, validation commands defined.
 Produced Evidence:
 - {pending}
 Blockers:
@@ -95,9 +91,9 @@ Owner/Subagent: {main | subagent-name | unassigned}
 Dependencies: {none | phase/task}
 Parallel Group: {sequential | batch-id}
 DoD:
-- [ ] {Resultado verificável da fase}
+- [ ] {Verifiable phase outcome}
 Required Evidence:
-- {evidência prática: browser, API, consumer, log, smoke manual, comando/output, screenshot ou teste focado}
+- {practical evidence: browser, API, consumer, log, manual smoke, command/output, screenshot or focused test}
 Produced Evidence:
 - {pending}
 Blockers:
@@ -115,9 +111,9 @@ Write Set:
 Actual Files:
 - {pending}
 DoD:
-- [ ] {Resultado verificável da task}
+- [ ] {Verifiable task outcome}
 Required Evidence:
-- {evidência mínima}
+- {minimal evidence}
 Produced Evidence:
 - {pending}
 Blockers:
@@ -125,19 +121,19 @@ Blockers:
 
 ## Parallelism
 
-- Batch 1: {tasks/fases independentes que podem iniciar juntas}
-- Batch 2: {tasks/fases liberadas após Batch 1}
-- Must stay sequential: {tasks/fases com dependência, write set compartilhado ou validação bloqueante}
-- Synchronization points: {onde esperar validação antes do próximo batch}
+- Batch 1: {independent tasks/phases that can start together}
+- Batch 2: {tasks/phases released after Batch 1}
+- Must stay sequential: {tasks/phases with dependency, shared write set or blocking validation}
+- Synchronization points: {where to wait for validation before the next batch}
 
 ## Validation Harness
 
-- Baseline: {comando antes do patch ou motivo para pular}
-- Task-scoped automated tests: {testes/typecheck/lint/build focados que o worker deve rodar para o escopo alterado}
+- Baseline: {command before patch, or reason to skip}
+- Task-scoped automated tests: {focused tests/typecheck/lint/build the worker must run for the changed scope}
 - Integration/API/consumer: {commands, probes, logs, fixtures}
 - Browser/UI: {URL, steps, selectors, screenshot/console/network evidence}
-- Phase final validation: {suíte ampla/final checks a rodar no fim da fase, com correção por worker se falhar}
-- Practical evidence: {prova observável de que o comportamento afetado funcionou}
+- Phase final validation: {broad suite/final checks at phase end; worker fixes on failure}
+- Practical evidence: {observable proof the affected behavior worked}
 - Graphify: {update/sync command when source architecture changed, or none}
 - Regression loop: {run -> inspect failure -> patch smallest point -> rerun -> record evidence}
 
@@ -149,11 +145,11 @@ Blockers:
 
 Status: pending | approved | rejected
 Questions:
-- {none | perguntas que bloqueiam execução}
+- {none | questions blocking execution}
 Critiques:
-- {none | críticas que bloqueiam execução}
+- {none | critiques blocking execution}
 Required Changes:
-- {none | ajustes obrigatórios}
+- {none | mandatory adjustments}
 
 ## Resume Point
 
@@ -164,82 +160,82 @@ Required Changes:
 
 ## Artifact Guardian
 
-Após atualizar `plan.md`, o modo standalone roda `artifact-guardian`; no modo orchestrated, o manager é responsável pelo guardian após receber o artefato.
+Standalone runs `artifact-guardian` after updating `plan.md`; orchestrated leaves the guardian to the manager after receiving the artifact.
 
-O guardian não edita arquivos. Ele valida aderência à spec e às soluções (`batista-ux`/`batista-arch`) aplicáveis, Impact Map, arquivos alvo, write sets, DAG, batches paralelos, pontos de sincronização, harness, DoD, blockers, ponto de retomada e evidência sem achismo.
+Guardian never edits files. It validates adherence to spec and applicable solutions (`batista-ux`/`batista-arch`), Impact Map, target files, write sets, DAG, parallel batches, sync points, harness, DoD, blockers, resume point and evidence without guessing.
 
-Rubrica obrigatória; registre cada resultado no campo `evidence` do `DELEGATION_RESULT` canônico:
+Mandatory rubric; record each result in the `evidence` field of the canonical `DELEGATION_RESULT`:
 
-- [pass/fail] Impact Map cobre todas as `Validation surfaces` da spec (ou justifica `not-applicable`).
-- [pass/fail] Tasks de frontend derivam de `ux.md`; tasks de backend derivam de `arch.md` (ou da spec quando solução N/A).
-- [pass/fail] Conflitos `batista-ux`↔`batista-arch`↔`Shared Contract` resolvidos no plano ou escalados com `Escalation` explícita.
-- [pass/fail] Write sets, DAG, batches e pontos de sincronização são explícitos e seguros.
-- [pass/fail] Harness cita comandos/checks concretos; sem placeholders genéricos.
+- [pass/fail] Impact Map covers all `Validation surfaces` of the spec (or justifies `not-applicable`).
+- [pass/fail] Frontend tasks derive from `ux.md`; backend tasks from `arch.md` (or spec when solution N/A).
+- [pass/fail] `batista-ux`↔`batista-arch`↔`Shared Contract` conflicts resolved in the plan or escalated with explicit `Escalation`.
+- [pass/fail] Write sets, DAG, batches and sync points are explicit and safe.
+- [pass/fail] Harness cites concrete commands/checks; no generic placeholders.
 
-Qualquer item `fail` força `status: rejected`. Copie `evidence`, `questions`, `blockers` e `resume` para `Guardian Review`; corrija `plan.md` quando a resposta já estiver disponível ou registre blocker com `Escalation` quando faltar decisão/evidência. Só use `Status: ready` ou `done` com guardian `approved`.
+Any `fail` forces `status: rejected`. Copy `evidence`, `questions`, `blockers` and `resume` to `Guardian Review`; fix `plan.md` when the answer is available or register blocker with `Escalation` when decision/evidence is missing. Use `Status: ready`/`done` only with guardian `approved`.
 
 ## Rules
 
-- Status permitido: `draft`, `ready`, `blocked`, `running`, `done`, `fail`.
-- Não planeje arquivos, comandos, harness, dependências ou paralelismo por suposição; confirme no repo ou registre blocker.
-- Não marque `plan.md` como executável sem `Impact Map` completo.
-- Cada task/fase deve referenciar uma superfície mapeada; superfície sem evidência vira blocker/pending.
-- Prefira plano paralelizável quando seguro: dividir tasks por write set disjunto, contrato independente e validação própria.
-- Não serialize tasks independentes por conveniência; registre batch paralelo explícito.
-- Não paralelize tasks que compartilham arquivo, migração, estado, contrato, fixture crítica ou validação sequencial.
-- Mesmo se o usuário disser "corrija", "implemente" ou "execute", esta skill deve criar/refinar `plan.md` e retornar ao manager; somente standalone indica `/skill:batista-execute`. Não faça patch de produto.
-- Cada fase e task deve ter DoD próprio, owner/subagent, arquivos planejados/reais, evidência exigida/produzida e blockers.
-- Toda feature deve ter `Phase 0: Preflight` e `Readiness Gates`.
-- O harness deve citar comandos/checks práticos concretos ou registrar blocker; placeholders genéricos não bastam para execução.
-- Teste referenciado que ainda não existe deve aparecer como arquivo novo planejado.
-- Não exija suíte completa a cada task; planeje testes automáticos focados por task e suíte ampla/final checks no fechamento da fase.
-- Definição de pronto exige evidência prática de funcionamento, não apenas revisão de código ou leitura de diff.
-- Paralelize apenas tasks independentes e registre dependências, write sets e pontos de sincronização.
-- Para long-running work, mantenha checkpoints, evidência e ponto de retomada.
-- Ao receber arquivo ou diretório existente, trate a tarefa como revisão: corrija/refine o `plan.md` antes de concluir e não aceite status pronto herdado sem checagem.
-- Se a revisão revelar decisão de produto pendente, registre blocker no `plan.md` com `Escalation: batista-spec` (ou `batista-ux`/`batista-arch`) e devolva ao `batista-manifest` — não edite outros artefatos.
-- Não marque `done` se qualquer fase/task ainda tiver blocker, evidência `pending`, DoD sem prova ou guardian não aprovado.
-- Se existir `manifest.md`, atualize apenas status/resume point quando necessário.
-- Quando o usuário pedir execução, retomada operacional ou coordenação de workers, encaminhe para `/skill:batista-execute`.
-- Não aceite guardian genérico; ele deve listar evidência conferida ou bloquear com pergunta/crítica objetiva.
+- Allowed statuses: `draft`, `ready`, `blocked`, `running`, `done`, `fail`.
+- Never plan files/commands/harness/dependencies/parallelism by assumption; confirm in repo or register blocker.
+- Never mark `plan.md` executable without a complete `Impact Map`.
+- Every task/phase must reference a mapped surface; surface without evidence becomes blocker/pending.
+- Prefer parallelizable plans when safe: split tasks by disjoint write set, independent contract and own validation.
+- Do not serialize independent tasks for convenience; record an explicit parallel batch.
+- Do not parallelize tasks sharing files, migrations, state, contract, critical fixtures or sequential validation.
+- Even on "fix"/"implement"/"execute" requests, create/refine `plan.md` and return to the manager; only standalone points to `/skill:batista-execute`. No product patches.
+- Every phase/task needs own DoD, owner/subagent, planned/actual files, required/produced evidence and blockers.
+- Every feature needs `Phase 0: Preflight` and `Readiness Gates`.
+- Harness must cite concrete practical commands/checks or register blocker; generic placeholders do not suffice.
+- A referenced test that does not exist yet must appear as a planned new file.
+- No full suite per task: focused automated tests per task; broad suite/final checks at phase close.
+- Done requires practical working evidence, not code review or diff reading.
+- Parallelize only independent tasks; record dependencies, write sets and sync points.
+- For long-running work, keep checkpoints, evidence and resume point.
+- On receiving an existing file/dir, treat as review: fix/refine `plan.md` before concluding; never accept inherited ready status unchecked.
+- If review reveals a pending product decision, register blocker in `plan.md` with `Escalation: batista-spec` (or `batista-ux`/`batista-arch`) and return to `batista-manifest` — do not edit other artifacts.
+- Never mark `done` if any phase/task still has a blocker, `pending` evidence, unproven DoD or unapproved guardian.
+- If `manifest.md` exists, update only status/resume point when needed.
+- Execution, operational resume or worker coordination requests: forward to `/skill:batista-execute`.
+- Do not accept a generic guardian; it must list verified evidence or block with objective question/critique.
 
 ## Skill Extraction
 
-Tarefa repetitiva vira skill do projeto, não boilerplate recopiado no plano.
+Repetitive work becomes a project skill, not boilerplate copied into the plan.
 
-- Gatilho: a mesma receita (sequência de passos/comandos/validação) aparece em ≥ 2–3 tasks/fases do plano, ou já apareceu em features anteriores. Registre o candidato como nota no `plan.md`.
-- Ação: planeje uma task de extração que delega a um subagent (convenções de `create-skill` / `skill-creator` do ambiente) a implementação de uma skill project-local em `{project}/skills/{skill-name}/`, com guardian de validação. As tasks seguintes passam a chamar a skill em vez de re-derivar.
-- A extração roda **somente** no worktree principal (branch base), **após** merge de features paralelas, **uma por vez** — nunca em paralelo com outra extração nem com worktrees de sub-feature. Write set exclusivo: `{project}/skills/{skill-name}/`.
-- Guardrail (YAGNI de skill): one-off não vira skill. Só planeje extração com repetição real e procedimento estável.
+- Trigger: the same recipe (sequence of steps/commands/validation) appears in ≥ 2–3 tasks/phases of the plan, or in previous features. Record the candidate as a note in `plan.md`.
+- Action: plan an extraction task delegating to a subagent (environment `create-skill`/`skill-creator` conventions) to implement a project-local skill in `{project}/skills/{skill-name}/`, with validation guardian. Subsequent tasks call the skill instead of re-deriving.
+- Extraction runs **only** in the main worktree (base branch), **after** merging parallel features, **one at a time** — never parallel to another extraction or sub-feature worktrees. Exclusive write set: `{project}/skills/{skill-name}/`.
+- Guardrail (skill YAGNI): one-off does not become a skill. Plan extraction only with real repetition and a stable procedure.
 
-## Checkpoint (obrigatório)
+## Checkpoint (mandatory)
 
-Antes de **cada** guardian, batch paralelo ou de ceder o turno, grave no `plan.md`: `Updated:`, resume point, blockers e última evidência. Não dispare guardian com `plan.md` desatualizado.
+Before **every** guardian, parallel batch or turn handoff, record in `plan.md`: `Updated:`, resume point, blockers, latest evidence. Never trigger a guardian with a stale `plan.md`.
 
 ## State & Memory
 
-- Fonte da verdade é o arquivo, não o contexto. Escreva o delta no `plan.md` (status, evidência, loop ledger, resume point) antes de seguir (write-before-forget).
-- O contexto guarda só: feature dir, fase/task atual, blockers abertos, próxima ação. O resto é ponteiro (path + resume point) e se re-lê sob demanda.
-- Antes de ceder o turno ou compactar: garanta resume point e evidência reais no arquivo; colapse o `Loop Ledger` para os últimos 10 + rollup por fase; descarte transcripts de subagent (guarde só {arquivos, comandos, evidência}).
-- Compactar = projetar em ponteiro, nunca inventar. Resumo jamais faz upgrade de status (pending→done). Em divergência, o arquivo vence e re-lê.
-- Roteamento de memória: o que sobrevive à feature (decisão de arquitetura durável, procedimento repetido virado skill) vai pro projeto; o efêmero fica em `.features/{...}/`.
+- File is the source of truth, not context. Write the delta to `plan.md` (status, evidence, loop ledger, resume point) before proceeding (write-before-forget).
+- Context holds only: feature dir, current phase/task, open blockers, next action. Everything else is a pointer (path + resume point) re-read on demand.
+- Before handing off/compacting: ensure real resume point/evidence in file; collapse `Loop Ledger` to last 10 + per-phase rollup; discard subagent transcripts (keep only {files, commands, evidence}).
+- Compact = project into pointers, never invent. A summary never upgrades status (pending→done). On divergence, the file wins; re-read.
+- Memory routing: what outlives the feature (durable architecture decision, repeated procedure turned skill) goes to the project; ephemera stays in `.features/{...}/`.
 
 ## Context Isolation
 
-- Quando houver manager, aceitar invocação orchestrated como child `delegate` com `context: "fresh"`.
-- Não herdar contexto irrelevante da sessão manager.
-- Passar somente artefatos mínimos: pedido, paths, `AGENTS.md`, `spec.md`, `ux.md`/`arch.md` aplicáveis e documentos da feature.
-- Em modo orchestrated, não rode guardian nem converse com o usuário; devolva o `Delegation Result` ao manager conforme `../../references/WORKFLOW_COMMON.md`.
+- With a manager, accept orchestrated invocation as child `delegate`, `context: "fresh"` (see Runtime & Delegation).
+- Do not inherit irrelevant manager-session context.
+- Pass only minimal artifacts: request, paths, `AGENTS.md`, `spec.md`, applicable `ux.md`/`arch.md`, feature docs.
+- Orchestrated mode: no guardian, no user conversation; return the `Delegation Result` (step 16).
 
 ## Final Response
 
-Ao concluir, responda com:
+Reply with:
 
-- `Resumo`: objetivo técnico do plano e status.
-- `Será feito`: fases/tasks principais, batches paralelos e ordem de sincronização.
-- `Impacto mapeado`: superfícies afetadas e evidência principal.
-- `Validação planejada`: comandos, browser/API/consumer checks e evidências esperadas.
-- `Pendências`: blockers, decisões abertas ou `none`.
-- `Evidência`: arquivos lidos/atualizados e fatos confirmados que sustentam o plano.
+- `Summary`: technical goal of the plan and status.
+- `Will do`: main phases/tasks, parallel batches and sync order.
+- `Mapped impact`: affected surfaces and main evidence.
+- `Planned validation`: commands, browser/API/consumer checks, expected evidence.
+- `Open items`: blockers, open decisions or `none`.
+- `Evidence`: files read/updated and confirmed facts supporting the plan.
 
-Em modo orchestrated, substitua a resposta humana pelo `DELEGATION_RESULT`.
+Orchestrated mode: replace the human answer with the `DELEGATION_RESULT`.

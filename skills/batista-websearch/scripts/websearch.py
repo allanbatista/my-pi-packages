@@ -14,11 +14,11 @@ DEFAULT_MAX_RESULTS = 5
 MAX_MAX_RESULTS = 10
 VALID_ENGINES = ("exa", "native", "firecrawl", "parallel", "perplexity")
 SYSTEM_PROMPT = (
-    "Você é um assistente de busca web. Responda de forma factual e concisa em pt-BR, "
-    "sem inventar fatos nem URLs: use somente o conteúdo dos resultados de busca fornecidos "
-    "e cite as fontes com links markdown nomeados pelo domínio, por exemplo "
-    "[nodejs.org](https://nodejs.org). Se os resultados não responderem à pergunta, "
-    "diga explicitamente o que não foi encontrado."
+    "You are a web search assistant. Answer factually and concisely in en-US, "
+    "without inventing facts or URLs: use only the content of the provided search results "
+    "and cite sources with markdown links named by domain, e.g. "
+    "[nodejs.org](https://nodejs.org). If the results don't answer the question, "
+    "state explicitly what was not found."
 )
 
 
@@ -26,7 +26,7 @@ def api_key():
     key = os.environ.get("OPENROUTER_API_KEY", "").strip()
     if not key:
         print(
-            "Erro: OPENROUTER_API_KEY não está definida. Carregue ~/.secrets antes de chamar.",
+            "Error: OPENROUTER_API_KEY is not set. Load ~/.secrets before calling.",
             file=sys.stderr,
         )
         raise SystemExit(2)
@@ -67,10 +67,10 @@ def search(payload, key):
             return json.loads(response.read().decode("utf-8"))
     except HTTPError as error:
         detail = error.read().decode("utf-8", errors="replace")
-        print(f"Erro HTTP {error.code} da API do OpenRouter: {detail}", file=sys.stderr)
+        print(f"HTTP error {error.code} from OpenRouter API: {detail}", file=sys.stderr)
         raise SystemExit(1)
     except URLError as error:
-        print(f"Falha de rede ao chamar o OpenRouter: {error.reason}", file=sys.stderr)
+        print(f"Network failure calling OpenRouter: {error.reason}", file=sys.stderr)
         raise SystemExit(1)
 
 
@@ -78,7 +78,7 @@ def extract_message(data, requested_model):
     try:
         choice = data["choices"][0]
     except (KeyError, IndexError):
-        print(f"Resposta inesperada da API (sem choices): {json.dumps(data)[:500]}", file=sys.stderr)
+        print(f"Unexpected API response (no choices): {json.dumps(data)[:500]}", file=sys.stderr)
         raise SystemExit(1)
     message = choice.get("message", {})
     citations = []
@@ -101,10 +101,10 @@ def extract_message(data, requested_model):
 
 
 def print_text(result):
-    print(f"## Resposta ({result['model']})")
-    print(result["content"] or "(sem resposta textual)")
+    print(f"## Answer ({result['model']})")
+    print(result["content"] or "(no textual answer)")
     if result["citations"]:
-        print(f"\n## Fontes ({len(result['citations'])})")
+        print(f"\n## Sources ({len(result['citations'])})")
         for index, citation in enumerate(result["citations"], 1):
             title = citation["title"] or citation["url"]
             print(f"{index}. [{title}]({citation['url']})")
@@ -115,44 +115,44 @@ def print_text(result):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Busca web via OpenRouter Web Search Plugin (chat completions)."
+        description="Web search via OpenRouter Web Search Plugin (chat completions)."
     )
-    parser.add_argument("--query", required=True, help="pergunta ou termo da busca")
+    parser.add_argument("--query", required=True, help="search question or term")
     parser.add_argument(
         "--model",
         default=DEFAULT_MODEL,
-        help=f"modelo a usar (default: {DEFAULT_MODEL})",
+        help=f"model to use (default: {DEFAULT_MODEL})",
     )
     parser.add_argument(
         "--engine",
         choices=VALID_ENGINES,
-        help="engine de busca (default: native quando o modelo suporta, senão exa)",
+        help="search engine (default: native when the model supports it, else exa)",
     )
     parser.add_argument(
         "--max-results",
         type=int,
         default=DEFAULT_MAX_RESULTS,
-        help=f"máximo de resultados (default: {DEFAULT_MAX_RESULTS}, máx. {MAX_MAX_RESULTS})",
+        help=f"max results (default: {DEFAULT_MAX_RESULTS}, max {MAX_MAX_RESULTS})",
     )
     parser.add_argument(
         "--include-domain",
         dest="include_domains",
         action="append",
         metavar="DOMAIN",
-        help="restringe a domínios (repetível; suporta *.substack.com e path openai.com/blog)",
+        help="restrict to domains (repeatable; supports *.substack.com and path openai.com/blog)",
     )
     parser.add_argument(
         "--exclude-domain",
         dest="exclude_domains",
         action="append",
         metavar="DOMAIN",
-        help="exclui domínios (repetível)",
+        help="exclude domains (repeatable)",
     )
-    parser.add_argument("--json", action="store_true", help="imprime o resultado completo em JSON")
+    parser.add_argument("--json", action="store_true", help="print full result as JSON")
     args = parser.parse_args()
 
     if not 1 <= args.max_results <= MAX_MAX_RESULTS:
-        parser.error(f"--max-results deve estar entre 1 e {MAX_MAX_RESULTS}")
+        parser.error(f"--max-results must be between 1 and {MAX_MAX_RESULTS}")
 
     payload = build_payload(args)
     result = extract_message(search(payload, api_key()), payload["model"])
