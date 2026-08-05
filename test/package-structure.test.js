@@ -16,7 +16,7 @@ const WORKFLOW = [
 const EXPECTED = [
   ...WORKFLOW,
   "batista-discord-webhook-messages",
-  "batista-entity-memory-playbook",
+  "batista-memory",
   "batista-ship-pr-to-deploy",
   "batista-websearch",
 ];

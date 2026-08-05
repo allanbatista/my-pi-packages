@@ -19,7 +19,7 @@ const WORKFLOW_SKILLS = [
 const EXPECTED_SKILLS = [
   ...WORKFLOW_SKILLS,
   "batista-discord-webhook-messages",
-  "batista-entity-memory-playbook",
+  "batista-memory",
   "batista-ship-pr-to-deploy",
   "batista-websearch",
 ];

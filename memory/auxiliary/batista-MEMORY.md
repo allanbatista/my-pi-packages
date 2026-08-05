@@ -19,4 +19,4 @@ Manter memória técnica curta, navegável e rastreável ao código, por domíni
 
 ## Fontes no código
 
-- `skills/batista-entity-memory-playbook/SKILL.md`
+- `skills/batista-memory/SKILL.md`

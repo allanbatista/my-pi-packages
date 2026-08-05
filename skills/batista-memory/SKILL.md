@@ -1,6 +1,6 @@
 ---
-name: batista-entity-memory-playbook
-description: Playbook para criar e atualizar memória técnica de entidades, componentes, arquivos de contrato e seus relacionamentos em `memory/<dominio>/`. Use como `/skill:batista-entity-memory-playbook` quando o agente criar, alterar, remover ou documentar entidade/model/API/UI/consumer/job/skill/arquivo de domínio, ou quando uma mudança afetar relacionamento entre componentes e precisar atualizar a pasta `memory/` do domínio.
+name: batista-memory
+description: Playbook para criar e atualizar memória técnica de entidades, componentes, arquivos de contrato e seus relacionamentos em `memory/<dominio>/`. Use como `/skill:batista-memory` quando o agente criar, alterar, remover ou documentar entidade/model/API/UI/consumer/job/skill/arquivo de domínio, ou quando uma mudança afetar relacionamento entre componentes e precisar atualizar a pasta `memory/` do domínio.
 ---
 
 # Entity Memory Playbook

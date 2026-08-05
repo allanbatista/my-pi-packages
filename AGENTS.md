@@ -29,7 +29,7 @@ O entry point do workflow é `/skill:batista-loop` (controlador de resultado). P
 | batista-arch | `/skill:batista-arch` | Arquitetura e contratos (quando há backend) |
 | batista-plan | `/skill:batista-plan` | Plano técnico, Impact Map, paralelismo |
 | batista-execute | `/skill:batista-execute` | Coordenação de workers e validação |
-| batista-entity-memory-playbook | `/skill:batista-entity-memory-playbook` | Memória técnica de entidades/componentes em `memory/<dominio>/` |
+| batista-memory | `/skill:batista-memory` | Memória técnica de entidades/componentes em `memory/<dominio>/` |
 | batista-ship-pr-to-deploy | `/skill:batista-ship-pr-to-deploy` | Entrega ponta a ponta: commit → PR → CR → CI → merge → tag → deploy → release note |
 | batista-discord-webhook-messages | `/skill:batista-discord-webhook-messages` | Mensagens Discord por sessão via bot (`scripts/discord_message.py`) |
 | batista-websearch | `/skill:batista-websearch` | Busca web com respostas fundamentadas via OpenRouter Web Search Plugin (`scripts/websearch.py`) |

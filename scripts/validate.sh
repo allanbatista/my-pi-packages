@@ -21,7 +21,7 @@ log_line() {
   fi
 }
 
-EXPECTED_SKILLS=(batista-arch batista-execute batista-loop batista-manifest batista-plan batista-spec batista-ux batista-discord-webhook-messages batista-entity-memory-playbook batista-ship-pr-to-deploy batista-websearch)
+EXPECTED_SKILLS=(batista-arch batista-execute batista-loop batista-manifest batista-plan batista-spec batista-ux batista-discord-webhook-messages batista-memory batista-ship-pr-to-deploy batista-websearch)
 
 log_section "Structure check" structure-check
 node -e "
