@@ -21,6 +21,7 @@ const EXPECTED_SKILLS = [
   "batista-discord-webhook-messages",
   "batista-entity-memory-playbook",
   "batista-ship-pr-to-deploy",
+  "batista-websearch",
 ];
 
 function piAvailable() {

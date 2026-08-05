@@ -6,3 +6,4 @@
 - Zero resíduos Codex: sem o pacote de skills legado do Codex e sem definições de agent no formato Codex; agents do package usam `agents/*.md`.
 - Política de modelos: planejamento herda o modelo da sessão; worker usa `deepseek/deepseek-v4-flash` sem reasoning; validador usa `deepseek/deepseek-v4-flash` com thinking `xhigh`.
 - Estado do workflow vive nos artefatos em `.features/{...}/`; o arquivo vence o contexto e resumos não fazem upgrade de status.
+- `user-instructions.md` (instruções literais do usuário) é artefato da feature e vive em `.features/{...}/user-instructions.md`, nunca na raiz do projeto.

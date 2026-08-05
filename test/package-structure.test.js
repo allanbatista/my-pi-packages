@@ -18,6 +18,7 @@ const EXPECTED = [
   "batista-discord-webhook-messages",
   "batista-entity-memory-playbook",
   "batista-ship-pr-to-deploy",
+  "batista-websearch",
 ];
 const EXPECTED_AGENTS = ["artifact-guardian.md", "workflow-validator.md"];
 
@@ -77,7 +78,7 @@ test("pi-invocation test does not hardcode harness scratch path", () => {
   assert.match(testFile, /process\.env\.SCRATCH/);
 });
 
-test("all seven skills exist with valid frontmatter", () => {
+test("all skills exist with valid frontmatter", () => {
   const skillsDir = path.join(ROOT, "skills");
   const dirs = fs
     .readdirSync(skillsDir, { withFileTypes: true })

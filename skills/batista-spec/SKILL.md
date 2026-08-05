@@ -21,20 +21,21 @@ Quando invocada por outra skill do feature-workflow, execute como child `delegat
 
 ## Workflow
 
-1. Leia o `AGENTS.md` do projeto.
-2. Determine o modo de execução: **standalone** (o usuário invocou a skill direto e pode responder perguntas) ou **orchestrated** (invocada por outra skill do feature-workflow com contexto isolado, sem poder perguntar ao usuário no meio da execução). Ver `Clarification Protocol`.
-3. Identifique o project root. Em dúvida real: standalone pergunta; orchestrated registra em `Clarifications Needed`. Use uma pasta existente `.features/{YYYY-MM-DD}_{HHMM}-{short-desc}/` quando indicada; senão crie uma nova com data/hora local e `short-desc` em kebab-case ASCII.
-4. Se o input for um diretório de feature ou arquivo (`manifest.md`, `spec.md` ou `plan.md`), trate a tarefa como revisão: leia os arquivos existentes da feature antes de decidir status (perguntas pendentes, decisões contraditórias, DoD fraco, contrato/persistência ausentes, divergência entre spec/plan/manifest e evidência faltante).
-5. Faça `Phase 0: Discovery` como método, não como desejo: percorra as dimensões — contratos/APIs, schemas/persistência, rotas/handlers, consumers/jobs/filas, configs/flags, testes existentes, dependências externas, telemetria/logs e owners — e **trace pelo menos um fluxo atual ponta a ponta**. Registre cada achado no `Discovery Ledger` com `ID` (`D#`), fonte, evidência e impacto. Afirmação sem evidência vira `pending`. Use Graphify quando `graphify-out/graph.json` existir.
-6. Reflita e registre a intenção real do usuário (pontual/localizada vs feature ponta a ponta) com justificativa baseada em achados do Discovery.
-7. Levante as clarificações materiais pela taxonomia (ver `Clarification Protocol`), priorize por (Impacto × Incerteza) e leve no máximo 5 de alto impacto por rodada. Só uma dúvida que **não altera** escopo, aceite, contrato, persistência, UX, segurança, rollout ou validação pode virar suposição explícita.
-8. Resolva as clarificações conforme o modo: standalone pergunta em lote e espera as respostas; orchestrated preenche `Clarifications Needed`, seta `Status: blocked` e devolve o controle ao manager.
-9. Monte a rastreabilidade: cada requisito em forma **EARS** ligado a um `D#` do Discovery ou a uma decisão registrada; cada critério de aceite em **Dado/Quando/Então** com superfície de validação (ver `Gramática de Requisitos`).
-10. Aplique o **Minimalism Gate** a cada requisito: (a) faz parte do que o usuário pediu? (b) é essencial para o projeto funcionar? Se a resposta a qualquer uma for não, mova para `Out of Scope` com uma linha de justificativa. (c) Está na menor complexidade que atinge o critério de aceite, ou dá para simplificar? Se dá, simplifique o requisito antes de seguir.
-11. Feche explicitamente contrato, persistência, evidência obrigatória e fora de escopo antes de `Status: ready`.
-12. Escreva ou atualize somente `spec.md`. Não escreva `plan.md`.
-13. Aplique o **Fail-Closed Clarification Gate**. Em modo orchestrated, grave `draft` (ou `blocked`) e devolva sem rodar guardian; somente uma re-invocação com verdict real `approved` pode persistir o gate e promover para `ready`. Em standalone, delegue a rubrica ao `artifact-guardian`, aplique o menor ajuste e repita até `approved`.
-14. Responda conforme `Final Response`; em modo orchestrated, retorne somente o `Delegation Result` de `../../references/WORKFLOW_COMMON.md`.
+1. Identifique o project root e a pasta da feature. Em dúvida real: standalone pergunta; orchestrated registra em `Clarifications Needed`. Use uma pasta existente `.features/{YYYY-MM-DD}_{HHMM}-{short-desc}/` quando indicada; senão crie uma nova com data/hora local e `short-desc` em kebab-case ASCII.
+2. Persista a instrução literal do usuário em `user-instructions.md` na pasta da feature, com data/hora, antes de qualquer processamento (nunca resuma, edite ou remova instruções anteriores).
+3. Leia o `AGENTS.md` do projeto.
+4. Determine o modo de execução: **standalone** (o usuário invocou a skill direto e pode responder perguntas) ou **orchestrated** (invocada por outra skill do feature-workflow com contexto isolado, sem poder perguntar ao usuário no meio da execução). Ver `Clarification Protocol`.
+5. Se o input for um diretório de feature ou arquivo (`manifest.md`, `spec.md` ou `plan.md`), trate a tarefa como revisão: leia os arquivos existentes da feature antes de decidir status (perguntas pendentes, decisões contraditórias, DoD fraco, contrato/persistência ausentes, divergência entre spec/plan/manifest e evidência faltante).
+6. Faça `Phase 0: Discovery` como método, não como desejo: percorra as dimensões — contratos/APIs, schemas/persistência, rotas/handlers, consumers/jobs/filas, configs/flags, testes existentes, dependências externas, telemetria/logs e owners — e **trace pelo menos um fluxo atual ponta a ponta**. Registre cada achado no `Discovery Ledger` com `ID` (`D#`), fonte, evidência e impacto. Afirmação sem evidência vira `pending`. Use Graphify quando `graphify-out/graph.json` existir.
+7. Reflita e registre a intenção real do usuário (pontual/localizada vs feature ponta a ponta) com justificativa baseada em achados do Discovery.
+8. Levante as clarificações materiais pela taxonomia (ver `Clarification Protocol`), priorize por (Impacto × Incerteza) e leve no máximo 5 de alto impacto por rodada. Só uma dúvida que **não altera** escopo, aceite, contrato, persistência, UX, segurança, rollout ou validação pode virar suposição explícita.
+9. Resolva as clarificações conforme o modo: standalone pergunta em lote e espera as respostas; orchestrated preenche `Clarifications Needed`, seta `Status: blocked` e devolve o controle ao manager.
+10. Monte a rastreabilidade: cada requisito em forma **EARS** ligado a um `D#` do Discovery ou a uma decisão registrada; cada critério de aceite em **Dado/Quando/Então** com superfície de validação (ver `Gramática de Requisitos`).
+11. Aplique o **Minimalism Gate** a cada requisito: (a) faz parte do que o usuário pediu (confira na instrução literal em `user-instructions.md`)? (b) é essencial para a task do usuário? Se a resposta a qualquer uma for não, mova para `Out of Scope` com uma linha de justificativa. (c) Está na menor complexidade que atinge o critério de aceite, ou dá para simplificar? Se dá, simplifique o requisito antes de seguir. Questione sempre a motivação do requisito: quem pediu e por quê.
+12. Feche explicitamente contrato, persistência, evidência obrigatória e fora de escopo antes de `Status: ready`.
+13. Escreva ou atualize somente `spec.md`. Não escreva `plan.md`.
+14. Aplique o **Fail-Closed Clarification Gate**. Em modo orchestrated, grave `draft` (ou `blocked`) e devolva sem rodar guardian; somente uma re-invocação com verdict real `approved` pode persistir o gate e promover para `ready`. Em standalone, delegue a rubrica ao `artifact-guardian`, aplique o menor ajuste e repita até `approved`.
+15. Responda conforme `Final Response`; em modo orchestrated, retorne somente o `Delegation Result` de `../../references/WORKFLOW_COMMON.md`.
 
 ## Fail-Closed Clarification Gate
 
@@ -178,7 +179,8 @@ Rubrica obrigatória; registre cada resultado no campo `evidence` do `DELEGATION
 - [pass/fail] Todo critério de aceite está em Dado/Quando/Então com superfície de validação.
 - [pass/fail] Todo fato usado na spec referencia um achado do Discovery (`D#`) com evidência.
 - [pass/fail] `Intent Classification` é justificada por achados, não por achismo.
-- [pass/fail] Todo requisito faz parte do que o usuário pediu e é essencial para o projeto funcionar; nada além do requisito mínimo entrou no escopo (o excedente está em `Out of Scope`).
+- [pass/fail] Todo requisito faz parte do que o usuário pediu (instrução literal em `user-instructions.md`) e é essencial para completar a task do usuário; nada além do mínimo pedido entrou no escopo (o excedente está em `Out of Scope`).
+- [pass/fail] A motivação de cada requisito foi questionada: quem pediu e por quê; requisito sem pedido literal nem essencialidade para a task está em `Out of Scope` ou virou pergunta ao usuário.
 - [pass/fail] Cada requisito está na menor complexidade que atinge o critério de aceite; nenhuma simplificação óbvia foi ignorada.
 - [pass/fail] Taxonomia coberta: não há pergunta material não feita; `Clarifications Needed` consistente com o estado (none ⇒ nada de alto impacto em aberto).
 - [pass/fail] Nenhuma decisão material foi fechada por suposição; toda resposta material referencia usuário, decisão registrada ou evidência `D#`.
@@ -194,12 +196,13 @@ Qualquer item `fail` força `status: rejected`. Trate `evidence`, `questions`, `
 - Pergunte tudo que molda materialmente escopo, aceite, contrato, persistência, UX, segurança, rollout ou validação, em lote e priorizado pela taxonomia (máx. 5 por rodada). Só registre suposição quando ela não alterar nenhuma dessas superfícies.
 - Todo requisito em forma EARS; todo critério de aceite em Dado/Quando/Então. O guardian rejeita desvio de forma.
 - Todo fato na spec referencia um `D#` do `Discovery Ledger` com evidência, ou uma decisão registrada; sem isso vira `pending`.
+- Persista a instrução literal do usuário em `user-instructions.md` (pasta da feature) antes de qualquer processamento; ao definir escopo e requisitos, confira contra a instrução literal e questione a motivação.
 - Não marque requisitos, escopo, contratos, persistência ou validação como definidos sem evidência ou decisão registrada.
 - Não use `Status: ready` sem `Discovery Ledger`, `Requirements Traceability` e `Spec Readiness Gates` preenchidos e `Clarifications Needed` = none.
 - Defina pronto como comportamento validado na prática com evidência, não como revisão de código.
 - Mesmo se o usuário disser "corrija", "implemente" ou "execute", esta skill deve criar/refinar `spec.md` e parar; não faça patch de produto.
 - Comece pelo menor escopo fiel ao pedido. Não transforme correção localizada em feature ponta a ponta sem evidência ou decisão explícita.
-- Qualquer requisito fora do mínimo para o projeto funcionar é descartado para `Out of Scope`, mesmo que pareça útil; só volta com pedido ou decisão explícita do usuário. Requisito que pode ser simplificado sem perder o aceite deve ser simplificado.
+- Qualquer requisito fora do mínimo para completar a task do usuário é descartado para `Out of Scope`, mesmo que pareça útil; só volta com pedido ou decisão explícita do usuário (conferir a instrução literal em `user-instructions.md`). Requisito que pode ser simplificado sem perder o aceite deve ser simplificado. Sempre se questione da motivação.
 - Se a intenção real do usuário estiver ambígua entre ajuste pontual e feature end-to-end, registre `pending` em `Intent Classification` e pergunte antes de `Status: ready`.
 - Use `Status: ready` só quando `plan.md` puder ser escrito sem decisões de produto pendentes e o guardian aprovar.
 - Não use `Status: ready` se contrato, persistência, harness, usuário afetado ou fora de escopo estiver ambíguo.
@@ -211,7 +214,7 @@ Qualquer item `fail` força `status: rejected`. Trate `evidence`, `questions`, `
 
 ## Clarification Protocol
 
-Esclareça sem violar o isolamento. Detecte o modo no início (passo 2 do Workflow).
+Esclareça sem violar o isolamento. Detecte o modo no início (passo 4 do Workflow).
 
 - Standalone (usuário invocou a skill direto): agrupe as clarificações materiais num único lote priorizado (máx. 5), apresente ao usuário, espere as respostas, registre em `Questions and Decisions` e continue. Repita em lotes se surgir nova dúvida de alto impacto.
 - Orchestrated (invocada por `batista-manifest`/outra skill com contexto isolado): não pergunte no meio da execução. Preencha `Clarifications Needed` com IDs `C#`, grave o `spec.md`, set `Status: blocked` e devolva o controle ao manager com o bloco `Clarifications Needed` copiado na resposta final. Não invente respostas nem marque `ready`.
