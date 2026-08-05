@@ -65,11 +65,13 @@ Any fix changing `head_sha` invalidates the previous review: return to step 2 fo
 ### 4. Monitor and fix CI
 
 1. Track all relevant checks of `head_sha` to terminal state; `pending`, `queued` and `in_progress` require waiting.
-2. On failure, get the exact job and log, reproduce locally when possible, classify regression/config/infra/flake.
-3. Fix the minimal cause, validate, commit, push; return to step 2 because the SHA changed.
-4. Proven transient failure: rerun only the failed job once before touching code. Repeated external failure = blocker, never a gate-bypass reason.
-5. Set `green_sha` only when applicable checks are green; `skipped`/`neutral` count only if consistent with the workflow.
-6. No applicable CI for the diff: record evidence; set `green_sha = head_sha` only after all mandatory local gates pass.
+2. On failure or flake, get the exact job and log and classify regression/config/infra/flake. Any test failure or flake in CI must be fixed at root cause — reruns are never a fix for tests.
+3. Fix the minimal cause and validate the fix locally with `act` on the same workflow set before re-pushing (GitHub Actions repo). No push on the fixed SHA without this local validation.
+4. `act` does not reproduce the fix or cannot run (missing service, image, secret, runner capability): log the exact reason and evidence, keep the root-cause fix, but do not declare the check fixed.
+5. Only a failure proven external to the repo's code (infra, runner, network) may be rerun once without code changes. Repeated external failure = blocker, never a gate-bypass reason.
+6. Commit and push the fix; return to step 2 because the SHA changed.
+7. Set `green_sha` only when applicable checks are green; `skipped`/`neutral` count only if consistent with the workflow.
+8. No applicable CI for the diff: record evidence; set `green_sha = head_sha` only after all mandatory local gates pass.
 
 ### 5. Merge
 
@@ -106,6 +108,6 @@ After deploy completes or is proven not applicable, use `/skill:batista-discord-
 
 Finish only with one of:
 
-- `DEPLOY COMPLETED`: initial commit, PR, final reviewed SHA, checks, merge SHA, version tag, run/deployment and smoke.
+- `DEPLOY COMPLETED`: initial commit, PR, final reviewed SHA, checks (incl. `act` validation evidence or exact reproduction blocker), merge SHA, version tag, run/deployment and smoke.
 - `DEPLOY NOT APPLICABLE`: same evidence, version tag and the filter/rule that suppressed the deploy.
 - `BLOCKED`: step, literal error, evidence and required external action.
