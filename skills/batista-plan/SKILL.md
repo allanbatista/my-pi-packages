@@ -13,7 +13,7 @@ Scope: feature workflow docs only — never product code, tests, configs, migrat
 
 No guessing: investigate before concluding, cite concrete evidence, register as blocker any premise unconfirmable via file, command, log, test, browser or user answer.
 
-Invoked by another feature-workflow skill? Run as child `delegate`, `context: "fresh"` (see `../../references/PI_ADAPTATION.md`), receiving only request, project root, feature dir and needed docs.
+Invoked by another feature-workflow skill? Run as child `delegate`, contexto mínimo (fresh) (see `../../references/PI_ADAPTATION.md`), receiving only request, project root, feature dir and needed docs.
 
 ## Workflow
 
@@ -222,7 +222,7 @@ Before **every** guardian, parallel batch or turn handoff, record in `plan.md`: 
 
 ## Context Isolation
 
-- With a manager, accept orchestrated invocation as child `delegate`, `context: "fresh"` (see Runtime & Delegation).
+- With a manager, accept orchestrated invocation as child `delegate`, contexto mínimo (fresh) (see Runtime & Delegation).
 - Do not inherit irrelevant manager-session context.
 - Pass only minimal artifacts: request, paths, `AGENTS.md`, `spec.md`, applicable `ux.md`/`arch.md`, feature docs.
 - Orchestrated mode: no guardian, no user conversation; return the `Delegation Result` (step 16).

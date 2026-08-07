@@ -2,10 +2,11 @@
 name: workflow-validator
 description: Valida execução e evidência prática sem alterar arquivos do projeto.
 tools: read, grep, find, ls
-systemPromptMode: replace
-inheritProjectContext: true
-inheritSkills: false
-defaultContext: fresh
+model: deepseek/deepseek-v4-flash
+thinking: xhigh
+extensions: false
+prompt_mode: replace
+skills: false
 acceptanceRole: read-only
 ---
 

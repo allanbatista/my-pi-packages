@@ -13,7 +13,7 @@ Use this skill to close the product contract before any technical plan. It may o
 
 No guesswork: investigate before concluding, cite concrete evidence, and record any claim you cannot confirm via file, command, log, test, browser, or user response as `pending`.
 
-When invoked by another feature-workflow skill, run as a child `delegate` with `context: "fresh"` (see `../../references/PI_ADAPTATION.md`), receiving only the request, project root, feature dir, and needed docs.
+When invoked by another feature-workflow skill, run as a child `delegate` with contexto mínimo (fresh) (see `../../references/PI_ADAPTATION.md`), receiving only the request, project root, feature dir, and needed docs.
 
 ## Workflow
 
@@ -239,7 +239,7 @@ Before **each** guardian or yielding the turn, record in `spec.md`: `Updated:`, 
 
 ## Context Isolation
 
-- When a manager exists, accept orchestrated invocation as a child `delegate` with `context: "fresh"`.
+- When a manager exists, accept orchestrated invocation as a child `delegate` with contexto mínimo (fresh).
 - Do not inherit irrelevant context from the manager session.
 - Pass only minimal artifacts: request, paths, `AGENTS.md`, and feature docs.
 - Orchestrated: do not run guardian or talk to the user; return the `Delegation Result` to the manager per `../../references/WORKFLOW_COMMON.md`.

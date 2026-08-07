@@ -2,24 +2,27 @@
 
 ## Responsabilidade
 
-Definir a fronteira entre comandos humanos, managers raiz e children isolados.
+Definir a fronteira entre comandos humanos, managers raiz e children isolados, na interface real da extensão `@tintinweb/pi-subagents` (v0.14.x).
 
 ## Entidades
 
-Ferramenta `subagent`, agent `delegate`, `artifact-guardian`, `worker` e `workflow-validator`.
+Ferramentas `Agent`, `get_subagent_result` e `steer_subagent`; agent types `delegate`, `artifact-guardian`, `worker` e `workflow-validator` (custom agents em `agents/`, instalados em `~/.pi/agent/agents/` ou `.pi/agents/`); comando `/agents`; settings `~/.pi/agent/subagents.json` + `.pi/subagents.json`.
 
 ## Relações
 
-`/subagents` administra a extensão; `/skill:*` inicia o workflow; somente `subagent(...)` executa children.
+`/skill:*` inicia o workflow (input do usuário); `/agents` administra a extensão (menu humano); somente a ferramenta `Agent(...)` executa children. `model`/`thinking` dos papéis vivem no frontmatter dos agent files (autoritativo; `MODEL_POLICY.md`). Frontmatter suportado: `name`, `description`, `tools`, `extensions`, `skills`, `model`, `thinking`, `max_turns`, `prompt_mode`, `inherit_context`, `isolated`, `isolation`, `memory`, `disallowed_tools`, `enabled`, entre outros (ver `PI_ADAPTATION.md`).
 
 ## Fluxo
 
-Preflight `action:list` + `action:get` (source/tools efetivos) → paths canônicos → chamada com `context: fresh`/`cwd` → Delegation Result → releitura do artefato. Referências entre skills resolvem a partir do `SKILL.md` do package, nunca do epic dir/cwd; falha de resolução bloqueia em vez de simular a rotina. Execução exige `cwd` igual ao project root e modelo explícito em cada dispatch: worker `deepseek/deepseek-v4-flash:off` e validator `deepseek/deepseek-v4-flash:xhigh`; feature dir, `context` ausente, `inherit` ou valor efetivo divergente não promove estado nem autoriza correção direta pelo manager. Guardians também usam project root como `cwd`, `context: fresh`, `model: inherit` explícito e allowlist exata `read, grep, find, ls`; nenhum campo pode ser omitido e `cwd` não substitui sandbox para modelos não confiáveis.
+Preflight real (extensão ativa = tools presentes; papéis = arquivos em `~/.pi/agent/agents/` com frontmatter válido; guardians/validator com `tools: read, grep, find, ls` + `extensions: false`) → paths canônicos → dispatch `Agent({ subagent_type, prompt, description })` com contexto mínimo (child herda o cwd da sessão raiz; `prompt_mode: replace` + `skills: false` + sem `inherit_context` = contexto fresco) → Delegation Result → releitura do artefato. Referências entre skills resolvem a partir do `SKILL.md` do package, nunca do epic dir/cwd; falha de resolução bloqueia em vez de simular a rotina. Background: `run_in_background: true` → `agent_id` → `get_subagent_result({ agent_id, wait: true })`. Worktree isolation (`isolation: "worktree"`) apenas para workers paralelos em features; schedule/RPC são capacidades da extensão fora do fluxo dos managers.
 
 ## Fontes no código
 
 - `agents/artifact-guardian.md`
 - `agents/workflow-validator.md`
+- `agents/worker.md`
+- `agents/delegate.md`
 - `references/PI_ADAPTATION.md`
 - `references/WORKFLOW_COMMON.md`
+- `references/MODEL_POLICY.md`
 - `package.json`

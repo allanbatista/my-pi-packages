@@ -32,7 +32,7 @@ function runPi(
   prompt,
   cwd = ROOT,
   timeout = 180_000,
-  tools = "read,write,edit,grep,find,ls,subagent,subagent_wait"
+  tools = "read,write,edit,grep,find,ls,Agent,get_subagent_result,steer_subagent"
 ) {
   const args = [
     "-e",
@@ -122,31 +122,30 @@ function toolResultModels(trace, call) {
   return (result?.details?.results || []).map((item) => item.model).filter(Boolean);
 }
 
+function roleAgentFrontmatter(role) {
+  return fs.readFileSync(path.join(ROOT, "agents", role + ".md"), "utf8");
+}
+
 function subagentLaunches(trace) {
   return trace.toolCalls.filter((call) => {
-    if (call.name !== "subagent") return false;
+    if (call.name !== "Agent") return false;
+    if (!call.arguments?.subagent_type) return false;
     const result = trace.toolResults.find((item) => item.toolCallId === call.id);
-    return Array.isArray(result?.details?.results) && result.details.results.length > 0;
+    return result != null;
   });
 }
 
-function subagentPreflightIndex(trace, action, agent) {
+/** Real preflight: the manager reads the role's agent file before any dispatch. */
+function agentPreflightIndex(trace, role) {
   return trace.toolCalls.findIndex((call) => {
-    if (call.name !== "subagent") return false;
-    if (call.arguments.action === action && (!agent || call.arguments.agent === agent)) return true;
-    const text = toolResultText(trace, call);
-    if (action === "list") return /Executable agents:/i.test(text);
-    return new RegExp(`^Agent:\\s*${agent}\\b`, "im").test(text);
+    if (call.name !== "read") return false;
+    const args = JSON.stringify(call.arguments || {});
+    return args.includes(`agents/${role}.md`);
   });
 }
 
 function effectiveDispatch(trace, call) {
-  const result = trace.toolResults.find((item) => item.toolCallId === call.id);
-  return (
-    result?.details?.workflowManagerGuard?.dispatches?.find(
-      (dispatch) => dispatch.agent === call.arguments.agent
-    ) || call.arguments
-  );
+  return call.arguments || {};
 }
 
 function explicitlyApproves(text) {
@@ -410,33 +409,25 @@ test(
 );
 
 test(
-  "pi-subagents discovers effective agents without shadowing",
+  "pi-subagents registers the workflow role agents",
   { skip: liveSkip },
   () => {
     const trace = runPi(
-      "Use subagent action=list. From its result, call action=get for every package agent and also for the builtin delegate and worker. Then reply done.",
+      "Inspect the Agent tool description/schema (it lists the available subagent types). Confirm which of these agent types exist: worker, delegate, workflow-validator, artifact-guardian. Reply done.",
       ROOT,
       180_000,
-      "subagent"
+      "read,Agent"
     );
     maybeSaveEvidence("pi-subagents-agents.log", traceEvidence(trace));
-    const calls = trace.toolCalls.filter((call) => call.name === "subagent");
-    assert.ok(calls.some((call) => call.arguments.action === "list"));
-    for (const name of ["artifact-guardian", "workflow-validator", "delegate", "worker"]) {
-      assert.ok(
-        calls.some((call) => call.arguments.action === "get" && call.arguments.agent === name),
-        `missing action=get for ${name}`
-      );
+    const calls = trace.toolCalls.filter((call) => call.name === "Agent");
+    assert.ok(
+      calls.some((call) => typeof call.arguments?.subagent_type === "string"),
+      "Agent tool never used to inspect the type list"
+    );
+    const text = trace.text;
+    for (const role of ["worker", "delegate", "workflow-validator", "artifact-guardian"]) {
+      assert.match(text, new RegExp(role), `role ${role} not reported as available`);
     }
-    const details = trace.toolResults
-      .flatMap((result) => result.content || [])
-      .filter((item) => item.type === "text")
-      .map((item) => item.text)
-      .join("\n");
-    assert.match(details, /Agent: artifact-guardian \(package\)[\s\S]*Tools: read, grep, find, ls/);
-    assert.match(details, /Agent: workflow-validator \(package\)[\s\S]*Tools: read, grep, find, ls/);
-    assert.match(details, /Agent: delegate \(builtin\)/);
-    assert.match(details, /Agent: worker \(builtin\)/);
   }
 );
 
@@ -569,8 +560,8 @@ Status: pending
     );
     const featureDirs = features.map((feature) => writeReadyExecutionFeature(epicDir, feature));
     writeFixture(
-      path.join(sandbox, ".pi", "settings.json"),
-      fs.readFileSync(path.join(ROOT, "examples", "pi-subagents-settings.json"), "utf8")
+      path.join(sandbox, ".pi", "subagents.json"),
+      fs.readFileSync(path.join(ROOT, "examples", "subagents.json"), "utf8")
     );
     const git = (args) => {
       const result = spawnSync("git", args, { cwd: sandbox, encoding: "utf8" });
@@ -586,7 +577,7 @@ Status: pending
       `/skill:batista-loop ${epicDir}\nRetome e continue automaticamente até uma stop condition.`,
       sandbox,
       780_000,
-      "read,write,edit,grep,find,ls,subagent,subagent_wait"
+      "read,write,edit,grep,find,ls,Agent,get_subagent_result,steer_subagent"
     );
     const loop = fs.readFileSync(path.join(epicDir, "loop.md"), "utf8");
     maybeSaveEvidence(
@@ -595,55 +586,49 @@ Status: pending
     );
     const launches = subagentLaunches(trace);
     const firstLaunchIndex = trace.toolCalls.indexOf(launches[0]);
-    const listIndex = subagentPreflightIndex(trace, "list");
-    assert.ok(listIndex >= 0 && listIndex < firstLaunchIndex, "missing preflight list");
-    for (const agent of ["worker", "workflow-validator", "artifact-guardian"]) {
-      const firstAgentLaunch = trace.toolCalls.findIndex(
-        (call) => call.name === "subagent" && !call.arguments.action && call.arguments.agent === agent
-      );
-      const getIndex = subagentPreflightIndex(trace, "get", agent);
+    for (const agent of ["worker", "workflow-validator", "artifact-guardian", "delegate"]) {
+      const idx = agentPreflightIndex(trace, agent);
       assert.ok(
-        getIndex > listIndex && getIndex < firstAgentLaunch,
-        `missing preflight get before first ${agent} dispatch`
+        idx >= 0 && idx < firstLaunchIndex,
+        `missing preflight read of agents/${agent}.md before first dispatch`
       );
     }
     for (const agent of ["worker", "workflow-validator", "artifact-guardian"]) {
-      assert.ok(launches.some((call) => call.arguments.agent === agent), `missing ${agent}`);
+      assert.ok(
+        launches.some((call) => call.arguments.subagent_type === agent),
+        `missing ${agent}`
+      );
     }
     assert.equal(
-      launches.filter((call) => call.arguments.agent === "delegate").length,
+      launches.filter((call) => call.arguments.subagent_type === "delegate").length,
       0,
       "ready execution must not delegate root commands"
     );
     for (const call of launches) {
-      const dispatch = effectiveDispatch(trace, call);
-      assert.equal(dispatch.context, "fresh");
-      assert.equal(path.resolve(dispatch.cwd), fs.realpathSync(sandbox));
-    }
-    const workerCalls = launches.filter((call) => call.arguments.agent === "worker");
-    const validatorCalls = launches.filter(
-      (call) => call.arguments.agent === "workflow-validator"
-    );
-    for (const call of workerCalls) {
-      assert.equal(effectiveDispatch(trace, call).model, "deepseek/deepseek-v4-flash:off");
-      const models = toolResultModels(trace, call);
-      assert.ok(models.length, "worker effective model missing");
       assert.ok(
-        models.every((model) => /^deepseek\/deepseek-v4-flash(?::off)?$/.test(model)),
-        `unexpected worker model: ${models.join(", ")}`
+        call.arguments.inherit_context == null,
+        "children must run with fresh context (no inherit_context)"
       );
+      assert.ok(call.arguments.cwd == null, "cwd is inherited from the root session");
+    }
+    const workerCalls = launches.filter(
+      (call) => call.arguments.subagent_type === "worker"
+    );
+    const validatorCalls = launches.filter(
+      (call) => call.arguments.subagent_type === "workflow-validator"
+    );
+    assert.match(roleAgentFrontmatter("worker"), /model: deepseek\/deepseek-v4-flash/);
+    assert.match(roleAgentFrontmatter("worker"), /thinking: off/);
+    assert.match(roleAgentFrontmatter("workflow-validator"), /model: deepseek\/deepseek-v4-flash/);
+    assert.match(roleAgentFrontmatter("workflow-validator"), /thinking: xhigh/);
+    for (const call of workerCalls) {
+      assert.ok(call.arguments.model == null, "worker model comes from frontmatter");
     }
     for (const call of validatorCalls) {
-      assert.equal(effectiveDispatch(trace, call).model, "deepseek/deepseek-v4-flash:xhigh");
-      const models = toolResultModels(trace, call);
-      assert.ok(models.length, "validator effective model missing");
-      assert.ok(
-        models.every((model) => model === "deepseek/deepseek-v4-flash:xhigh"),
-        `unexpected validator model: ${models.join(", ")}`
-      );
+      assert.ok(call.arguments.model == null, "validator model comes from frontmatter");
     }
     const outcomeResults = launches
-      .filter((call) => call.arguments.agent === "artifact-guardian")
+      .filter((call) => call.arguments.subagent_type === "artifact-guardian")
       .map((call) => toolResultText(trace, call));
     assert.ok(
       outcomeResults.every((result) => result.trim()),
@@ -653,17 +638,22 @@ Status: pending
       assert.doesNotMatch(result, /\b(?:status|guardian):\s*(?:rejected|fail)\b/i);
       assert.ok(explicitlyApproves(result), "root outcome lacks positive approval");
     }
-    const outcomeCalls = launches.filter((call) => call.arguments.agent === "artifact-guardian");
+    const outcomeCalls = launches.filter(
+      (call) => call.arguments.subagent_type === "artifact-guardian"
+    );
     assert.equal(outcomeCalls.length, 1, "root outcome must run exactly once");
-    assert.equal(effectiveDispatch(trace, outcomeCalls[0]).model, "inherit");
+    assert.ok(
+      outcomeCalls[0].arguments.model == null,
+      "artifact-guardian inherits the session model"
+    );
     const outcomeIndex = trace.toolCalls.indexOf(outcomeCalls[0]);
     let previousValidatorIndex = -1;
     for (const [featureIndex, { outputFile }] of features.entries()) {
       const featureWorkers = workerCalls.filter((call) =>
-        String(call.arguments.task).includes(outputFile)
+        String(call.arguments.prompt).includes(outputFile)
       );
       const featureValidators = validatorCalls.filter((call) =>
-        String(call.arguments.task).includes(outputFile)
+        String(call.arguments.prompt).includes(outputFile)
       );
       assert.ok(featureWorkers.length >= 1, `missing worker for ${outputFile}`);
       assert.ok(featureValidators.length >= 1, `missing validator for ${outputFile}`);
@@ -730,19 +720,19 @@ Status: pending
         `final validator lacks positive approval for ${outputFile}`
       );
       previousValidatorIndex = validatorIndex;
-      assert.match(String(outcomeCalls[0].arguments.task), new RegExp(outputFile.replace(".", "\\.")));
+      assert.match(String(outcomeCalls[0].arguments.prompt), new RegExp(outputFile.replace(".", "\\.")));
     }
     assert.ok(previousValidatorIndex < outcomeIndex, "root outcome ran before all validators");
     assert.equal(
       launches.indexOf(outcomeCalls[0]),
-      launches.findLastIndex((call) => call.arguments.agent === "workflow-validator") + 1,
+      launches.findLastIndex((call) => call.arguments.subagent_type === "workflow-validator") + 1,
       "root-only phase launched a child before the outcome guardian"
     );
     for (const call of [...workerCalls, ...validatorCalls]) {
       const referencedOutputs = features.filter(({ outputFile }) =>
-        String(call.arguments.task).includes(outputFile)
+        String(call.arguments.prompt).includes(outputFile)
       );
-      assert.equal(referencedOutputs.length, 1, `${call.arguments.agent} escaped one sub-feature`);
+      assert.equal(referencedOutputs.length, 1, `${call.arguments.subagent_type} escaped one sub-feature`);
     }
     const workflowWriteSet = new Set([
       path.resolve(epicDir, "loop.md"),
@@ -806,7 +796,7 @@ Status: pending
       (call, index) =>
         index < outcomeIndex &&
         (["write", "edit", "bash"].includes(call.name) ||
-          (call.name === "subagent" && !call.arguments.action))
+          (call.name === "Agent" && !!call.arguments.subagent_type))
     );
     assert.ok(
       Math.min(...checkpointReads) > lastInvalidator,
@@ -826,7 +816,7 @@ Status: pending
         );
       }
       assert.ok(
-        call.name !== "subagent" || call.arguments.action,
+        call.name !== "Agent" || !call.arguments.subagent_type,
         "post-outcome child invalidated the root approval"
       );
     }
@@ -943,8 +933,8 @@ Status: pending
     const completedManifest = fs.readFileSync(path.join(featureDirs[0], "manifest.md"), "utf8");
     const completedPlan = fs.readFileSync(path.join(featureDirs[0], "plan.md"), "utf8");
     writeFixture(
-      path.join(sandbox, ".pi", "settings.json"),
-      fs.readFileSync(path.join(ROOT, "examples", "pi-subagents-settings.json"), "utf8")
+      path.join(sandbox, ".pi", "subagents.json"),
+      fs.readFileSync(path.join(ROOT, "examples", "subagents.json"), "utf8")
     );
     const git = (args) => {
       const result = spawnSync("git", args, { cwd: sandbox, encoding: "utf8" });
@@ -960,7 +950,7 @@ Status: pending
       `/skill:batista-loop ${epicDir}\nRetome do estado persistido e continue automaticamente até uma stop condition.`,
       sandbox,
       600_000,
-      "read,write,edit,grep,find,ls,subagent,subagent_wait"
+      "read,write,edit,grep,find,ls,Agent,get_subagent_result,steer_subagent"
     );
     const loop = fs.readFileSync(path.join(epicDir, "loop.md"), "utf8");
     maybeSaveEvidence(
@@ -970,29 +960,35 @@ Status: pending
     const launches = subagentLaunches(trace);
     for (const call of launches) {
       const dispatch = effectiveDispatch(trace, call);
-      assert.equal(dispatch.context, "fresh");
-      assert.equal(path.resolve(dispatch.cwd), fs.realpathSync(sandbox));
+      assert.ok(
+        call.arguments.inherit_context == null,
+        "children must run with fresh context (no inherit_context)"
+      );
+      assert.ok(call.arguments.cwd == null, "cwd is inherited from the root session");
+      assert.ok(dispatch != null);
     }
     for (const agent of ["worker", "workflow-validator"]) {
-      const calls = launches.filter((call) => call.arguments.agent === agent);
-      assert.ok(calls.some((call) => String(call.arguments.task).includes("result-b.txt")));
-      assert.ok(calls.every((call) => !String(call.arguments.task).includes("result-a.txt")));
+      const calls = launches.filter((call) => call.arguments.subagent_type === agent);
+      assert.ok(calls.some((call) => String(call.arguments.prompt).includes("result-b.txt")));
+      assert.ok(calls.every((call) => !String(call.arguments.prompt).includes("result-a.txt")));
     }
-    for (const call of launches.filter((item) => item.arguments.agent === "worker")) {
-      assert.equal(effectiveDispatch(trace, call).model, "deepseek/deepseek-v4-flash:off");
+    assert.match(roleAgentFrontmatter("worker"), /model: deepseek\/deepseek-v4-flash/);
+    assert.match(roleAgentFrontmatter("workflow-validator"), /thinking: xhigh/);
+    for (const call of launches.filter((item) => item.arguments.subagent_type === "worker")) {
+      assert.ok(call.arguments.model == null, "worker model comes from frontmatter");
     }
     for (const call of launches.filter(
-      (item) => item.arguments.agent === "workflow-validator"
+      (item) => item.arguments.subagent_type === "workflow-validator"
     )) {
-      assert.equal(effectiveDispatch(trace, call).model, "deepseek/deepseek-v4-flash:xhigh");
+      assert.ok(call.arguments.model == null, "validator model comes from frontmatter");
       assert.ok(validatorResultApproves(trace, call));
     }
-    assert.equal(launches.filter((call) => call.arguments.agent === "delegate").length, 0);
+    assert.equal(launches.filter((call) => call.arguments.subagent_type === "delegate").length, 0);
     const outcomeCalls = launches.filter(
-      (call) => call.arguments.agent === "artifact-guardian"
+      (call) => call.arguments.subagent_type === "artifact-guardian"
     );
     assert.equal(outcomeCalls.length, 1);
-    assert.equal(effectiveDispatch(trace, outcomeCalls[0]).model, "inherit");
+    assert.ok(outcomeCalls[0].arguments.model == null, "guardian inherits the session model");
     assert.ok(explicitlyApproves(toolResultText(trace, outcomeCalls[0])));
     const allowedManagerWrites = new Set([
       path.resolve(epicDir, "loop.md"),
@@ -1093,8 +1089,8 @@ Evidence: result-a.txt contém bad, esperado ok
     markExecutionFeatureDone(featureDir, feature.outputFile);
     writeFixture(path.join(sandbox, feature.outputFile), "bad");
     writeFixture(
-      path.join(sandbox, ".pi", "settings.json"),
-      fs.readFileSync(path.join(ROOT, "examples", "pi-subagents-settings.json"), "utf8")
+      path.join(sandbox, ".pi", "subagents.json"),
+      fs.readFileSync(path.join(ROOT, "examples", "subagents.json"), "utf8")
     );
     const git = (args) => {
       const result = spawnSync("git", args, { cwd: sandbox, encoding: "utf8" });
@@ -1110,7 +1106,7 @@ Evidence: result-a.txt contém bad, esperado ok
       `/skill:batista-loop ${epicDir}\nRetome o outcome rejeitado, corrija a menor task e continue automaticamente até uma stop condition.`,
       sandbox,
       Number(process.env.PI_ROOT_CORRECTION_TIMEOUT || 600_000),
-      "read,write,edit,grep,find,ls,subagent,subagent_wait"
+      "read,write,edit,grep,find,ls,Agent,get_subagent_result,steer_subagent"
     );
     const loop = fs.readFileSync(path.join(epicDir, "loop.md"), "utf8");
     maybeSaveEvidence(
@@ -1119,24 +1115,22 @@ Evidence: result-a.txt contém bad, esperado ok
     );
     const launches = subagentLaunches(trace);
     const firstLaunchIndex = trace.toolCalls.indexOf(launches[0]);
-    const listIndex = subagentPreflightIndex(trace, "list");
-    assert.ok(listIndex >= 0 && listIndex < firstLaunchIndex);
-    for (const agent of ["worker", "workflow-validator", "artifact-guardian"]) {
-      const firstAgentLaunch = trace.toolCalls.indexOf(
-        launches.find((call) => call.arguments.agent === agent)
+    for (const agent of ["worker", "workflow-validator", "artifact-guardian", "delegate"]) {
+      const idx = agentPreflightIndex(trace, agent);
+      assert.ok(
+        idx >= 0 && idx < firstLaunchIndex,
+        `missing preflight read of agents/${agent}.md before first dispatch`
       );
-      const getIndex = subagentPreflightIndex(trace, "get", agent);
-      assert.ok(getIndex > listIndex && getIndex < firstAgentLaunch, `missing preflight ${agent}`);
     }
     const worker = launches.find(
       (call) =>
-        call.arguments.agent === "worker" &&
-        String(call.arguments.task).includes(feature.outputFile)
+        call.arguments.subagent_type === "worker" &&
+        String(call.arguments.prompt).includes(feature.outputFile)
     );
     const validator = launches.find(
       (call) =>
-        call.arguments.agent === "workflow-validator" &&
-        String(call.arguments.task).includes(feature.outputFile)
+        call.arguments.subagent_type === "workflow-validator" &&
+        String(call.arguments.prompt).includes(feature.outputFile)
     );
     assert.ok(worker, "root correction did not dispatch a worker");
     assert.ok(validator, "root correction did not dispatch a validator");
@@ -1145,23 +1139,25 @@ Evidence: result-a.txt contém bad, esperado ok
       validator,
       "root correction launched another child between worker and validator"
     );
-    const workerDispatch = effectiveDispatch(trace, worker);
-    const validatorDispatch = effectiveDispatch(trace, validator);
-    assert.equal(workerDispatch.model, "deepseek/deepseek-v4-flash:off");
-    assert.equal(validatorDispatch.model, "deepseek/deepseek-v4-flash:xhigh");
-    assert.equal(workerDispatch.context, "fresh");
-    assert.equal(validatorDispatch.context, "fresh");
-    assert.equal(path.resolve(workerDispatch.cwd), fs.realpathSync(sandbox));
-    assert.equal(path.resolve(validatorDispatch.cwd), fs.realpathSync(sandbox));
+    assert.match(roleAgentFrontmatter("worker"), /model: deepseek\/deepseek-v4-flash/);
+    assert.match(roleAgentFrontmatter("worker"), /thinking: off/);
+    assert.match(roleAgentFrontmatter("workflow-validator"), /model: deepseek\/deepseek-v4-flash/);
+    assert.match(roleAgentFrontmatter("workflow-validator"), /thinking: xhigh/);
+    assert.ok(worker.arguments.model == null, "worker model comes from frontmatter");
+    assert.ok(validator.arguments.model == null, "validator model comes from frontmatter");
+    assert.ok(worker.arguments.inherit_context == null, "worker runs with fresh context");
+    assert.ok(validator.arguments.inherit_context == null, "validator runs with fresh context");
+    assert.ok(worker.arguments.cwd == null, "cwd is inherited from the root session");
+    assert.ok(validator.arguments.cwd == null, "cwd is inherited from the root session");
     assert.ok(validatorResultApproves(trace, validator));
     const outcomeCalls = launches.filter(
-      (call) => call.arguments.agent === "artifact-guardian"
+      (call) => call.arguments.subagent_type === "artifact-guardian"
     );
     assert.equal(outcomeCalls.length, 1);
-    const outcomeDispatch = effectiveDispatch(trace, outcomeCalls[0]);
-    assert.equal(outcomeDispatch.model, "inherit");
-    assert.equal(outcomeDispatch.context, "fresh");
-    assert.equal(path.resolve(outcomeDispatch.cwd), fs.realpathSync(sandbox));
+    assert.ok(
+      outcomeCalls[0].arguments.model == null,
+      "artifact-guardian inherits the session model"
+    );
     assert.ok(explicitlyApproves(toolResultText(trace, outcomeCalls[0])));
     const outcomeIndex = trace.toolCalls.indexOf(outcomeCalls[0]);
     const workflowWriteSet = new Set([
@@ -1221,7 +1217,7 @@ Evidence: result-a.txt contém bad, esperado ok
       (call, index) =>
         index < outcomeIndex &&
         (["write", "edit", "bash"].includes(call.name) ||
-          (call.name === "subagent" && !call.arguments.action))
+          (call.name === "Agent" && !!call.arguments.subagent_type))
     );
     assert.ok(Math.min(...checkpointReads) > lastInvalidator);
     assert.equal(Math.max(...checkpointReads) + 1, outcomeIndex);

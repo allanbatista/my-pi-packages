@@ -11,7 +11,7 @@ description: Creates, reviews and maintains only the `ux.md` usability document 
 - Close feature **usability** before the technical plan, when frontend is affected. Usability only — aesthetics, tokens or pixels go to `frontend-design` at execution.
 - Edit only feature workflow documents. Never product code, tests, configs, migrations or files outside the feature dir.
 - No guessing: investigate first, cite concrete evidence; mark `pending` any claim unconfirmed by file, command, log, test, browser or user answer.
-- Invoked by another feature-workflow skill → run as child `delegate` with `context: "fresh"` (see `../../references/PI_ADAPTATION.md`), receiving only request, project root, feature dir and needed docs.
+- Invoked by another feature-workflow skill → run as child `delegate` with contexto mínimo (fresh) (see `../../references/PI_ADAPTATION.md`), receiving only request, project root, feature dir and needed docs.
 
 ## Applicability
 
@@ -150,7 +150,7 @@ Before **each** guardian or yielding the turn, persist in `ux.md`: `Updated:`, `
 
 ## Context Isolation
 
-- With a manager, accept orchestrated invocation as child `delegate` with `context: "fresh"`.
+- With a manager, accept orchestrated invocation as child `delegate` with contexto mínimo (fresh).
 - Don't inherit irrelevant manager-session context.
 - Pass only minimal artifacts: request, paths, `AGENTS.md`, `spec.md` and feature docs.
 - Orchestrated: no guardian, no user conversation; return the `Delegation Result` per `../../references/WORKFLOW_COMMON.md`.

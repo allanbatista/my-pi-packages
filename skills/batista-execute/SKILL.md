@@ -9,7 +9,7 @@ description: Orchestrates feature execution from `manifest.md`, `spec.md` and `p
 
 Follow `../../references/WORKFLOW_COMMON.md` (Pi runtime, delegation, isolation, state reconciliation, checkpoints).
 
-This session becomes the execution manager: coordinates, records progress, delegates; never implements code nor validates its own implementation. The manager edits feature workflow docs only; product code, tests, configs, and migrations are editable only by a child **worker** launched via `subagent`.
+This session becomes the execution manager: coordinates, records progress, delegates; never implements code nor validates its own implementation. The manager edits feature workflow docs only; product code, tests, configs, and migrations are editable only by a child **worker** launched via `Agent` (interface real: `../../references/PI_ADAPTATION.md`).
 
 ### Write Boundary — fail-closed
 
@@ -27,10 +27,10 @@ Workers/validators get minimal context only (see Context Isolation). Apply `../.
 4. Authorship divergence/gap → persist `blocked`, return to `batista-manifest`; never fix leaf artifacts nor execute by assumption.
 5. Resuming a `running` task: verify owner, diff, persisted evidence before relaunch; do not duplicate applied work.
 6. Capture worktree baseline; update `manifest.md`/`plan.md`: task/phase `running`, owner, write set, resume point, required evidence.
-7. Launch **worker**: `model: "deepseek/deepseek-v4-flash:off"`, `context: "fresh"`, `cwd: "{canonical-project-root}"` (never feature dir), closed scope: task, write set, DoD, practical evidence, relevant slices, permitted focused tests.
-8. Parallel batch = one `subagent({ tasks: [...], context: "fresh" })` with disjoint write sets only; start all before awaiting.
-9. After each synchronous worker: compare actual diff vs baseline/write set; persist files, commands, results, evidence. `(no output)` or missing envelope is **neither failure nor retry authorization** — inspect write set/evidence, proceed to validator if the result exists. Never `action: "status"` with an agent name (async runs with real IDs only). Child reports never promote status.
-10. Launch **exactly one workflow-validator per task/attempt**: `model: "deepseek/deepseek-v4-flash:xhigh"`, `context: "fresh"`, `cwd: "{canonical-project-root}"`, real artifacts/evidence. Await and consume its return; never duplicate it in a batch nor relaunch just to change `output`. It inspects persisted evidence read-only. Absence of rejection is insufficient: require explicit positive approval per `WORKFLOW_COMMON`; `pending`, `blocked`, silent, or ambiguous returns do not promote the task.
+7. Launch **worker** via `Agent({ subagent_type: "worker", prompt, description })` (interface real e regras em `../../references/PI_ADAPTATION.md`; modelo/thinking pinados no frontmatter do papel), closed scope: task, write set, DoD, practical evidence, relevant slices, permitted focused tests. O child herda o cwd da sessão raiz — manager deve estar no project root, nunca no feature dir.
+8. Parallel batch = dois ou mais `Agent` com `run_in_background: true` e write sets disjuntos apenas; start all before awaiting, depois `get_subagent_result({ agent_id, wait: true })`.
+9. After each synchronous worker: compare actual diff vs baseline/write set; persist files, commands, results, evidence. `(no output)` or missing envelope is **neither failure nor retry authorization** — inspect write set/evidence, proceed to validator if the result exists. Never `get_subagent_result` by agent name (async runs with real IDs only). Child reports never promote status.
+10. Launch **exactly one workflow-validator per task/attempt** via `Agent({ subagent_type: "workflow-validator", ... })`, real artifacts/evidence. Await and consume its return; never duplicate it in a batch nor relaunch just to change `output`. It inspects persisted evidence read-only. Absence of rejection is insufficient: require explicit positive approval per `WORKFLOW_COMMON`; `pending`, `blocked`, silent, or ambiguous returns do not promote the task.
 11. Rejection or diff/write-set/path divergence → record cause, delegate the minimal fix to a new worker. Never fix directly (not one line, not a move/copy); same cause repeated without new evidence becomes a blocker.
 12. Phase close: delegate the plan's final gate to the worker; no full suites per task out of habit.
 13. Mark `done` only after validator `approved`. All phases and evidence approved → close state atomically before returning control: `Status:` of `plan.md` and `manifest.md` to `done`, `manifest.md > State > Plan: done`, resume points with no next task, all tasks/phases `done`; re-read both — any divergence keeps execution `running`.
@@ -41,7 +41,7 @@ Workers/validators get minimal context only (see Context Isolation). Apply `../.
 - May edit `manifest.md`/`plan.md` (status, blockers, evidence, loop ledger, resume point).
 - May ask the user for clarification when a decision blocks safe execution.
 - May not implement code, fix tests, alter product files, or deem its own validation sufficient.
-- No `subagent` tool → follow `../../references/PI_ADAPTATION.md`: block; never simulate worker/validator inline.
+- No `Agent` tool → follow `../../references/PI_ADAPTATION.md`: block; never simulate worker/validator inline.
 
 ## Delegation Prompts
 
@@ -49,7 +49,6 @@ Implementation worker:
 
 ```text
 You are the worker responsible for this task/phase only.
-Model: deepseek/deepseek-v4-flash:off.
 Read AGENTS.md, spec.md, plan.md, and the relevant arch.md/ux.md slice.
 Scope: {task/fase}
 Parallel batch: {batch-id | sequential}
@@ -80,7 +79,7 @@ Return only `DELEGATION_RESULT` with approved/rejected, evidence checked, and mi
 
 - Every implementation via worker; every acceptance via separate validator.
 - Worker and validator follow `../../references/MODEL_POLICY.md` (models/effort distinct from planning).
-- Both are separate `subagent` children with `context: "fresh"`; never full manager history.
+- Both are separate `Agent` children with contexto mínimo (frontmatter `prompt_mode: replace` + `skills: false`; sem `inherit_context`); never full manager history.
 - Parallel batches: spawn first, wait after; never serialize independent tasks.
 - Workers may run focused automated tests; full suites only at phase gate or explicit requirement.
 - Validators never run automated tests; they check practical evidence and block weak delivery.

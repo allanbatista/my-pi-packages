@@ -1,55 +1,51 @@
 # Workflow Common — Runtime, Delegação e Estado
 
-Leia também `./PI_ADAPTATION.md` e `./MODEL_POLICY.md`, resolvendo os paths a partir deste arquivo.
+Leia também `./PI_ADAPTATION.md` (sintaxe real de delegação da extensão `@tintinweb/pi-subagents` v0.14.x) e `./MODEL_POLICY.md`, resolvendo os paths a partir deste arquivo.
 
 ## Runtime Pi
 
 - `/skill:*` é entrada do usuário; nunca é mecanismo de chamada entre skills.
-- `/subagents` administra a extensão; managers chamam a ferramenta `subagent(...)`.
+- `/agents` administra a extensão (menu humano); managers chamam a ferramenta `Agent(...)` registrada pela extensão.
 - `batista-loop`, `batista-manifest` e `batista-execute` rodam na sessão raiz. Um manager chama outro carregando o `SKILL.md` correspondente com `read` e continuando no mesmo turno.
-- Skills folha e validators rodam em subagents com `context: "fresh"` e `cwd` explícito.
-- Sem `subagent`, o workflow bloqueia com instrução de instalação; não falsifica independência inline.
+- Skills folha e validators rodam em children (`Agent`) com contexto mínimo e herança de cwd da sessão raiz; ver `PI_ADAPTATION.md`.
+- Sem a extensão (`Agent`/`get_subagent_result`/`steer_subagent` indisponíveis), o workflow bloqueia com instrução de instalação; não falsifica independência inline.
 
-## Preflight de agents
+## Preflight de agents (v0.14.x — substitui o antigo `action: list`/`get`)
 
-1. Rode `subagent({ action: "list" })`.
-2. Para cada papel usado, rode `subagent({ action: "get", agent: "{name}" })` antes do primeiro dispatch desse mesmo papel; nome presente na lista ou `get` de outro papel não basta.
-3. Exija `delegate` e `worker` com source `builtin`.
-4. Exija `artifact-guardian` e `workflow-validator` com source `package` e tools exatamente `read, grep, find, ls`.
-5. Source, path ou tools divergentes indicam shadowing/configuração insegura: grave `blocked` e não despache.
+1. Confirme a extensão ativa: as tools `Agent`, `get_subagent_result` e `steer_subagent` presentes no harness.
+2. Para cada papel usado (`delegate`, `worker`, `workflow-validator`, `artifact-guardian`), confirme o arquivo do agente instalado em `~/.pi/agent/agents/` (ou `.pi/agents/` do projeto) com frontmatter válido; nome presente na lista de types da tool `Agent` não basta — leia o arquivo real.
+3. Exija `worker` e `delegate` com tools de escrita (`read, bash, edit, write, grep, find, ls`).
+4. Exija `artifact-guardian` e `workflow-validator` com tools exatamente `read, grep, find, ls` e `extensions: false` (read-only de verdade).
+5. Tools, path ou frontmatter divergentes indicam shadowing/configuração insegura: grave `blocked` e não despache.
 
 ## Fronteira de paths
 
 - Antes de escrever ou delegar, canonicalize o project root e o ancestral existente mais próximo do feature dir. O feature dir deve ficar em `{project-root}/.features/`, sem `..` nem escape por symlink.
 - Normalize cada write set do worker contra o project root; rejeite path absoluto externo, `..` e symlink que resolva fora da raiz.
-- `cwd` e write set são controles do workflow, não sandbox do sistema operacional. Modelo não confiável com ferramentas de escrita exige worktree/container descartável ou permission system; sem isso, bloqueie em vez de prometer confinamento.
+- A tool `Agent` herda o cwd da sessão raiz: o manager deve estar rodando no project root antes de despachar. Para isolar filesystem use `isolation: "worktree"` (nunca para guardians/validators). O cwd alternativo só existe no RPC `subagents:rpc:spawn` (`options.cwd`), para outras extensões.
 - Antes de cada `write`/`edit`, o manager resolve o target e cancela a chamada se ele não for um `loop.md`, `manifest.md` ou `plan.md` selecionado. Path de produto errado, incompleto ou trivial sempre volta a worker; nem gap raiz autoriza o manager a criar, corrigir, mover, copiar ou remover produto.
 
 ## Dispatch
 
 Autoria de `batista-spec`, `batista-ux`, `batista-arch` ou `batista-plan`:
 
-Resolva primeiro o `SKILL.md` exato dentro deste package e confira seu `realpath`. Não use o parâmetro `skill: "{name}"`: a resolução por nome prioriza skills do projeto alvo e pode sofrer shadowing.
+Resolva primeiro o `SKILL.md` exato dentro deste package e confira seu `realpath`. Não use o parâmetro `skill: "{name}"` (não existe na interface real): a resolução por nome prioriza skills do projeto alvo e pode sofrer shadowing. O child `delegate` recebe no prompt o path absoluto da skill e a lê.
 
 ```text
-subagent({
-  agent: "delegate",
-  model: "inherit",
-  context: "fresh",
-  cwd: "{canonical-project-root}",
-  artifacts: false,
-  acceptance: { level: "none", reason: "guardian separado" },
-  task: "MODE: orchestrated\nRead and follow this exact package skill first: {absolute-package-skill-path}.\nObjective: ...\nProject root: ...\nFeature dir: ...\nRequired reads: ...\nAllowed writes: ...\nDo not call slash commands, talk to the user, or run a guardian. Missing material decision => persist questions and return blocked. Return only the Delegation Result."
+Agent({
+  subagent_type: "delegate",
+  prompt: "MODE: orchestrated\nRead and follow this exact package skill first: {absolute-package-skill-path}.\nObjective: ...\nProject root: ...\nFeature dir: ...\nRequired reads: ...\nAllowed writes: ...\nDo not call slash commands, talk to the user, or run a guardian. Missing material decision => persist questions and return blocked. Return only the Delegation Result.",
+  description: "..."
 })
 ```
 
-Guardian de planejamento/outcome: `artifact-guardian`, `model: "inherit"`, `context: "fresh"`, `cwd: "{canonical-project-root}"`, sem permissão de escrita. Na execução, toda chamada informa explicitamente `cwd: "{canonical-project-root}"` e `model: "deepseek/deepseek-v4-flash:off"` para `worker` ou `model: "deepseek/deepseek-v4-flash:xhigh"` para `workflow-validator`; feature dir como `cwd`, `inherit`, campo ausente ou valor efetivo divergente é dispatch inválido e não pode promover task, fase ou sub-feature. Settings são fallback, não evidência do modelo usado.
+Guardian de planejamento/outcome: `Agent({ subagent_type: "artifact-guardian", ... })`, sem permissão de escrita (tools read-only). Execução: `Agent({ subagent_type: "worker", ... })` e validação `Agent({ subagent_type: "workflow-validator", ... })` — modelos por papel definidos em `MODEL_POLICY.md` (frontmatter dos agent files é autoritativo; a chamada não os sobrescreve). O child herda o cwd da sessão raiz: sessão raiz fora do project root (feature dir como `cwd`) ou valor efetivo divergente é dispatch inválido e não pode promover task, fase ou sub-feature. Settings são fallback, não evidência do modelo usado.
 
-Para `batista-ux` e `batista-arch` independentes, use uma única chamada `subagent({ tasks: [...], context: "fresh", concurrency: 2 })`. Não paralelize writers com write sets sobrepostos.
+Para `batista-ux` e `batista-arch` independentes (write sets disjuntos), dispare dois `Agent` com `run_in_background: true` e aguarde ambos. Não paralelize writers com write sets sobrepostos.
 
 Uma tentativa tem no máximo um dispatch por par papel+task. Não duplique child no mesmo batch e não repita chamada apenas para obter outro formato de output; consuma o primeiro retorno e só abra nova tentativa após rejeição persistida.
 
-Chamada `subagent` sem `async` já terminou quando retorna. `(no output)` não significa falha: reconstrua por diff, write set e evidência; nunca consulte `action: "status"` com nome de agent nem relance por ausência de texto.
+Chamada `Agent` sem `run_in_background` já terminou quando retorna (resultado inline). `(no output)` não significa falha: reconstrua por diff, write set e evidência; nunca consulte `get_subagent_result` por nome de agent nem relance por ausência de texto. Background retorna `agent_id`; aguarde com `get_subagent_result({ agent_id, wait: true })`.
 
 ## State Reconciliation — fail closed
 

@@ -9,7 +9,7 @@ description: Orchestrates and reviews the full feature workflow in `.features/{Y
 
 Read `../../references/WORKFLOW_COMMON.md` (Pi runtime, delegation, isolation, state reconciliation, checkpoints) and `../../references/PI_ADAPTATION.md`.
 
-Authorship orchestrator: coordinates `batista-spec`, `batista-ux`, `batista-arch`, `batista-plan` via `subagent`, never emitting `/skill:*`. Execution: `batista-execute`. External entry point: `/skill:batista-loop`.
+Authorship orchestrator: coordinates `batista-spec`, `batista-ux`, `batista-arch`, `batista-plan` via children `delegate` (`Agent`), never emitting `/skill:*`. Execution: `batista-execute`. External entry point: `/skill:batista-loop`.
 
 Scope: the feature's workflow documents only — never product code, tests, configs, migrations or files outside the feature folder.
 
@@ -42,7 +42,7 @@ No guessing: investigate first, cite concrete evidence, record premises unconfir
 
 ### Author → Guardian Handshake
 
-1. Resolve this installation's exact `SKILL.md`; delegate the leaf with `delegate`, `model: "inherit"`, `context: "fresh"`, explicit `cwd`, prompt from `../../references/WORKFLOW_COMMON.md`; never pick a skill by name only.
+1. Resolve this installation's exact `SKILL.md`; delegate the leaf via `Agent({ subagent_type: "delegate", ... })` (interface real: `../../references/PI_ADAPTATION.md`; modelo herdado, contexto mínimo, cwd da sessão raiz), prompt from `../../references/WORKFLOW_COMMON.md`; never pick a skill by name only.
 2. Re-read the artifact. Material question → persist `blocked` in the manifest, skip the guardian.
 3. No questions, internal gates complete (except the self-referential approval gate) → delegate the rubric to `artifact-guardian`; it never edits files.
 4. Rejected → increment iteration budget, re-invoke author with feedback, or block when decision/evidence is missing.
@@ -141,7 +141,7 @@ Iterations used: {0}
 
 ## Checkpoint (mandatory)
 
-Before **every** `subagent` call or yielding the turn, write to `manifest.md`: `Updated:`, Spec/UX/Arch/Plan + guardian statuses, resume point, blockers. Never delegate with stale `manifest.md`.
+Before **every** `Agent` call or yielding the turn, write to `manifest.md`: `Updated:`, Spec/UX/Arch/Plan + guardian statuses, resume point, blockers. Never delegate with stale `manifest.md`.
 
 ## State & Memory
 
@@ -154,10 +154,10 @@ Before **every** `subagent` call or yielding the turn, write to `manifest.md`: `
 ## Context Isolation
 
 - Never run spec/ux/arch/plan inline when delegation is possible.
-- Delegate spec, ux, arch, plan and guardians via `subagent`, always with `context: "fresh"` and explicit `cwd` (see `../../references/PI_ADAPTATION.md`).
+- Delegate spec, ux, arch, plan and guardians via `Agent({ subagent_type: "delegate"|"artifact-guardian", ... })` (interface real e regras: `../../references/PI_ADAPTATION.md`), sempre com contexto mínimo (prompt por path; sem `inherit_context`; o child herda o cwd da sessão raiz).
 - Run applicable `batista-ux`/`batista-arch` in parallel when supported; otherwise serialize; pass only the spec as anchor contract plus needed docs.
 - Pass minimal context: request, paths, `AGENTS.md`, feature dir and relevant docs.
-- `subagent` unavailable → follow `../../references/PI_ADAPTATION.md`: record a blocker; never simulate guardian or inline authorship.
+- tool `Agent` unavailable → follow `../../references/PI_ADAPTATION.md`: record a blocker; never simulate guardian or inline authorship.
 
 ## Final Response
 

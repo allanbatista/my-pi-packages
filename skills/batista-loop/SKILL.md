@@ -10,11 +10,11 @@ description: Result controller (closed loop) for a feature or epic in `.features
 Run in order; never skip steps or compensate a child's failure:
 
 1. Instruction paths (`../batista-execute/SKILL.md`, `../batista-manifest/SKILL.md`, `../../references/*`) are relative to this `batista-loop/SKILL.md` dir, never cwd/project root/epic dir. Unreadable real package path → record `blocked`; never simulate the routine.
-2. Before the first child: `subagent({ action: "list" })`, then `subagent({ action: "get", agent: "{role}" })` per role used.
-3. Every execution call carries literally:
-   - worker: `subagent({ agent: "worker", model: "deepseek/deepseek-v4-flash:off", context: "fresh", cwd: "{canonical-project-root}", task: "..." })`;
-   - validator: `subagent({ agent: "workflow-validator", model: "deepseek/deepseek-v4-flash:xhigh", context: "fresh", cwd: "{canonical-project-root}", task: "..." })`;
-   - outcome: `subagent({ agent: "artifact-guardian", model: "inherit", context: "fresh", cwd: "{canonical-project-root}", task: "..." })`.
+2. Preflight real antes do primeiro child de cada papel (ver `../../references/PI_ADAPTATION.md`): extensão ativa (tools `Agent`/`get_subagent_result`/`steer_subagent`) e arquivo do papel em `~/.pi/agent/agents/` ou `.pi/agents/` com frontmatter válido.
+3. Every execution call uses the real extension interface, literally (`../../references/PI_ADAPTATION.md`):
+   - worker: `Agent({ subagent_type: "worker", prompt: "...", description: "..." })` — modelo/thinking pinados no frontmatter do papel;
+   - validator: `Agent({ subagent_type: "workflow-validator", ... })` — idem;
+   - outcome: `Agent({ subagent_type: "artifact-guardian", ... })` — herda o modelo da sessão.
 4. Root correction, before the worker: check ceiling/anti-thrash; persist/re-read outcome `pending`; iteration+ledger; plan/manifest/`State.Plan` `ready`; task/phase/evidence `pending`; line `manifest=ready`, `execute=fail`, `Verify=pending`, `Status=running`.
 5. Correction child order: **worker → workflow-validator → artifact-guardian**; no child between worker and validator; outcome only after terminal closure, E2E, checkpoint.
 6. Failed call, omitted `context`, `(no output)` or wrong child never authorizes manager product writes. Inspect the write set; wrong product → persist `fail`, dispatch a new valid worker. Without positively approved validator, never mark task/sub-feature/E2E/outcome pass/done/approved.
@@ -34,19 +34,19 @@ No guesswork: objective met only with practical evidence on the affected path. R
 
 ## Workflow
 
-1. Read `AGENTS.md`, validate paths, apply preflight `list`+`get` from `../../references/WORKFLOW_COMMON.md`. Before the **first dispatch of each role**, a prior `action: "get"` must exist for it; `list` does not replace `get`. Do this for `worker`, `workflow-validator`, `artifact-guardian` and, only with pending authorship, `delegate`.
+1. Read `AGENTS.md`, validate paths, apply the real preflight from `../../references/WORKFLOW_COMMON.md` e `../../references/PI_ADAPTATION.md` (extensão ativa + arquivos dos papéis instalados com frontmatter válido). Before the **first dispatch of each role**, a prior real preflight must exist for it; a summary or type-list check never replaces it. Do this for `worker`, `workflow-validator`, `artifact-guardian` e, only with pending authorship, `delegate`.
 2. Existing `loop.md`/epic dir → select, re-read state; **never create another dir**. New objective → identify project root, create `.features/{YYYY-MM-DD}_{HHMM}-{short-desc}/loop.md`.
 3. Fix the **verifiable objective**: expected result + acceptance evidence at result level. Material ambiguity → question and `blocked`.
 4. Decide or re-read decomposition (see `Decomposition`); persist DAG, write sets, dependencies, strategy.
 5. Reconcile `loop.md`, each `manifest.md` and linked artifacts per `State Reconciliation`. Downgrade optimistic indexes; file and gates beat summaries.
 6. Each released **non-terminal** sub-feature with `execute`/`Status` not yet `done`/`done`: load `../batista-manifest/SKILL.md` only if manifest not truly `ready`; manifest with first `Status: done` is valid terminal when its line is `done` — never reopen. Apply it inline, orchestrated: no `/skill:batista-manifest` emission, no propagating its internal `Final Response`.
 7. Re-read manifest, spec, ux/arch, plan. Accept authorship only when all literal statuses, gates, persisted guardians are valid and no material clarification. Questions → copy to user, record `blocked`, yield.
-8. Valid authorship + `execute` `pending|running|fail` retry-eligible → `read` `../batista-execute/SKILL.md`, apply inline. Every call literally: `cwd: "{canonical-project-root}"`, `model: "deepseek/deepseek-v4-flash:off"` (`worker`), `model: "deepseek/deepseek-v4-flash:xhigh"` (`workflow-validator`); feature dir as `cwd`, `inherit`, missing or divergent effective value invalidates dispatch, promotes no state. Execution done → persist `Status: done` in `manifest.md` and `plan.md`. **Never end asking the user to run the phase.**
+8. Valid authorship + `execute` `pending|running|fail` retry-eligible → `read` `../batista-execute/SKILL.md`, apply inline. Every call uses the real interface (ver `../../references/PI_ADAPTATION.md`): `Agent({ subagent_type: "worker"|... })` com modelo/thinking por frontmatter; o child herda o cwd da sessão raiz — feature dir como `cwd`, contexto herdado ou valor efetivo divergente invalidates dispatch, promotes no state. Execution done → persist `Status: done` in `manifest.md` and `plan.md`. **Never end asking the user to run the phase.**
 9. Batches: spawn independents first, wait later; serialize only dependents. Parallel features → isolated worktrees.
 10. Closing a batch: re-read each sub-feature's `manifest.md`/`plan.md`; update its line atomically to `manifest=done`, `execute=done`, `Verify=pass`, `Status=done` only when the **first `Status:` field** of both and `manifest.md > State > Plan` persist `done`, all tasks/phases `done`, resume points show no work, evidence approved. Before execution `manifest=ready`; after, mirror terminal header as `done`. Local approval never updates epic `Integration`, `Outcome Guardian`, `Status` or `Iterations used`.
 11. While any `Sub-features` line is not `done | done | pass | done`, continue to the next released sub-feature in the DAG. Root Outcome Guardian stays `pending`; no phase-final response.
-12. Only after gate items 1–2: merge worktrees when applicable, run end-to-end acceptance of the whole objective directly with `bash`/`read` from the root session, persist all proof and line/resume adjustments in `loop.md`. Never launch a child to run or approve E2E. Pass → no `subagent` call until `artifact-guardian`; fail → invalidate checkpoint, go to step 14.
-13. After gate item 3 too: do `Pre-Guardian Checkpoint`, then fire root `artifact-guardian` with `model: "inherit"`, `context: "fresh"`, `cwd: "{canonical-project-root}"`, literal objective from `loop.md`, all sub-features and this iteration's `Integration > E2E` evidence.
+12. Only after gate items 1–2: merge worktrees when applicable, run end-to-end acceptance of the whole objective directly with `bash`/`read` from the root session, persist all proof and line/resume adjustments in `loop.md`. Never launch a child to run or approve E2E. Pass → no `Agent` call until `artifact-guardian`; fail → invalidate checkpoint, go to step 14.
+13. After gate item 3 too: do `Pre-Guardian Checkpoint`, then fire root `artifact-guardian` via `Agent({ subagent_type: "artifact-guardian", ... })`, literal objective from `loop.md`, all sub-features and this iteration's `Integration > E2E` evidence.
 14. **Gap → iterate:** integration/root outcome failure → diagnose smallest cause; before incrementing or reopening any state, apply `Ceiling` and `Anti-thrash`. No guard stops → record exactly one root iteration, fully apply `Root Correction Reopen`, then route to `batista-manifest`, `batista-execute` or decomposition. Root manager never fixes product; all product mutation stays in `batista-execute`'s `worker`.
 15. Repeat until a `Stop Condition`. Update `loop.md` before yielding.
 16. Conclude per `Final Response`.
@@ -86,7 +86,7 @@ After root failure, before any increment or reopen mutation, evaluate `Ceiling`/
 
 Persist and re-read the whole transition **before** any correction; divergent field blocks the worker. Preserve unlisted fields; never rewrite the whole document to reopen statuses. Then, no shortcuts:
 
-1. Preflight `list`/`get` for `worker` and `workflow-validator`;
+1. Preflight real para `worker` e `workflow-validator` (extensão ativa + arquivos dos papéis instalados);
 2. `batista-execute`: checkpoint `running` → one worker → inspect write set/evidence;
 3. child after that worker must be a single `workflow-validator`, never `artifact-guardian`; without positive approval the task doesn't close;
 4. only then return task/phase, plan/manifest/`State.Plan`, resumes, loop line to terminal;
@@ -198,10 +198,10 @@ Evidence: {same reference as Integration > E2E}
 
 ## Outcome Guardian
 
-After gate items 1–3 and a clean `Pre-Guardian Checkpoint` in a previous round, run `artifact-guardian` via `subagent`: `model: "inherit"`, `context: "fresh"`, `cwd: "{canonical-project-root}"`, minimal context — epic's literal objective, `AGENTS.md`, `loop.md`, all sub-features' manifests/plans, produced root evidence. Fields literal; none omitted:
+After gate items 1–3 and a clean `Pre-Guardian Checkpoint` in a previous round, run `artifact-guardian` via `Agent({ subagent_type: "artifact-guardian", ... })` (interface real e regras em `../../references/PI_ADAPTATION.md`): modelo herdado da sessão, contexto mínimo — epic's literal objective, `AGENTS.md`, `loop.md`, all sub-features' manifests/plans, produced root evidence. Fields literal; none omitted:
 
 ```text
-subagent({ agent: "artifact-guardian", model: "inherit", context: "fresh", cwd: "{canonical-project-root}", task: "..." })
+Agent({ subagent_type: "artifact-guardian", prompt: "...", description: "..." })
 ```
 
 Guardian never edits files nor validates isolated task/phase/sub-feature (that's `batista-execute`'s). It validates the **end-to-end objective**: combined sub-feature result delivers the objective, integration/acceptance works, practical evidence — no guesswork. Any incomplete line or `Integration > E2E: pending` forces `rejected`, even single-feature.
@@ -239,7 +239,7 @@ Before **each** delegation to `batista-manifest`/`batista-execute`, merge or yie
 
 - Each delegation (`batista-manifest`/`batista-execute`/guardian) receives only objective/sub-feature, paths, feature dir, worktree, needed docs.
 - Never use full session history as delegation context.
-- `subagent` unavailable → follow `../../references/PI_ADAPTATION.md`: record blocker; never simulate authorship, guardian or execution inline.
+- tool `Agent` unavailable → follow `../../references/PI_ADAPTATION.md`: record blocker; never simulate authorship, guardian or execution inline.
 
 ## Final Response
 

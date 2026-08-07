@@ -30,7 +30,7 @@ Track `head_sha`, `reviewed_sha`, `green_sha`. Any new commit changes `head_sha`
 
 ### 2. Code review via subagent
 
-Dispatch ≥1 independent subagent via Pi's `subagent` tool, builtin agent `reviewer` (read-only). Preflight before first dispatch: `subagent({ action: "list" })`, `subagent({ action: "get", agent: "reviewer" })`. Use `context: "fresh"`; pass only repo, PR, SHA and local instructions — no implementation rationale or expected conclusions. Never substitute self-review.
+Dispatch ≥1 independent child via the real extension interface (`../../references/PI_ADAPTATION.md`): `Agent({ subagent_type: "reviewer", prompt, description })` (read-only; agent file do package em `agents/reviewer.md`). Preflight real antes do primeiro dispatch: extensão ativa + `agents/reviewer.md` instalado com frontmatter válido. Contexto mínimo (sem `inherit_context`; `prompt_mode: replace`); pass only repo, PR, SHA and local instructions — no implementation rationale or expected conclusions. Never substitute self-review.
 
 Reviewer prompt contract:
 

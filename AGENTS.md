@@ -5,13 +5,13 @@
 Este repositório (`my-pi-packages`) é um **pi package** instalável com `pi install <path>` ou `pi -e <path>`. As skills do workflow de feature ficam em `skills/{skill-name}/SKILL.md`.
 
 - `package.json`: manifesto do pi package (`name`, `keywords`, `pi.skills`, `pi.subagents.agents`).
-- `extensions/workflow-manager-guard.ts`: bloqueia escrita de produto e normaliza preflight/model/context/cwd dos managers durante `batista-loop`/`batista-manifest`/`batista-execute`.
+- `extensions/`: diretório de extensões do Pi (reservado; atualmente sem extensões — ver `README.md`).
 - `skills/{skill-name}/SKILL.md`: instruções principais de cada skill.
 - `skills/{skill-name}/scripts/`: scripts próprios de uma skill (ex.: `discord_message.py`).
-- `agents/{agent-name}.md`: guardians read-only carregados pelo `pi-subagents`.
-- `references/PI_ADAPTATION.md`: contrato entre slash commands, managers e a ferramenta `subagent`.
+- `agents/{agent-name}.md`: papéis do workflow carregados pela extensão `@tintinweb/pi-subagents` (guardians/validator read-only; worker/delegate com escrita).
+- `references/PI_ADAPTATION.md`: contrato entre slash commands, managers e a ferramenta `Agent` da extensão.
 - `references/MODEL_POLICY.md`: modelo/effort por papel (planejamento herda sessão; execução usa DeepSeek flash).
-- `examples/pi-subagents-settings.json`: snippet para `~/.pi/agent/settings.json` ou `.pi/settings.json`.
+- `examples/subagents.json`: settings operacionais da extensão para `~/.pi/agent/subagents.json` ou `.pi/subagents.json`.
 - `.memory/RULES_AND_DEFINITION.md`: regras duráveis do workflow.
 
 Não misture arquivos de uma skill com outra. Se criar uma nova skill, use um diretório próprio em `skills/{skill-name}/`.
@@ -80,7 +80,7 @@ Validação mínima para mudanças em skills:
 
 Antes de editar, leia este arquivo e preserve o menor diff seguro. Não gere scaffolding futuro sem necessidade. Se uma regra durável mudar, atualize `.memory/RULES_AND_DEFINITION.md`.
 
-`/skill:*` é entry point do usuário, não chamada entre skills. Managers permanecem na sessão raiz, carregam managers filhos com `read` e delegam folhas pela ferramenta `subagent`. Sem `pi-subagents`, bloqueie com instrução de instalação; não simule worker/guardian/validator inline.
+`/skill:*` é entry point do usuário, não chamada entre skills. Managers permanecem na sessão raiz, carregam managers filhos com `read` e delegam folhas pela ferramenta `Agent` (extensão `@tintinweb/pi-subagents`; sintaxe em `references/PI_ADAPTATION.md`). Sem a extensão, bloqueie com instrução de instalação; não simule worker/guardian/validator inline.
 
 ## Política de modelos (subagents)
 
@@ -90,4 +90,4 @@ Antes de editar, leia este arquivo e preserve o menor diff seguro. Não gere sca
 | Execução | worker | `deepseek/deepseek-v4-flash`, sem reasoning |
 | Execução | validador | `deepseek/deepseek-v4-flash`, thinking **xhigh** |
 
-Mescle `examples/pi-subagents-settings.json` no seu settings quando quiser defaults persistentes. O workflow também envia overrides por chamada: `worker` e `workflow-validator` ficam pinados; planejamento usa `model: "inherit"`.
+A política vive no frontmatter dos agent files (`agents/worker.md`, `agents/workflow-validator.md`), que é autoritativo na extensão; planejamento (`delegate`, `artifact-guardian`) herda o modelo da sessão. Settings operacionais da extensão: mescle `examples/subagents.json` em `~/.pi/agent/subagents.json` ou `.pi/subagents.json` quando quiser defaults persistentes.

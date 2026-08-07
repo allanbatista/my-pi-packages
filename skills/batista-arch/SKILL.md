@@ -12,7 +12,7 @@ Closes the feature **architecture** before the technical plan, when backend is a
 - Follow `../../references/WORKFLOW_COMMON.md` (Pi runtime, delegation, isolation, state reconciliation, checkpoints).
 - Edit only feature workflow docs; never product code, tests, configs, migrations or files outside the feature dir.
 - No guessing: investigate first, cite concrete evidence; any premise unconfirmed by file/command/log/test/browser/user answer goes to `pending`/blocker.
-- Invoked by another workflow skill → run as child `delegate`, `context: "fresh"` (see `../../references/PI_ADAPTATION.md`), receiving only request, project root, feature dir and needed docs.
+- Invoked by another workflow skill → run as child `delegate`, contexto mínimo (fresh) (see `../../references/PI_ADAPTATION.md`), receiving only request, project root, feature dir and needed docs.
 
 ## Applicability
 
@@ -162,7 +162,7 @@ Before **every** guardian run or turn handover, save to `arch.md`: `Updated:`, `
 
 ## Context Isolation
 
-- With a manager, accept orchestrated invocation as child `delegate` with `context: "fresh"`.
+- With a manager, accept orchestrated invocation as child `delegate` with contexto mínimo (fresh).
 - Don't inherit irrelevant manager-session context.
 - Pass only minimal artifacts: request, paths, `AGENTS.md`, `spec.md`, feature docs.
 - Orchestrated: no guardian, no user conversation; return the `Delegation Result` per `../../references/WORKFLOW_COMMON.md`.

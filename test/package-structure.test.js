@@ -20,7 +20,8 @@ const EXPECTED = [
   "batista-ship-pr-to-deploy",
   "batista-websearch",
 ];
-const EXPECTED_AGENTS = ["artifact-guardian.md", "workflow-validator.md"];
+const EXPECTED_AGENTS = ["artifact-guardian.md", "delegate.md", "reviewer.md", "worker.md", "workflow-validator.md"];
+const READONLY_ROLE_AGENTS = ["artifact-guardian.md", "reviewer.md", "workflow-validator.md"];
 
 function readFrontmatter(skillPath) {
   const content = fs.readFileSync(skillPath, "utf8");
@@ -49,27 +50,26 @@ test("validate.sh has no hardcoded harness scratch path", () => {
 
 test("MODEL_POLICY defines planning inherit and execution pinning", () => {
   const policy = fs.readFileSync(path.join(ROOT, "references/MODEL_POLICY.md"), "utf8");
-  const settings = JSON.parse(
-    fs.readFileSync(path.join(ROOT, "examples/pi-subagents-settings.json"), "utf8")
-  );
-  assert.match(policy, /model: "inherit"|modelo ativo da sessão/i);
+  const settings = JSON.parse(fs.readFileSync(path.join(ROOT, "examples/subagents.json"), "utf8"));
+  assert.match(policy, /model: "inherit"|herdam o modelo ativo da sessão/i);
   assert.match(policy, /deepseek\/deepseek-v4-flash/);
   assert.match(policy, /xhigh/);
-  assert.equal(settings.subagents.agentOverrides.worker.model, "deepseek/deepseek-v4-flash");
-  assert.equal(settings.subagents.agentOverrides.worker.thinking, false);
-  assert.equal(
-    settings.subagents.agentOverrides["workflow-validator"].model,
-    "deepseek/deepseek-v4-flash"
-  );
-  assert.equal(settings.subagents.agentOverrides["workflow-validator"].thinking, "xhigh");
+  assert.equal(settings.maxConcurrent, 4);
+  const worker = fs.readFileSync(path.join(ROOT, "agents/worker.md"), "utf8");
+  assert.match(worker, /model: deepseek\/deepseek-v4-flash/);
+  assert.match(worker, /thinking: off/);
+  const validator = fs.readFileSync(path.join(ROOT, "agents/workflow-validator.md"), "utf8");
+  assert.match(validator, /model: deepseek\/deepseek-v4-flash/);
+  assert.match(validator, /thinking: xhigh/);
 });
 
-test("PI_ADAPTATION uses the real subagent tool and reserves slash for users", () => {
+test("PI_ADAPTATION documents the real Agent tool and reserves slash for users", () => {
   const adaptation = fs.readFileSync(path.join(ROOT, "references/PI_ADAPTATION.md"), "utf8");
-  assert.match(adaptation, /subagent\(\.\.\.\)/);
+  assert.match(adaptation, /Agent\(\{["']\s*subagent_type|subagent_type: "worker"/);
   assert.match(adaptation, /entry point.*input do usuário/i);
   assert.match(adaptation, /não simule guardian/i);
   assert.doesNotMatch(adaptation, /spawn_agent|inline é o padrão/i);
+  assert.doesNotMatch(adaptation, /action: "list"|action: "get"/);
 });
 
 test("pi-invocation test does not hardcode harness scratch path", () => {
@@ -105,15 +105,28 @@ test("all workflow skill references resolve from the SKILL.md directory", () => 
   }
 });
 
-test("package exposes read-only workflow guardians", () => {
+test("package exposes workflow role agents (guardians read-only)", () => {
   const agentsDir = path.join(ROOT, "agents");
   assert.deepEqual(fs.readdirSync(agentsDir).sort(), EXPECTED_AGENTS);
   for (const file of EXPECTED_AGENTS) {
     const content = fs.readFileSync(path.join(agentsDir, file), "utf8");
     const frontmatter = content.match(/^---\n([\s\S]*?)\n---/)[1];
     const tools = frontmatter.match(/^tools:\s*(.+)$/m)[1];
-    assert.equal(tools, "read, grep, find, ls");
+    assert.ok(tools.length > 0, `missing tools: ${file}`);
+    assert.match(frontmatter, /^prompt_mode:\s*replace$/m);
+  }
+  for (const file of READONLY_ROLE_AGENTS) {
+    const content = fs.readFileSync(path.join(agentsDir, file), "utf8");
+    const frontmatter = content.match(/^---\n([\s\S]*?)\n---/)[1];
+    assert.equal(frontmatter.match(/^tools:\s*(.+)$/m)[1], "read, grep, find, ls");
+    assert.match(frontmatter, /^extensions:\s*false$/m);
     assert.match(frontmatter, /^acceptanceRole:\s*read-only$/m);
+  }
+  for (const file of ["worker.md", "delegate.md"]) {
+    const content = fs.readFileSync(path.join(agentsDir, file), "utf8");
+    const frontmatter = content.match(/^---\n([\s\S]*?)\n---/)[1];
+    assert.match(frontmatter, /write/);
+    assert.doesNotMatch(frontmatter, /acceptanceRole/);
   }
 });
 
@@ -158,7 +171,7 @@ test("loop fails closed across sub-features and spec blocks material assumptions
   assert.match(execute, /Write Boundary — fail-closed/);
   assert.match(execute, /the manager never moves, copies, recreates, or fixes product files/);
   assert.match(execute, /`\(no output\)` or missing envelope is \*\*neither failure nor retry authorization\*\*/);
-  assert.match(loop, /no `subagent` call until `artifact-guardian`/);
+  assert.match(loop, /no `Agent` call until `artifact-guardian`/);
   assert.match(loop, /Root Correction Reopen/);
   assert.match(loop, /Manager Tool Firewall/);
   assert.match(loop, /Mandatory runbook \(simple models\)/);
@@ -170,7 +183,7 @@ test("loop fails closed across sub-features and spec blocks material assumptions
   assert.match(loop, /`State > Plan: ready` — never `pending`/);
   assert.match(loop, /keep plan guardian\/readiness `approved`/);
   assert.match(loop, /child after that worker must be a single `workflow-validator`/);
-  assert.match(loop, /Preflight `list`\/`get` for `worker` and `workflow-validator`/);
+  assert.match(loop, /Preflight real para `worker` e `workflow-validator`/);
   assert.match(loop, /`pending\|running\|fail` retry-eligible/);
   assert.match(loop, /before any increment or reopen mutation, evaluate `Ceiling`\/`Anti-thrash`/);
   assert.match(loop, /Guard fires → record stop condition; no increment\/reopen\./);
@@ -181,7 +194,7 @@ test("loop fails closed across sub-features and spec blocks material assumptions
   assert.match(loop, /Never increment on initial pass or for .*task or plan phase\./);
   assert.match(loop, /no `0` entry, success summary or `gap: none`/);
   assert.match(loop, /Only this call's `DELEGATION_RESULT`[\s\S]*update the root Outcome Guardian\./);
-  assert.match(loop, /`artifact-guardian` via `subagent`[\s\S]*`model: "inherit"`[\s\S]*`cwd: "\{canonical-project-root\}"`/);
+  assert.match(loop, /`artifact-guardian` via `Agent\(\{ subagent_type: "artifact-guardian"[\s\S]*modelo herdado da sessão/);
   assert.match(loop, /Fields literal; none omitted/);
   assert.match(
     loop,
@@ -195,7 +208,7 @@ test("loop fails closed across sub-features and spec blocks material assumptions
   assert.match(common, /invalida seu guardian e todos os artefatos\/guardians downstream/);
   assert.match(common, /Não use o parâmetro `skill:/);
   assert.match(common, /feature dir como `cwd`.*valor efetivo divergente é dispatch inválido/);
-  assert.match(loop, /feature dir as `cwd`[\s\S]*divergent effective value invalidates dispatch/);
+  assert.match(loop, /feature dir como `cwd`[\s\S]*invalidates dispatch, promotes no state/);
   assert.doesNotMatch(common, /^\s*skill:\s*"\{skill\}"/m);
 });
 
@@ -238,6 +251,17 @@ test("no Codex-only artifacts shipped", () => {
       }
     }
   }
+});
+
+test("README documents dependencies and extensions with the scoped extension", () => {
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+  assert.match(readme, /@tintinweb\/pi-subagents/);
+  assert.match(readme, /pi install npm:@tintinweb\/pi-subagents/);
+  assert.match(readme, /## Dependências/);
+  assert.match(readme, /## Extensões/);
+  const adaptation = fs.readFileSync(path.join(ROOT, "references", "PI_ADAPTATION.md"), "utf8");
+  assert.match(adaptation, /npm:@tintinweb\/pi-subagents/);
+  assert.doesNotMatch(adaptation, /npm:pi-subagents/);
 });
 
 test("AGENTS.md and RULES describe Pi package", () => {
