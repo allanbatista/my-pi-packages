@@ -23,11 +23,11 @@ Leia também `./PI_ADAPTATION.md` (sintaxe real de delegação da extensão `@ti
 - Antes de escrever ou delegar, canonicalize o project root e o ancestral existente mais próximo do feature dir. O feature dir deve ficar em `{project-root}/.features/`, sem `..` nem escape por symlink.
 - Normalize cada write set do worker contra o project root; rejeite path absoluto externo, `..` e symlink que resolva fora da raiz.
 - A tool `Agent` herda o cwd da sessão raiz: o manager deve estar rodando no project root antes de despachar. Para isolar filesystem use `isolation: "worktree"` (nunca para guardians/validators). O cwd alternativo só existe no RPC `subagents:rpc:spawn` (`options.cwd`), para outras extensões.
-- Antes de cada `write`/`edit`, o manager resolve o target e cancela a chamada se ele não for um `loop.md`, `manifest.md` ou `plan.md` selecionado. Path de produto errado, incompleto ou trivial sempre volta a worker; nem gap raiz autoriza o manager a criar, corrigir, mover, copiar ou remover produto.
+- Antes de cada `write`/`edit`, o manager resolve o target e cancela a chamada se ele não for um `loop.md`, `manifest.md`, `plan.md` ou `validation.md` selecionado. Path de produto errado, incompleto ou trivial sempre volta a worker; nem gap raiz autoriza o manager a criar, corrigir, mover, copiar ou remover produto.
 
 ## Dispatch
 
-Autoria de `batista-spec`, `batista-ux`, `batista-arch` ou `batista-plan`:
+Autoria de `batista-spec`, `batista-ux`, `batista-arch`, `batista-plan` ou `batista-validation`:
 
 Resolva primeiro o `SKILL.md` exato dentro deste package e confira seu `realpath`. Não use o parâmetro `skill: "{name}"` (não existe na interface real): a resolução por nome prioriza skills do projeto alvo e pode sofrer shadowing. O child `delegate` recebe no prompt o path absoluto da skill e a lê.
 
@@ -39,7 +39,7 @@ Agent({
 })
 ```
 
-Guardian de planejamento/outcome: `Agent({ subagent_type: "artifact-guardian", ... })`, sem permissão de escrita (tools read-only). Execução: `Agent({ subagent_type: "worker", ... })` e validação `Agent({ subagent_type: "workflow-validator", ... })` — modelos por papel definidos em `MODEL_POLICY.md` (frontmatter dos agent files é autoritativo; a chamada não os sobrescreve). O child herda o cwd da sessão raiz: sessão raiz fora do project root (feature dir como `cwd`) ou valor efetivo divergente é dispatch inválido e não pode promover task, fase ou sub-feature. Settings são fallback, não evidência do modelo usado.
+`batista-validation` é autoria (planejamento): escreve somente `validation.md` da feature (não escreve produto) e requer seu próprio `artifact-guardian` aprovar antes da execução. Guardian de planejamento/outcome: `Agent({ subagent_type: "artifact-guardian", ... })`, sem permissão de escrita (tools read-only). Execução: `Agent({ subagent_type: "worker", ... })` e validação `Agent({ subagent_type: "workflow-validator", ... })` — modelos por papel definidos em `MODEL_POLICY.md` (frontmatter dos agent files é autoritativo; a chamada não os sobrescreve). O child herda o cwd da sessão raiz: sessão raiz fora do project root (feature dir como `cwd`) ou valor efetivo divergente é dispatch inválido e não pode promover task, fase ou sub-feature. Settings são fallback, não evidência do modelo usado.
 
 Para `batista-ux` e `batista-arch` independentes (write sets disjuntos), dispare dois `Agent` com `run_in_background: true` e aguarde ambos. Não paralelize writers com write sets sobrepostos.
 
@@ -57,7 +57,7 @@ Após cada delegação:
 4. `done` exige evidência persistida e validação independente real; confira o primeiro campo `Status:` do `manifest.md`/`plan.md` e `manifest.md > State > Plan`, pois status de task/fase não substitui o cabeçalho; índice manager nunca pode ficar `done` enquanto documento, state, resume point, task ou fase correspondente estiver `ready|running|pending`.
 5. Divergência entre índice e artefato rebaixa o índice ao estado real e vira blocker; resumo nunca promove status.
 6. Uma decisão material com `a definir`, `pending` ou origem `suposição explícita` bloqueia o avanço e deve virar pergunta ao usuário.
-7. Mudança substantiva no conteúdo de um artefato invalida seu guardian e todos os artefatos/guardians downstream: rebaixe para `draft|pending` antes do próximo dispatch. Persistir somente o verdict/gate/status da mesma revisão não invalida essa aprovação. Aprovação vale somente para a revisão/evidência que o guardian leu.
+7. Mudança substantiva no conteúdo de um artefato invalida seu guardian e todos os artefatos/guardians downstream: rebaixe para `draft|pending` antes do próximo dispatch. Mudança substantiva em `spec.md` ou `plan.md` rebaixa o `validation.md` para `draft` + guardian `pending`, e itens `pass` anteriores voltam a `pending` (a aprovação vale só para a revisão que o guardian leu). Persistir somente o verdict/gate/status da mesma revisão não invalida essa aprovação. Aprovação vale somente para a revisão/evidência que o guardian leu.
 8. Replan, reexecução ou merge invalida o Outcome Guardian antes da mutação; só nova revisão pode restaurar `approved`.
 
 ## Delegation Result

@@ -18,7 +18,7 @@ Não misture arquivos de uma skill com outra. Se criar uma nova skill, use um di
 
 ## Entry Point & Invocation
 
-O entry point do workflow é `/skill:batista-loop` (controlador de resultado). Pipeline de autoria: `/skill:batista-manifest` orquestra `batista-spec` → (`batista-ux` ∥ `batista-arch`, condicional) → `batista-plan`. Execução: `/skill:batista-execute`.
+O entry point do workflow é `/skill:batista-loop` (controlador de resultado). Pipeline de autoria: `/skill:batista-manifest` orquestra `batista-spec` → (`batista-ux` ∥ `batista-arch`, condicional) → `batista-plan` → `batista-validation`. Execução: `/skill:batista-execute`. Incidentes em produção: `/skill:batista-incident`.
 
 | Skill | Invocação | Uso |
 |---|---|---|
@@ -28,7 +28,9 @@ O entry point do workflow é `/skill:batista-loop` (controlador de resultado). P
 | batista-ux | `/skill:batista-ux` | Usabilidade e fluxos (quando há frontend) |
 | batista-arch | `/skill:batista-arch` | Arquitetura e contratos (quando há backend) |
 | batista-plan | `/skill:batista-plan` | Plano técnico, Impact Map, paralelismo |
+| batista-validation | `/skill:batista-validation` | Plano de validação (validation.md): o que validar/testar, evidências e progresso |
 | batista-execute | `/skill:batista-execute` | Coordenação de workers e validação |
+| batista-incident | `/skill:batista-incident` | Incidente em produção: CloudWatch → investigação → correção → deploy → monitoramento |
 | batista-memory | `/skill:batista-memory` | Memória técnica de entidades/componentes em `memory/<dominio>/` |
 | batista-ship-pr-to-deploy | `/skill:batista-ship-pr-to-deploy` | Entrega ponta a ponta: commit → PR → CR → CI → merge → tag → deploy → release note |
 | batista-discord-webhook-messages | `/skill:batista-discord-webhook-messages` | Mensagens Discord por sessão via bot (`scripts/discord_message.py`) |
@@ -58,6 +60,8 @@ pi install /home/allanbatista/Workspaces/allanbatista/my-pi-packages
 
 `npm test` não executa modelos com escrita por padrão. `test:pi`/`test:e2e` são canários explícitos para modelo confiável e ainda usam o filesystem do host; rode-os em container descartável quando precisar testar modelo não confiável.
 
+Mudanças em skills usam o `validation.md` da feature como fonte do que validar/testar e do progresso (Validation Plan/Progress).
+
 ## Coding Style & Naming Conventions
 
 Escreva documentação e instruções em pt-BR. Use en-US apenas para chaves técnicas, nomes de arquivos, identificadores e campos exigidos por manifestos.
@@ -66,7 +70,7 @@ Use Markdown conciso em `SKILL.md`, com frontmatter YAML contendo pelo menos `na
 
 ## Testing Guidelines
 
-Validação mínima para mudanças em skills:
+Validação mínima para mudanças em skills (fonte: `validation.md` da feature — Validation Plan/Progress):
 
 - `package.json` parseia, `name` é `my-pi-packages` e contém `keywords: ["pi-package"]`.
 - Frontmatter das skills contém `name` e `description`.
@@ -86,7 +90,7 @@ Antes de editar, leia este arquivo e preserve o menor diff seguro. Não gere sca
 
 | Fase | Papéis | Modelo |
 |---|---|---|
-| Planejamento | loop, manifest, spec, ux, arch, plan, guardians de artefato | Modelo da sessão; effort efetivo do runtime |
+| Planejamento | loop, manifest, spec, ux, arch, plan, batista-validation, incident, guardians de artefato | Modelo da sessão; effort efetivo do runtime |
 | Execução | worker | `deepseek/deepseek-v4-flash`, sem reasoning |
 | Execução | validador | `deepseek/deepseek-v4-flash`, thinking **xhigh** |
 

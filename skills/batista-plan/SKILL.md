@@ -30,9 +30,10 @@ Invoked by another feature-workflow skill? Run as child `delegate`, contexto mí
 11. If contract, persistence, harness, Impact Map or target files are ambiguous, register blocker in `plan.md` with `Escalation: spec | ux | arch | manifest` and return to manager — this skill never edits `spec.md`/`ux.md`/`arch.md`; never create an executable plan by guessing.
 12. Create/update only `plan.md`.
 13. Orchestrated: record `draft` (or `blocked`) and return without guardian; only a re-invocation with real verdict `approved` persists the gate and promotes to `ready`. Standalone: delegate the rubric to `artifact-guardian`.
-14. Standalone: if guardian rejects, apply the smallest needed fix in `plan.md` or register blocker and re-validate. Never conclude with guardian pending or rejected.
-15. Update status before and after each task during execution.
-16. Orchestrated: return only the `Delegation Result` (see `../../references/WORKFLOW_COMMON.md`); else respond per `Final Response`.
+14. Once `plan.md` is `ready` + `approved`, the next authorship stage is `batista-validation`: a `delegate` that authors `validation.md` (the single source of truth for the validation harness/evidence) and submits it to its own `artifact-guardian`. Do `not` run `batista-validation` while the plan guardian is `pending`/`rejected`.
+15. Standalone: if guardian rejects, apply the smallest needed fix in `plan.md` or register blocker and re-validate. Never conclude with guardian pending or rejected.
+16. Update status before and after each task during execution.
+17. Orchestrated: return only the `Delegation Result` (see `../../references/WORKFLOW_COMMON.md`); else respond per `Final Response`.
 
 ## Template
 
@@ -61,7 +62,7 @@ Updated: {YYYY-MM-DD HH:MM}
 - [ ] Public/internal contracts and persistence defined or marked `none`.
 - [ ] Existing/new target files verified.
 - [ ] Impact Map complete, with evidence per surface.
-- [ ] Minimal harness defined with baseline, focused test and final validation.
+- [ ] `validation.md` defined as the source of the validation harness/evidence (single source of truth) once authored by `batista-validation`.
 - [ ] Guardian approved the plan against spec and applicable solutions (`batista-ux`/`batista-arch`).
 
 ## Impact Map
@@ -78,7 +79,7 @@ Dependencies: none
 DoD:
 - [ ] Execution can start without guessing decisions.
 Required Evidence:
-- `AGENTS.md` read, Graphify/worktree verified, Impact Map complete, target files verified, validation commands defined.
+- `AGENTS.md` read, Graphify/worktree verified, Impact Map complete, target files verified, validation commands defined → pointer to `./validation.md` (single source of truth for the harness/evidence).
 Produced Evidence:
 - {pending}
 Blockers:
@@ -93,7 +94,7 @@ Parallel Group: {sequential | batch-id}
 DoD:
 - [ ] {Verifiable phase outcome}
 Required Evidence:
-- {practical evidence: browser, API, consumer, log, manual smoke, command/output, screenshot or focused test}
+- Pointer to `./validation.md` (single source of truth for the harness/required evidence; DAG/write sets/DoD remain in this plan).
 Produced Evidence:
 - {pending}
 Blockers:
@@ -113,7 +114,7 @@ Actual Files:
 DoD:
 - [ ] {Verifiable task outcome}
 Required Evidence:
-- {minimal evidence}
+- Pointer to `./validation.md` (single source of truth for the harness/required evidence; DAG/write sets/DoD remain in this plan).
 Produced Evidence:
 - {pending}
 Blockers:
@@ -128,14 +129,7 @@ Blockers:
 
 ## Validation Harness
 
-- Baseline: {command before patch, or reason to skip}
-- Task-scoped automated tests: {focused tests/typecheck/lint/build the worker must run for the changed scope}
-- Integration/API/consumer: {commands, probes, logs, fixtures}
-- Browser/UI: {URL, steps, selectors, screenshot/console/network evidence}
-- Phase final validation: {broad suite/final checks at phase end; worker fixes on failure}
-- Practical evidence: {observable proof the affected behavior worked}
-- Graphify: {update/sync command when source architecture changed, or none}
-- Regression loop: {run -> inspect failure -> patch smallest point -> rerun -> record evidence}
+Pointer to `./validation.md` (single source of truth for the validation harness and required evidence, authored by the `batista-validation` delegate): baseline, task-scoped tests, integration/API/consumer, browser/UI, phase-final validation, practical evidence, Graphify and the regression loop are defined there, not in this plan. This plan keeps DAG, write sets, DoD and the Impact Map.
 
 ## Loop Ledger
 
@@ -170,7 +164,7 @@ Mandatory rubric; record each result in the `evidence` field of the canonical `D
 - [pass/fail] Frontend tasks derive from `ux.md`; backend tasks from `arch.md` (or spec when solution N/A).
 - [pass/fail] `batista-ux`↔`batista-arch`↔`Shared Contract` conflicts resolved in the plan or escalated with explicit `Escalation`.
 - [pass/fail] Write sets, DAG, batches and sync points are explicit and safe.
-- [pass/fail] Harness cites concrete commands/checks; no generic placeholders.
+- [pass/fail] `validation.md` is defined (or `not-applicable`) as the single source of truth for the harness/evidence, and its own `artifact-guardian` holds `approved` (concrete commands/checks live in the `validation.md` guardian rubric, not here).
 
 Any `fail` forces `status: rejected`. Copy `evidence`, `questions`, `blockers` and `resume` to `Guardian Review`; fix `plan.md` when the answer is available or register blocker with `Escalation` when decision/evidence is missing. Use `Status: ready`/`done` only with guardian `approved`.
 
@@ -186,8 +180,9 @@ Any `fail` forces `status: rejected`. Copy `evidence`, `questions`, `blockers` a
 - Even on "fix"/"implement"/"execute" requests, create/refine `plan.md` and return to the manager; only standalone points to `/skill:batista-execute`. No product patches.
 - Every phase/task needs own DoD, owner/subagent, planned/actual files, required/produced evidence and blockers.
 - Every feature needs `Phase 0: Preflight` and `Readiness Gates`.
-- Harness must cite concrete practical commands/checks or register blocker; generic placeholders do not suffice.
+- The validation harness/evidence (baseline, focused tests, integration, browser, phase-final validation, practical evidence, regression loop) live in `validation.md` (single source of truth), authored by the `batista-validation` delegate; `plan.md` only points to `./validation.md` and keeps DAG/write sets/DoD.
 - A referenced test that does not exist yet must appear as a planned new file.
+- After `plan.md` is `ready` + `approved`, the next authorship stage is `batista-validation` (delegate that authors `validation.md` with its own guardian); do not start execution while `validation.md` is absent or its guardian is `pending`/`rejected`.
 - No full suite per task: focused automated tests per task; broad suite/final checks at phase close.
 - Done requires practical working evidence, not code review or diff reading.
 - Parallelize only independent tasks; record dependencies, write sets and sync points.

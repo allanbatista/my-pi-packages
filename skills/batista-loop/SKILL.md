@@ -28,7 +28,7 @@ Result controller: given an objective, ensure it is achieved — decide decompos
 
 ## Manager Tool Firewall — before every `write`/`edit`
 
-Resolve the target before the call. Root-session closed allowlist: only the selected `loop.md` and sub-features' `manifest.md`/`plan.md`. Any other path is product; call forbidden — also for one-byte trivial fixes, root gaps, empty/wrong workers, files at wrong path. Cancel and apply `batista-execute`, which dispatches a `worker`. Manager never creates, edits, moves, copies or removes product.
+Resolve the target before the call. Root-session closed allowlist: only the selected `loop.md`, sub-features' `manifest.md`/`plan.md` and each feature's `validation.md`. Any other path is product; call forbidden — also for one-byte trivial fixes, root gaps, empty/wrong workers, files at wrong path. Cancel and apply `batista-execute`, which dispatches a `worker`. Manager never creates, edits, moves, copies or removes product.
 
 No guesswork: objective met only with practical evidence on the affected path. Record as blocker any premise unconfirmable via file, command, log, test, browser or user answer.
 
@@ -45,7 +45,7 @@ No guesswork: objective met only with practical evidence on the affected path. R
 9. Batches: spawn independents first, wait later; serialize only dependents. Parallel features → isolated worktrees.
 10. Closing a batch: re-read each sub-feature's `manifest.md`/`plan.md`; update its line atomically to `manifest=done`, `execute=done`, `Verify=pass`, `Status=done` only when the **first `Status:` field** of both and `manifest.md > State > Plan` persist `done`, all tasks/phases `done`, resume points show no work, evidence approved. Before execution `manifest=ready`; after, mirror terminal header as `done`. Local approval never updates epic `Integration`, `Outcome Guardian`, `Status` or `Iterations used`.
 11. While any `Sub-features` line is not `done | done | pass | done`, continue to the next released sub-feature in the DAG. Root Outcome Guardian stays `pending`; no phase-final response.
-12. Only after gate items 1–2: merge worktrees when applicable, run end-to-end acceptance of the whole objective directly with `bash`/`read` from the root session, persist all proof and line/resume adjustments in `loop.md`. Never launch a child to run or approve E2E. Pass → no `Agent` call until `artifact-guardian`; fail → invalidate checkpoint, go to step 14.
+12. Only after gate items 1–2: merge worktrees when applicable, run end-to-end acceptance of the whole objective directly with `bash`/`read` from the root session, persist all proof and line/resume adjustments in `loop.md`. `Integration > E2E` cita cada feature's `validation.md` como evidência de validação (`Validation Progress`). Never launch a child to run or approve E2E. Pass → no `Agent` call until `artifact-guardian`; fail → invalidate checkpoint, go to step 14.
 13. After gate item 3 too: do `Pre-Guardian Checkpoint`, then fire root `artifact-guardian` via `Agent({ subagent_type: "artifact-guardian", ... })`, literal objective from `loop.md`, all sub-features and this iteration's `Integration > E2E` evidence.
 14. **Gap → iterate:** integration/root outcome failure → diagnose smallest cause; before incrementing or reopening any state, apply `Ceiling` and `Anti-thrash`. No guard stops → record exactly one root iteration, fully apply `Root Correction Reopen`, then route to `batista-manifest`, `batista-execute` or decomposition. Root manager never fixes product; all product mutation stays in `batista-execute`'s `worker`.
 15. Repeat until a `Stop Condition`. Update `loop.md` before yielding.
@@ -70,9 +70,10 @@ No guesswork: objective met only with practical evidence on the affected path. R
 Evaluate cumulatively: items 1–2 before root integration, 1–3 before Outcome Guardian, all before `converged`:
 
 1. Every `Sub-features` line: `manifest=done`, `execute=done`, `Verify=pass`, `Status=done`, mirroring the first `Status:` of each `manifest.md`/`plan.md` and `manifest.md > State > Plan`; no incomplete task/phase or resume point.
-2. No open blocker in the epic or sub-features.
-3. `Integration > E2E` holds concrete, current proof of the whole objective on the paths defined from project root; no isolated phase proof; never reinterpret paths from the feature dir.
-4. Outcome Guardian `approved` for `Artifact: {epic-dir}/loop.md` resolving exactly to the selected root loop, current `Iteration` and same `Evidence` as `Integration > E2E`.
+2. All items of each feature's `Validation Progress` in `validation.md` are `pass`, conferidos pelo `workflow-validator`; any missing/divergent item fails the gate and blocks `converged`.
+3. No open blocker in the epic or sub-features.
+4. `Integration > E2E` holds concrete, current proof of the whole objective on the paths defined from project root, referencing each feature's `validation.md`; no isolated phase proof; never reinterpret paths from the feature dir.
+5. Outcome Guardian `approved` for `Artifact: {epic-dir}/loop.md` resolving exactly to the selected root loop, current `Iteration` and same `Evidence` as `Integration > E2E`.
 
 Any missing/divergent/ambiguous field fails the gate. Incompatible Outcome Guardian → downgrade `pending`; optimistic `Status: converged` → downgrade `running`, continue via `Resume Dispatch`. Never treat spec/UX/Arch/plan/task/phase/`workflow-validator`/sub-feature approval as epic approval.
 
@@ -179,7 +180,7 @@ Iterations used: {0}
 ## Integration
 
 - Merge: {status/order}
-- E2E: {cross-feature evidence or pending}
+- E2E: {cross-feature evidence or pending; validation: referência a `validation.md` de cada feature com `Validation Progress`}
 
 ## Outcome Guardian
 

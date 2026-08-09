@@ -10,11 +10,13 @@ const SCRATCH = process.env.SCRATCH;
 const WORKFLOW_SKILLS = [
   "batista-arch",
   "batista-execute",
+  "batista-incident",
   "batista-loop",
   "batista-manifest",
   "batista-plan",
   "batista-spec",
   "batista-ux",
+  "batista-validation",
 ];
 const EXPECTED_SKILLS = [
   ...WORKFLOW_SKILLS,

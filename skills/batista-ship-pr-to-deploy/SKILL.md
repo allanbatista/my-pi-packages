@@ -25,7 +25,7 @@ Track `head_sha`, `reviewed_sha`, `green_sha`. Any new commit changes `head_sha`
 2. Identify only files belonging to the request. Block if mixed changes cannot be safely separated.
 3. Run repo-required gates before committing.
 4. Add files explicitly, create one focused commit, push the branch without force.
-5. Reuse the branch's open PR or create a review-ready PR with summary, validations and real risks.
+5. Reuse the branch's open PR or create a review-ready PR with summary, validations and real risks. When the change contains a feature with `validation.md`, reference it in the PR summary (e.g. "validations do validation.md") so reviewers can see the validation plan/progress.
 6. Capture number, URL, base, `head_sha`, mergeability and checks with `gh`.
 
 ### 2. Code review via subagent
@@ -80,7 +80,8 @@ Merge only when, for the same SHA:
 - `head_sha == reviewed_sha == green_sha`;
 - no actionable open thread;
 - all local gates and applicable checks pass;
-- mergeability, approvals and base protection are satisfied.
+- mergeability, approvals and base protection are satisfied;
+- when the change contains a feature with `validation.md`: all items of its `Validation Progress` are `pass`.
 
 If the base requires update, update without discarding work and repeat review and CI. Use the repo's strategy and merge queue when mandatory; never admin bypass. Confirm `state=MERGED` and capture the exact merge SHA.
 

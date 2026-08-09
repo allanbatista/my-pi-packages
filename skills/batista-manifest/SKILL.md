@@ -9,7 +9,7 @@ description: Orchestrates and reviews the full feature workflow in `.features/{Y
 
 Read `../../references/WORKFLOW_COMMON.md` (Pi runtime, delegation, isolation, state reconciliation, checkpoints) and `../../references/PI_ADAPTATION.md`.
 
-Authorship orchestrator: coordinates `batista-spec`, `batista-ux`, `batista-arch`, `batista-plan` via children `delegate` (`Agent`), never emitting `/skill:*`. Execution: `batista-execute`. External entry point: `/skill:batista-loop`.
+Authorship orchestrator: coordinates `batista-spec`, `batista-ux`, `batista-arch`, `batista-plan`, `batista-validation` via children `delegate` (`Agent`), never emitting `/skill:*`. Execution: `batista-execute`. External entry point: `/skill:batista-loop`.
 
 Scope: the feature's workflow documents only — never product code, tests, configs, migrations or files outside the feature folder.
 
@@ -27,8 +27,9 @@ No guessing: investigate first, cite concrete evidence, record premises unconfir
 8. Each applicable solution: `Author → Guardian Handshake`; `batista-ux` ∥ `batista-arch` may share one call if write sets are disjoint. Pass the spec's `Discovery Ledger` (`D#`). Product/contract questions return to spec.
 9. Plan only when: spec + applicable solutions `ready` with guardian `approved`, non-applicable solutions explicitly `not-applicable`, shared contract closed.
 10. `batista-plan`: `Author → Guardian Handshake`. Product/contract blocker reopens the smallest source skill; manager never edits the leaf artifact.
-11. Re-read all artifacts; mark `ready` only with states/gates/guardians persisted and zero material questions.
-12. Loaded by `batista-loop` → no `Final Response`; return control to the loop's next step in the same turn. Standalone → respond per `Final Response`.
+11. `batista-validation`: write `validation.md` (Validation Plan before any validation; `Validation Progress` item a item) — `Author → Guardian Handshake`. Only when plan is `ready` with guardian `approved`. Product/contract blocker reopens the smallest source skill; manager never edits the leaf artifact.
+12. Re-read all artifacts; mark `ready` only with states/gates/guardians persisted and zero material questions.
+13. Loaded by `batista-loop` → no `Final Response`; return control to the loop's next step in the same turn. Standalone → respond per `Final Response`.
 
 ### Resume Dispatch
 
@@ -37,6 +38,7 @@ No guessing: investigate first, cite concrete evidence, record premises unconfir
 | Spec missing/draft/blocked/rejected | `batista-spec` |
 | Spec ready; applicable UX/Arch incomplete | `batista-ux`/`batista-arch` |
 | Solutions ready; plan incomplete | `batista-plan` |
+| Plan ready+approved; validation missing/draft | `batista-validation` |
 | Material question open | manifest `blocked`; ask the user |
 | All ready and approved | manifest `ready`; return to `batista-loop` |
 
@@ -96,10 +98,12 @@ Iterations used: {0}
 - UX: missing | not-applicable | draft | ready | blocked
 - Arch: missing | not-applicable | draft | ready | blocked
 - Plan: missing | draft | ready | blocked | running | done | fail
+- Validation: missing | not-applicable | draft | ready | blocked
 - Spec Guardian: missing | pending | approved | rejected
 - UX Guardian: missing | not-applicable | pending | approved | rejected
 - Arch Guardian: missing | not-applicable | pending | approved | rejected
 - Plan Guardian: missing | pending | approved | rejected
+- Validation Guardian: missing | not-applicable | pending | approved | rejected
 
 ## Current Resume Point
 
@@ -131,9 +135,9 @@ Iterations used: {0}
 - Never `ready` when the next run would have to guess contract, persistence, harness or target files.
 - Apply the `Solution Gate` with surfaces > intent precedence; record `not-applicable` in the manifest when the skill creates no file.
 - `not-applicable` in the manifest satisfies the solution gate; `missing` after the solution step is a blocker.
-- Spec, applicable ux/arch and plan guardians are always mandatory and independent.
+- Spec, applicable ux/arch, plan and validation guardians are always mandatory and independent (validation guardian required when a `validation.md` applies).
 - **Iteration budget**: increment `Iterations used` on every rejection or author re-invocation; after 3 attempts without new evidence, force `Status: blocked` and report.
-- Spec changes invalidate UX/Arch/Plan and their guardians; UX/Arch changes invalidate Plan and its guardian; plan changes invalidate its guardian. Persist the resets before the next dispatch.
+- Spec changes invalidate UX/Arch/Plan/Validation and their guardians; UX/Arch changes invalidate Plan/Validation and their guardians; plan (or spec) substantive changes invalidate `validation.md` (draft + guardian `pending`) and its guardian. Persist the resets before the next dispatch.
 - Durable outcomes (convention, architecture decision, repeated procedure) → project (`AGENTS.md`, project-local skills, `docs/adr`); ephemeral stays in `.features/{...}/`.
 - Existing file/dir input → review mode: fix/refine `manifest.md`, `spec.md` and/or `plan.md` before concluding; never accept inherited `ready` unchecked.
 - Never mark `done` with a pending question, blocker, `pending` evidence, rejected/pending guardian or undefined resume point in spec, plan or manifest.
@@ -153,8 +157,8 @@ Before **every** `Agent` call or yielding the turn, write to `manifest.md`: `Upd
 
 ## Context Isolation
 
-- Never run spec/ux/arch/plan inline when delegation is possible.
-- Delegate spec, ux, arch, plan and guardians via `Agent({ subagent_type: "delegate"|"artifact-guardian", ... })` (interface real e regras: `../../references/PI_ADAPTATION.md`), sempre com contexto mínimo (prompt por path; sem `inherit_context`; o child herda o cwd da sessão raiz).
+- Never run spec/ux/arch/plan/validation inline when delegation is possible.
+- Delegate spec, ux, arch, plan, validation and guardians via `Agent({ subagent_type: "delegate"|"artifact-guardian", ... })` (interface real e regras: `../../references/PI_ADAPTATION.md`), sempre com contexto mínimo (prompt por path; sem `inherit_context`; o child herda o cwd da sessão raiz).
 - Run applicable `batista-ux`/`batista-arch` in parallel when supported; otherwise serialize; pass only the spec as anchor contract plus needed docs.
 - Pass minimal context: request, paths, `AGENTS.md`, feature dir and relevant docs.
 - tool `Agent` unavailable → follow `../../references/PI_ADAPTATION.md`: record a blocker; never simulate guardian or inline authorship.

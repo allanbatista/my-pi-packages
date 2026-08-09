@@ -12,7 +12,9 @@ Mapear o harness de autoria, execução, validação e retomada oferecido pelo p
 - [batista-UX.md](./batista-UX.md): solução de usabilidade.
 - [batista-ARCH.md](./batista-ARCH.md): solução técnica.
 - [batista-PLAN.md](./batista-PLAN.md): DAG executável e harness.
+- [batista-VALIDATION.md](./batista-VALIDATION.md): plano e progresso de validação (validation.md).
 - [batista-EXECUTE.md](./batista-EXECUTE.md): coordenação de implementação.
+- [batista-INCIDENT.md](./batista-INCIDENT.md): orquestração de incidente em produção.
 - [SUBAGENTS.md](./SUBAGENTS.md): papéis e fronteiras do runtime.
 - [MANAGER_GUARD.md](./MANAGER_GUARD.md): contenção nativa de tool calls dos managers.
 
@@ -21,18 +23,25 @@ Mapear o harness de autoria, execução, validação e retomada oferecido pelo p
 ```mermaid
 flowchart LR
   User --> Loop
+  User --> Incident
+  Incident --> Loop
   Loop --> Manifest
   Manifest --> Spec
   Manifest --> UX
   Manifest --> Arch
   Manifest --> Plan
+  Manifest --> Validation
+  Validation --> Guardian
   Loop --> Execute
   Loop --> ManagerGuard
   ManagerGuard --> Worker
   ManagerGuard --> Validator
   Execute --> Worker
   Execute --> Validator
-  Spec & UX & Arch & Plan --> Guardian
+  Incident --> Plan
+  Incident --> Validation
+  Incident --> Execute
+  Spec & UX & Arch & Plan & Validation --> Guardian
 ```
 
 ## Fontes no código

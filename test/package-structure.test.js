@@ -7,11 +7,13 @@ const ROOT = path.resolve(__dirname, "..");
 const WORKFLOW = [
   "batista-arch",
   "batista-execute",
+  "batista-incident",
   "batista-loop",
   "batista-manifest",
   "batista-plan",
   "batista-spec",
   "batista-ux",
+  "batista-validation",
 ];
 const EXPECTED = [
   ...WORKFLOW,

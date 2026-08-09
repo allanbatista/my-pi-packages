@@ -13,7 +13,7 @@ This session becomes the execution manager: coordinates, records progress, deleg
 
 ### Write Boundary — fail-closed
 
-Manager `write`/`edit` allowlist: selected `loop.md`, `manifest.md`, `plan.md` only. Every other path is the worker's (trivial files, tests, configs, copies, renames, path fixes). On wrong write or incomplete change: record the rejection, launch a correction worker; the manager never moves, copies, recreates, or fixes product files.
+Manager `write`/`edit` allowlist: selected `loop.md`, `manifest.md`, `plan.md`, `validation.md` only. Every other path is the worker's (trivial files, tests, configs, copies, renames, path fixes). `validation.md` is the shared single-file ledger (per-item status/evidence/progress) and never belongs in a parallel worker's write set. On wrong write or incomplete change: record the rejection, launch a correction worker; the manager never moves, copies, recreates, or fixes product files.
 
 No guessing: investigate before delegating or concluding; demand concrete evidence from workers/validators; record a blocker for any premise unconfirmable via file, command, log, test, browser, or user answer. "Done" = practical validation with working evidence on the affected path, not "the code looks right".
 
@@ -23,22 +23,22 @@ Workers/validators get minimal context only (see Context Isolation). Apply `../.
 
 1. Read `AGENTS.md`; apply the agents preflight from `../../references/WORKFLOW_COMMON.md`; confirm builtin `worker` and the package's `workflow-validator` with the exact read-only allowlist.
 2. Canonicalize project root, feature dir, write sets per `../../references/WORKFLOW_COMMON.md`. Input resolving to an existing feature dir/file → select and re-read state; never create another feature.
-3. Reconcile `manifest.md`, `spec.md`, `plan.md`, relevant `ux.md`/`arch.md` slices. Execute only with manifest/spec/plan `ready`, mandatory guardians `approved`, gates `[x]`, zero material questions, runnable task. Root fix of an existing task: eligible only after full `Root Correction Reopen` transition; partial `done` is not runnable.
+3. Reconcile `manifest.md`, `spec.md`, `plan.md`, `validation.md`, relevant `ux.md`/`arch.md` slices. Execute only with manifest/spec/plan `ready`, mandatory guardians `approved`, gates `[x]`, zero material questions, runnable task. Root fix of an existing task: eligible only after full `Root Correction Reopen` transition; partial `done` is not runnable.
 4. Authorship divergence/gap → persist `blocked`, return to `batista-manifest`; never fix leaf artifacts nor execute by assumption.
 5. Resuming a `running` task: verify owner, diff, persisted evidence before relaunch; do not duplicate applied work.
 6. Capture worktree baseline; update `manifest.md`/`plan.md`: task/phase `running`, owner, write set, resume point, required evidence.
 7. Launch **worker** via `Agent({ subagent_type: "worker", prompt, description })` (interface real e regras em `../../references/PI_ADAPTATION.md`; modelo/thinking pinados no frontmatter do papel), closed scope: task, write set, DoD, practical evidence, relevant slices, permitted focused tests. O child herda o cwd da sessão raiz — manager deve estar no project root, nunca no feature dir.
 8. Parallel batch = dois ou mais `Agent` com `run_in_background: true` e write sets disjuntos apenas; start all before awaiting, depois `get_subagent_result({ agent_id, wait: true })`.
-9. After each synchronous worker: compare actual diff vs baseline/write set; persist files, commands, results, evidence. `(no output)` or missing envelope is **neither failure nor retry authorization** — inspect write set/evidence, proceed to validator if the result exists. Never `get_subagent_result` by agent name (async runs with real IDs only). Child reports never promote status.
-10. Launch **exactly one workflow-validator per task/attempt** via `Agent({ subagent_type: "workflow-validator", ... })`, real artifacts/evidence. Await and consume its return; never duplicate it in a batch nor relaunch just to change `output`. It inspects persisted evidence read-only. Absence of rejection is insufficient: require explicit positive approval per `WORKFLOW_COMMON`; `pending`, `blocked`, silent, or ambiguous returns do not promote the task.
-11. Rejection or diff/write-set/path divergence → record cause, delegate the minimal fix to a new worker. Never fix directly (not one line, not a move/copy); same cause repeated without new evidence becomes a blocker.
+9. After each synchronous worker: compare actual diff vs baseline/write set; persist files, commands, results, evidence. `(no output)` or missing envelope is **neither failure nor retry authorization** — inspect write set/evidence, proceed to validator if the result exists. Never `get_subagent_result` by agent name (async runs with real IDs only). Child reports never promote status. From worker reports, record in the `validation.md` `Validation Progress` the per-item status (`pass|fail|pending`) and produced evidence for the items the worker produced evidence on.
+10. Launch **exactly one workflow-validator per task/attempt** via `Agent({ subagent_type: "workflow-validator", ... })`, real artifacts/evidence. Await and consume its return; never duplicate it in a batch nor relaunch just to change `output`. It inspects persisted evidence read-only. It also confers the `validation.md` `Validation Progress` item by item — verifying each item's recorded status and checked evidence — and approves each item only with explicit positive approval per `WORKFLOW_COMMON`; this gate must require explicit positive approval and absence of rejection does not promote an item. `pending`, `blocked`, silent, or ambiguous returns do not promote the task.
+11. From the validator's per-item verdicts, update the `validation.md` `Validation Progress`: `pass|fail|pending` status + produced evidence per item, and refresh the header `Updated:`. Then, on rejection or diff/write-set/path divergence → record cause, delegate the minimal fix to a new worker. Never fix directly (not one line, not a move/copy); same cause repeated without new evidence becomes a blocker.
 12. Phase close: delegate the plan's final gate to the worker; no full suites per task out of habit.
 13. Mark `done` only after validator `approved`. All phases and evidence approved → close state atomically before returning control: `Status:` of `plan.md` and `manifest.md` to `done`, `manifest.md > State > Plan: done`, resume points with no next task, all tasks/phases `done`; re-read both — any divergence keeps execution `running`.
 14. Loaded by `batista-loop` → emit no `Final Response`; return control to the loop in the same turn. Standalone → respond per `Final Response`.
 
 ## Manager Boundaries
 
-- May edit `manifest.md`/`plan.md` (status, blockers, evidence, loop ledger, resume point).
+- May edit `manifest.md`/`plan.md`/`validation.md` (status, blockers, evidence, loop ledger, resume point; validation records per-item status/evidence/progress in `validation.md`).
 - May ask the user for clarification when a decision blocks safe execution.
 - May not implement code, fix tests, alter product files, or deem its own validation sufficient.
 - No `Agent` tool → follow `../../references/PI_ADAPTATION.md`: block; never simulate worker/validator inline.
@@ -67,11 +67,12 @@ Validation worker:
 ```text
 You are the independent validator of this task/phase.
 Model: deepseek/deepseek-v4-flash:xhigh.
-Read AGENTS.md, spec.md, plan.md, and the worker result.
+Read AGENTS.md, spec.md, plan.md, validation.md (Validation Plan + Validation Progress), and the worker result.
 Do not implement fixes; do not run commands or tests (worker or phase gate owns them).
 Check the executable/observable evidence already produced: browser, API, consumer, logs, manual smoke, commands with outputs, artifacts.
+Confer the `validation.md` `Validation Progress` item by item: verify each item's recorded status and checked evidence, and approve each item only with explicit positive approval (`pass`); absence of rejection does not promote an item.
 Reject code-reading-only, generic evidence, or tests without proof of the affected behavior.
-Verify alignment with requirements, DoD, expected files, practical evidence, and obvious regressions.
+Verify alignment with requirements, DoD, expected files, validation items, practical evidence, and obvious regressions.
 Return only `DELEGATION_RESULT` with approved/rejected, evidence checked, and minimal fix.
 ```
 

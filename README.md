@@ -1,6 +1,6 @@
 # my-pi-packages
 
-Pacote do Pi com o workflow de features (`batista-*`): autoria (spec → ux ∥ arch → plan), execução com workers e validadores independentes, memória técnica de entidades, entrega ponta a ponta (commit → deploy), busca web via OpenRouter e mensagens Discord.
+Pacote do Pi com o workflow de features (`batista-*`): autoria (spec → ux ∥ arch → plan → validation), execução com workers e validadores independentes, memória técnica de entidades, entrega ponta a ponta (commit → deploy), incidentes em produção via `/skill:batista-incident` (CloudWatch → investigação → correção → deploy → monitoramento), busca web via OpenRouter e mensagens Discord.
 
 ## Instalação
 
@@ -34,7 +34,7 @@ cp agents/*.md ~/.pi/agent/agents/
 
 | Papel | `subagent_type` | Tools | Modelo (frontmatter) |
 |---|---|---|---|
-| `delegate` | autor de spec/ux/arch/plan | read, bash, edit, write, grep, find, ls | herda a sessão |
+| `delegate` | autor de spec/ux/arch/plan/validation | read, bash, edit, write, grep, find, ls | herda a sessão |
 | `worker` | implementação | read, bash, edit, write, grep, find, ls | `deepseek/deepseek-v4-flash`, thinking `off` |
 | `workflow-validator` | validação de execução | read, grep, find, ls (read-only) | `deepseek/deepseek-v4-flash`, thinking `xhigh` |
 | `artifact-guardian` | guardian de artefato/outcome | read, grep, find, ls (read-only) | herda a sessão |
@@ -76,13 +76,17 @@ cp agents/*.md ~/.pi/agent/agents/
 | batista-ux | `/skill:batista-ux` | Usabilidade e fluxos (quando há frontend) |
 | batista-arch | `/skill:batista-arch` | Arquitetura e contratos (quando há backend) |
 | batista-plan | `/skill:batista-plan` | Plano técnico, Impact Map, paralelismo |
+| batista-validation | `/skill:batista-validation` | Plano de validação e progresso (`validation.md`) — formula o Validation Plan antes de validar |
 | batista-execute | `/skill:batista-execute` | Coordenação de workers e validação |
 | batista-memory | `/skill:batista-memory` | Memória técnica de entidades/componentes em `memory/<dominio>/` |
 | batista-ship-pr-to-deploy | `/skill:batista-ship-pr-to-deploy` | Entrega ponta a ponta: commit → PR → CR → CI → merge → tag → deploy → release note |
 | batista-discord-webhook-messages | `/skill:batista-discord-webhook-messages` | Mensagens Discord por sessão via bot (`scripts/discord_message.py`) |
 | batista-websearch | `/skill:batista-websearch` | Busca web com respostas fundamentadas via OpenRouter Web Search Plugin (`scripts/websearch.py`) |
+| batista-incident | `/skill:batista-incident` | Incidente em produção — CloudWatch, investigação, correção, deploy, monitoramento |
 
 ## Validação
+
+O pipeline valida cada feature com evidências via subagents (`worker` produz evidência, `workflow-validator` confere item a item), com o plano formulado **antes** de validar. A skill `batista-validation` (`/skill:batista-validation`) cria `validation.md` na feature, lado a lado com `spec.md`/`plan.md`, com o `Validation Plan` (itens `V#`, método/evidência esperada) e o `Validation Progress` (status pass/fail/pending + evidência por item, conferido pelo `workflow-validator`).
 
 ```bash
 ./scripts/validate.sh   # estrutura, skills-ref, resíduos Codex

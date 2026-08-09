@@ -21,7 +21,7 @@ log_line() {
   fi
 }
 
-EXPECTED_SKILLS=(batista-arch batista-execute batista-loop batista-manifest batista-plan batista-spec batista-ux batista-discord-webhook-messages batista-memory batista-ship-pr-to-deploy batista-websearch)
+EXPECTED_SKILLS=(batista-arch batista-execute batista-incident batista-loop batista-manifest batista-plan batista-spec batista-ux batista-validation batista-discord-webhook-messages batista-memory batista-ship-pr-to-deploy batista-websearch)
 
 log_section "Structure check" structure-check
 node -e "
@@ -52,8 +52,8 @@ done
 
 IFS=$'\n' sorted_found=($(printf '%s\n' "${found[@]}" | sort))
 IFS=$'\n' sorted_expected=($(printf '%s\n' "${EXPECTED_SKILLS[@]}" | sort))
-if [ "${#found[@]}" -ne 11 ]; then
-  log_line "FAIL: expected 11 skills, found ${#found[@]}: ${found[*]}" structure-check
+if [ "${#found[@]}" -ne 13 ]; then
+  log_line "FAIL: expected 13 skills, found ${#found[@]}: ${found[*]}" structure-check
   exit 1
 fi
 for i in "${!sorted_expected[@]}"; do
@@ -62,7 +62,7 @@ for i in "${!sorted_expected[@]}"; do
     exit 1
   fi
 done
-log_line "All 11 skills present with valid frontmatter" structure-check
+log_line "All 13 skills present with valid frontmatter" structure-check
 
 log_section "skills-ref validate" skills-validate
 for skill in "${EXPECTED_SKILLS[@]}"; do
