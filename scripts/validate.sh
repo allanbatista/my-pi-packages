@@ -72,6 +72,38 @@ for skill in "${EXPECTED_SKILLS[@]}"; do
   done
 done
 
+log_section "Agents drift check (package vs installed)" agents-drift
+# Politica: nenhum papel pina model/thinking (o modelo indicado pelo usuario prevalece).
+# O frontmatter dos agent files do package e a fonte da verdade: divergencia com o
+# instalado (global ou projeto) e deriva — inclusive pin reintroduzido no instalado
+# (correcao manual ou reinstalacao parcial que ressuscita pins antigos).
+field() { awk -v k="$1" -v f="$2" '$0 ~ "^" k ":" { sub(/^[^:]+:[[:space:]]*/, ""); print }' "$2"; }
+for af in "$ROOT"/agents/*.md; do
+  name="$(basename "$af")"
+  if [ -n "$(field model "$af")" ] || [ -n "$(field thinking "$af")" ]; then
+    log_line "FAIL: $name declara model/thinking no frontmatter (politica: sem pin; usuario prevalece)" agents-drift
+    exit 1
+  fi
+  src_fields="|$(field model "$af")|$(field thinking "$af")|$(field extensions "$af")|$(field tools "$af")|"
+  checked=0
+  for inst in "$HOME/.pi/agent/agents/$name" "$ROOT/.pi/agents/$name"; do
+    [ -f "$inst" ] || continue
+    checked=1
+    inst_fields="|$(field model "$inst")|$(field thinking "$inst")|$(field extensions "$inst")|$(field tools "$inst")|"
+    if [ "$src_fields" != "$inst_fields" ]; then
+      log_line "FAIL: $name diverge do package:" agents-drift
+      log_line "  package : $src_fields" agents-drift
+      log_line "  instalado: $inst_fields ($inst)" agents-drift
+      exit 1
+    fi
+    log_line "OK: $name == $inst" agents-drift
+  done
+  if [ "$checked" -eq 0 ]; then
+    log_line "WARN: $name nao instalado (sem $HOME/.pi/agent/agents/$name nem .pi/agents/$name)" agents-drift
+  fi
+done
+log_line "No agent drift (model/thinking ausentes nos agent files)" agents-drift
+
 log_section "Codex residue check" codex-residue
 if rg -n '\$my-feature-workflow|\.codex-plugin|agents/openai\.yaml' "$ROOT" \
   --glob '!scripts/validate.sh' \

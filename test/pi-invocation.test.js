@@ -619,10 +619,10 @@ Status: pending
     const validatorCalls = launches.filter(
       (call) => call.arguments.subagent_type === "workflow-validator"
     );
-    assert.match(roleAgentFrontmatter("worker"), /model: deepseek\/deepseek-v4-flash/);
-    assert.match(roleAgentFrontmatter("worker"), /thinking: off/);
-    assert.match(roleAgentFrontmatter("workflow-validator"), /model: deepseek\/deepseek-v4-flash/);
-    assert.match(roleAgentFrontmatter("workflow-validator"), /thinking: xhigh/);
+    assert.doesNotMatch(roleAgentFrontmatter("worker"), /^model:/m, "worker frontmatter must not pin model");
+    assert.doesNotMatch(roleAgentFrontmatter("worker"), /^thinking:/m, "worker frontmatter must not pin thinking");
+    assert.doesNotMatch(roleAgentFrontmatter("workflow-validator"), /^model:/m, "validator frontmatter must not pin model");
+    assert.doesNotMatch(roleAgentFrontmatter("workflow-validator"), /^thinking:/m, "validator frontmatter must not pin thinking");
     for (const call of workerCalls) {
       assert.ok(call.arguments.model == null, "worker model comes from frontmatter");
     }
@@ -974,8 +974,8 @@ Status: pending
       assert.ok(calls.some((call) => String(call.arguments.prompt).includes("result-b.txt")));
       assert.ok(calls.every((call) => !String(call.arguments.prompt).includes("result-a.txt")));
     }
-    assert.match(roleAgentFrontmatter("worker"), /model: deepseek\/deepseek-v4-flash/);
-    assert.match(roleAgentFrontmatter("workflow-validator"), /thinking: xhigh/);
+    assert.doesNotMatch(roleAgentFrontmatter("worker"), /^model:/m);
+    assert.doesNotMatch(roleAgentFrontmatter("workflow-validator"), /^thinking:/m);
     for (const call of launches.filter((item) => item.arguments.subagent_type === "worker")) {
       assert.ok(call.arguments.model == null, "worker model comes from frontmatter");
     }
@@ -1141,10 +1141,10 @@ Evidence: result-a.txt contém bad, esperado ok
       validator,
       "root correction launched another child between worker and validator"
     );
-    assert.match(roleAgentFrontmatter("worker"), /model: deepseek\/deepseek-v4-flash/);
-    assert.match(roleAgentFrontmatter("worker"), /thinking: off/);
-    assert.match(roleAgentFrontmatter("workflow-validator"), /model: deepseek\/deepseek-v4-flash/);
-    assert.match(roleAgentFrontmatter("workflow-validator"), /thinking: xhigh/);
+    assert.doesNotMatch(roleAgentFrontmatter("worker"), /^model:/m, "worker frontmatter must not pin model");
+    assert.doesNotMatch(roleAgentFrontmatter("worker"), /^thinking:/m, "worker frontmatter must not pin thinking");
+    assert.doesNotMatch(roleAgentFrontmatter("workflow-validator"), /^model:/m, "validator frontmatter must not pin model");
+    assert.doesNotMatch(roleAgentFrontmatter("workflow-validator"), /^thinking:/m, "validator frontmatter must not pin thinking");
     assert.ok(worker.arguments.model == null, "worker model comes from frontmatter");
     assert.ok(validator.arguments.model == null, "validator model comes from frontmatter");
     assert.ok(worker.arguments.inherit_context == null, "worker runs with fresh context");

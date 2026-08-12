@@ -18,7 +18,7 @@ No guessing: investigate first, cite concrete evidence, record premises unconfir
 ## Workflow
 
 1. Read `AGENTS.md`, validate paths; apply the `list` + `get` preflight from `../../references/WORKFLOW_COMMON.md` for `delegate` and `artifact-guardian`.
-2. Existing feature dir/file input → select and re-read artifacts; do not create another feature. New request → create `.features/{YYYY-MM-DD}_{HHMM}-{short-desc}/`.
+2. Existing feature dir/file input → select and re-read artifacts; do not create another feature. New request → create `.features/{YYYY-MM-DD}_{HHMM}-{short-desc}/`. Orchestrated (sub-feature): use exactly the feature dir passed in — never derive `{feature-dir}/{name}/` or `{root}/{name}/` (subpasta nova é estrutura inválida; ver `../../references/WORKFLOW_COMMON.md`).
 3. Reconcile status, questions, gates, guardians, evidence per `State Reconciliation`; most specific file beats the manifest.
 4. Create/update `manifest.md` with links, real state and resume point.
 5. Dispatch from the first missing/blocked/invalid artifact or the resume point; don't restart from spec already `ready` and approved.

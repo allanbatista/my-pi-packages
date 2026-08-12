@@ -10,7 +10,7 @@ Este repositório (`my-pi-packages`) é um **pi package** instalável com `pi in
 - `skills/{skill-name}/scripts/`: scripts próprios de uma skill (ex.: `discord_message.py`).
 - `agents/{agent-name}.md`: papéis do workflow carregados pela extensão `@tintinweb/pi-subagents` (guardians/validator read-only; worker/delegate com escrita).
 - `references/PI_ADAPTATION.md`: contrato entre slash commands, managers e a ferramenta `Agent` da extensão.
-- `references/MODEL_POLICY.md`: modelo/effort por papel (planejamento herda sessão; execução usa DeepSeek flash).
+- `references/MODEL_POLICY.md`: modelo/effort por papel (planejamento herda sessão; execução usa `openai-codex/gpt-5.6-luna` + `max`).
 - `examples/subagents.json`: settings operacionais da extensão para `~/.pi/agent/subagents.json` ou `.pi/subagents.json`.
 - `.memory/RULES_AND_DEFINITION.md`: regras duráveis do workflow.
 
@@ -91,7 +91,7 @@ Antes de editar, leia este arquivo e preserve o menor diff seguro. Não gere sca
 | Fase | Papéis | Modelo |
 |---|---|---|
 | Planejamento | loop, manifest, spec, ux, arch, plan, batista-validation, incident, guardians de artefato | Modelo da sessão; effort efetivo do runtime |
-| Execução | worker | `deepseek/deepseek-v4-flash`, sem reasoning |
-| Execução | validador | `deepseek/deepseek-v4-flash`, thinking **xhigh** |
+| Execução | worker | Sem pin — herda sessão/chamada; default indicado `openai-codex/gpt-5.6-luna` + effort **low** (write code = low effort) |
+| Execução | validador | Sem pin — herda sessão/chamada; default indicado `openai-codex/gpt-5.6-luna` + effort **high** (validation = high effort) |
 
-A política vive no frontmatter dos agent files (`agents/worker.md`, `agents/workflow-validator.md`), que é autoritativo na extensão; planejamento (`delegate`, `artifact-guardian`) herda o modelo da sessão. Settings operacionais da extensão: mescle `examples/subagents.json` em `~/.pi/agent/subagents.json` ou `.pi/subagents.json` quando quiser defaults persistentes.
+A política **não pina** `model`/`thinking` no frontmatter (autoritativo na extensão): o modelo indicado pelo usuário (sessão raiz ou pedido explícito repassado na chamada `Agent(...)`) sempre prevalece; sem indicação, aplica-se a indicação default acima (vive em `references/MODEL_POLICY.md`). `scripts/validate.sh` (check `agents-drift`) falha se um pin for reintroduzido no package ou no instalado. Planejamento (`delegate`, `artifact-guardian`) herda o modelo da sessão. Settings operacionais da extensão: mescle `examples/subagents.json` em `~/.pi/agent/subagents.json` ou `.pi/subagents.json` quando quiser defaults persistentes.

@@ -21,6 +21,7 @@ Leia também `./PI_ADAPTATION.md` (sintaxe real de delegação da extensão `@ti
 ## Fronteira de paths
 
 - Antes de escrever ou delegar, canonicalize o project root e o ancestral existente mais próximo do feature dir. O feature dir deve ficar em `{project-root}/.features/`, sem `..` nem escape por symlink.
+- **Uma feature dir por escopo**: sub-feature no mesmo worktree (sequencial/single) usa **a própria feature dir do epic** — `manifest.md`, `spec.md`, `ux.md`, `arch.md`, `plan.md` e `validation.md` ficam na mesma pasta do `loop.md`, nunca em subpasta nova (`{feature-dir}/{nome}/` ou `{root}/{nome}/` é estrutura inválida). Sub-feature paralela = worktree próprio com sua `.features/{...}/`. Ao detectar artefatos em subpasta, mova-os para a feature dir canônica e corrija referências relativas (`../loop.md` → `loop.md` etc.) antes de qualquer dispatch.
 - Normalize cada write set do worker contra o project root; rejeite path absoluto externo, `..` e symlink que resolva fora da raiz.
 - A tool `Agent` herda o cwd da sessão raiz: o manager deve estar rodando no project root antes de despachar. Para isolar filesystem use `isolation: "worktree"` (nunca para guardians/validators). O cwd alternativo só existe no RPC `subagents:rpc:spawn` (`options.cwd`), para outras extensões.
 - Antes de cada `write`/`edit`, o manager resolve o target e cancela a chamada se ele não for um `loop.md`, `manifest.md`, `plan.md` ou `validation.md` selecionado. Path de produto errado, incompleto ou trivial sempre volta a worker; nem gap raiz autoriza o manager a criar, corrigir, mover, copiar ou remover produto.
@@ -39,11 +40,23 @@ Agent({
 })
 ```
 
-`batista-validation` é autoria (planejamento): escreve somente `validation.md` da feature (não escreve produto) e requer seu próprio `artifact-guardian` aprovar antes da execução. Guardian de planejamento/outcome: `Agent({ subagent_type: "artifact-guardian", ... })`, sem permissão de escrita (tools read-only). Execução: `Agent({ subagent_type: "worker", ... })` e validação `Agent({ subagent_type: "workflow-validator", ... })` — modelos por papel definidos em `MODEL_POLICY.md` (frontmatter dos agent files é autoritativo; a chamada não os sobrescreve). O child herda o cwd da sessão raiz: sessão raiz fora do project root (feature dir como `cwd`) ou valor efetivo divergente é dispatch inválido e não pode promover task, fase ou sub-feature. Settings são fallback, não evidência do modelo usado.
+`batista-validation` é autoria (planejamento): escreve somente `validation.md` da feature (não escreve produto) e requer seu próprio `artifact-guardian` aprovar antes da execução. Guardian de planejamento/outcome: `Agent({ subagent_type: "artifact-guardian", ... })`, sem permissão de escrita (tools read-only). Execução: `Agent({ subagent_type: "worker", ... })` e validação `Agent({ subagent_type: "workflow-validator", ... })` — os agent files **não pinam** `model`/`thinking` (ver `MODEL_POLICY.md`): a chamada repassa `model`/`thinking` somente quando o usuário indicar explicitamente; omitidos, o child herda o modelo da sessão raiz. O child herda o cwd da sessão raiz: sessão raiz fora do project root (feature dir como `cwd`) ou valor efetivo divergente é dispatch inválido e não pode promover task, fase ou sub-feature. Settings são fallback, não evidência do modelo usado.
 
 Para `batista-ux` e `batista-arch` independentes (write sets disjuntos), dispare dois `Agent` com `run_in_background: true` e aguarde ambos. Não paralelize writers com write sets sobrepostos.
 
 Uma tentativa tem no máximo um dispatch por par papel+task. Não duplique child no mesmo batch e não repita chamada apenas para obter outro formato de output; consuma o primeiro retorno e só abra nova tentativa após rejeição persistida.
+
+## Canary de runtime (obrigatório antes do primeiro dispatch real)
+
+Antes de qualquer dispatch de worker/validator de um run ou resume, despache um canary read-only: `Agent({ subagent_type: "worker", prompt: "Canary: sem escrever nada, reporte pwd; git rev-parse --show-toplevel; git branch --show-current; conectividade (ex.: gh auth status ou probe de rede). Retorne DELEGATION_RESULT com evidence.", description: "canary cwd/modelo", max_turns: 3 })`. Ele confirma:
+
+1. **cwd real** == project root / worktree esperado da feature (quando o plano usa worktree, branch e root devem conferir com `~/Workspaces/worktrees/<repo>-<branch>`);
+2. **modelo/thinking efetivo** == expectativa: o que o usuário indicou (sessão raiz ou pedido explícito) ou a indicação default da `MODEL_POLICY` (conferir no transcript do canary quando disponível; nunca por settings);
+3. **conectividade** suficiente para o E2E.
+
+Divergência em (1) → `blocked` com instrução literal de reiniciar o Pi no diretório correto e retomar do checkpoint; nunca despache E2E em cwd errado. O canary não escreve arquivos, não substitui o preflight de agents e conta como dispatch da tentativa (máximo um por par papel+task).
+
+Todo dispatch declara `max_turns` explícito: canary baixo (ex.: 3); workers proporcionais ao escopo da fase, nunca ilimitado. Tasks amplas (E2E inteiro) são quebradas em fases com checkpoint obrigatório entre elas — uma task interrompida sem checkpoint retoma da fase, não do zero.
 
 Chamada `Agent` sem `run_in_background` já terminou quando retorna (resultado inline). `(no output)` não significa falha: reconstrua por diff, write set e evidência; nunca consulte `get_subagent_result` por nome de agent nem relance por ausência de texto. Background retorna `agent_id`; aguarde com `get_subagent_result({ agent_id, wait: true })`.
 

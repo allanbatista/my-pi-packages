@@ -2,8 +2,9 @@
 name: worker
 description: Implementa código, testes, configurações e migrations dentro de um write set fechado, com evidência prática.
 tools: read, bash, edit, write, grep, find, ls
-model: deepseek/deepseek-v4-flash
-thinking: off
+# Modelo/thinking NAO sao pinados aqui: o modelo indicado pelo usuario (sessao raiz ou
+# pedido explicito repassado na chamada Agent(model=..., thinking=...)) prevalece.
+# Indicacao default quando disponivel e sem indicacao contraria: openai-codex/gpt-5.6-luna + thinking: low (write code = low effort; ver references/MODEL_POLICY.md).
 prompt_mode: replace
 skills: false
 ---

@@ -24,12 +24,12 @@ Sem a extensão `@tintinweb/pi-subagents` (tools `Agent`/`get_subagent_result`/`
 
 ## Modelo e thinking por papel (MODEL_POLICY)
 
-O frontmatter dos agent files (`agents/*.md`) é autoritativo (ver `../../references/MODEL_POLICY.md`).
+Os agent files (`agents/*.md`) **não pinam** `model`/`thinking` (ver `../../references/MODEL_POLICY.md`): a indicação do usuário (sessão raiz ou pedido explícito repassado na chamada) prevalece; sem indicação, o padrão é:
 
-- **Autoria** (`delegate`) e **guardians** (`artifact-guardian`): **não pinam modelo** — herdam o modelo ativo da sessão raiz (`model: "inherit"`).
-- **Worker**: `deepseek/deepseek-v4-flash` + `thinking: off`.
-- **Workflow-validator**: `deepseek/deepseek-v4-flash` + `thinking: xhigh`.
-- **Pedido de modelo específico do usuário** (ex.: luna max) aplica-se aos papéis **sem modelo pinado** (delegate/artifact-guardian — herdam a sessão); `worker`/`workflow-validator` mantêm os pins da MODEL_POLICY. Se o modelo pedido estiver indisponível no runtime, registre como blocker não bloqueante no doc do incidente e siga com o modelo herdado/pinado.
+- **Autoria** (`delegate`) e **guardians** (`artifact-guardian`): herdam o modelo ativo da sessão raiz.
+- **Worker**: indicação default `openai-codex/gpt-5.6-luna` + `thinking: low` (write code = low effort).
+- **Workflow-validator**: indicação default `openai-codex/gpt-5.6-luna` + `thinking: high` (validation = high effort).
+- **Pedido de modelo específico do usuário**: prevalece sobre a indicação default; o manager repassa `model`/`thinking` na chamada `Agent(...)` apenas nesse caso. Se o modelo indicado estiver indisponível no runtime, registre como blocker não bloqueante no doc do incidente e siga com o modelo herdado.
 
 ## Entrada e identificação do alvo (a)
 

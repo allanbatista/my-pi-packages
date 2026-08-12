@@ -35,8 +35,8 @@ cp agents/*.md ~/.pi/agent/agents/
 | Papel | `subagent_type` | Tools | Modelo (frontmatter) |
 |---|---|---|---|
 | `delegate` | autor de spec/ux/arch/plan/validation | read, bash, edit, write, grep, find, ls | herda a sessão |
-| `worker` | implementação | read, bash, edit, write, grep, find, ls | `deepseek/deepseek-v4-flash`, thinking `off` |
-| `workflow-validator` | validação de execução | read, grep, find, ls (read-only) | `deepseek/deepseek-v4-flash`, thinking `xhigh` |
+| `worker` | implementação | read, bash, edit, write, grep, find, ls | sem pin; default `openai-codex/gpt-5.6-luna`, thinking `low` |
+| `workflow-validator` | validação de execução | read, grep, find, ls (read-only) | sem pin; default `openai-codex/gpt-5.6-luna`, thinking `high` |
 | `artifact-guardian` | guardian de artefato/outcome | read, grep, find, ls (read-only) | herda a sessão |
 
 ### Ferramentas de sistema

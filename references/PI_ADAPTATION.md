@@ -31,7 +31,7 @@ Referência normativa da interface real de `@tintinweb/pi-subagents` (v0.14.x). 
 | 2 | `.agents/agents/<name>.md` | projeto — workspace compartilhado cross-tool |
 | 3 | `~/.pi/agent/agents/<name>.md` (`$PI_CODING_AGENT_DIR/agents`) | global |
 
-Campos de frontmatter suportados (todos opcionais): `name`, `description`, `display_name`, `tools` (builtins `read, bash, edit, write, grep, find, ls`, `*`/`all`, `none`, `ext:<ext>/<tool>`), `extensions` (true/false/lista), `exclude_extensions`, `skills` (true/lista/false), `memory` (project/local/user), `disallowed_tools`, `isolation: worktree`, `model` (provider/id ou fuzzy), `thinking` (off|minimal|low|medium|high|xhigh|max), `max_turns`, `persist_session`, `output_transcript`, `session_dir`, `prompt_mode` (`replace` = corpo é o system prompt, sem herança de AGENTS.md/CLAUDE.md; `append` = twin do pai), `inherit_context`, `run_in_background`, `isolated`, `enabled`. **Frontmatter é autoritativo**: `model`/`thinking`/`max_turns`/`inherit_context` pinados no arquivo não são sobrescritos por parâmetros da chamada. Campos desconhecidos são ignorados.
+Campos de frontmatter suportados (todos opcionais): `name`, `description`, `display_name`, `tools` (builtins `read, bash, edit, write, grep, find, ls`, `*`/`all`, `none`, `ext:<ext>/<tool>`), `extensions` (true/false/lista), `exclude_extensions`, `skills` (true/lista/false), `memory` (project/local/user), `disallowed_tools`, `isolation: worktree`, `model` (provider/id ou fuzzy), `thinking` (off|minimal|low|medium|high|xhigh|max), `max_turns`, `persist_session`, `output_transcript`, `session_dir`, `prompt_mode` (`replace` = corpo é o system prompt, sem herança de AGENTS.md/CLAUDE.md; `append` = twin do pai), `inherit_context`, `run_in_background`, `isolated`, `enabled`. **Frontmatter é autoritativo**: `model`/`thinking`/`max_turns`/`inherit_context` pinados no arquivo não são sobrescritos por parâmetros da chamada — por isso os papéis deste package **não pinam** `model`/`thinking` (a indicação do usuário na chamada ou na sessão prevalece). Campos desconhecidos são ignorados.
 
 **Settings persistidos** (não é o settings.json do Pi): `~/.pi/agent/subagents.json` (global, manual) + `<cwd>/.pi/subagents.json` (projeto, escrito por `/agents`; projeto vence). Campos: `maxConcurrent` (default 4), `defaultMaxTurns`, `graceTurns` (5), `defaultJoinMode` (smart|async|group), `schedulingEnabled`, `scopeModels`, `disableDefaultAgents`, `outputTranscript`, `toolDescriptionMode` (full|compact|custom), `widgetMode` (all|background|off). Ver `examples/subagents.json`.
 
@@ -44,8 +44,8 @@ Os papéis são custom agents definidos neste package (`agents/`) e instalados e
 | Papel | subagent_type | Tools | Modelo/thinking |
 |---|---|---|---|
 | Autor de artefato | `delegate` | read, bash, edit, write, grep, find, ls | herda a sessão |
-| Implementação | `worker` | read, bash, edit, write, grep, find, ls | `deepseek/deepseek-v4-flash` + `thinking: off` (frontmatter) |
-| Validação de execução | `workflow-validator` | read, grep, find, ls | `deepseek/deepseek-v4-flash` + `thinking: xhigh` (frontmatter) |
+| Implementação | `worker` | read, bash, edit, write, grep, find, ls | sem pin (herda sessão/chamada); indicação default: `openai-codex/gpt-5.6-luna` + `thinking: low` |
+| Validação de execução | `workflow-validator` | read, grep, find, ls | sem pin (herda sessão/chamada); indicação default: `openai-codex/gpt-5.6-luna` + `thinking: high` |
 | Guardian de artefato/outcome | `artifact-guardian` | read, grep, find, ls | herda a sessão |
 
 ## Preflight (substitui o antigo `action: list`/`get`)
@@ -54,7 +54,7 @@ A v0.14.x **não** expõe RPC `action: list`/`get` pela tool `Agent`. O prefligh
 
 1. **Extensão ativa:** as tools `Agent`, `get_subagent_result` e `steer_subagent` existem no harness (presença na lista de tools).
 2. **Papéis presentes:** para cada papel usado, existe o arquivo do agente em `~/.pi/agent/agents/` (ou `.pi/agents/` do projeto) — `delegate.md`, `worker.md`, `workflow-validator.md`, `artifact-guardian.md` — com frontmatter válido (`name`/`description`/`tools`). Guardian e validator exigem `tools: read, grep, find, ls` e `extensions: false` (read-only real); divergência = `blocked`, nunca despachar.
-3. **Modelo por papel:** conferir `MODEL_POLICY.md` (frontmatter dos agent files é a fonte; `model`/`thinking` não são passados por chamada quando pinados).
+3. **Modelo por papel:** conferir `MODEL_POLICY.md` — os agent files **não pinam** `model`/`thinking` (por isso a chamada pode passá-los quando o usuário indicar); a indicação default (worker low effort, validador high effort) vive na política, não no frontmatter. Divergência entre `agents/*.md` do package e o instalado (`~/.pi/agent/agents/`, `.pi/agents/`) é deriva — detectável por `scripts/validate.sh` (check `agents-drift`) e sinal de correção não propagada.
 4. Verificação visual opcional: `/agents → Agent types` (lista `•`/`◦`/`✕` e modelo efetivo).
 
 Fonte, path ou tools divergentes indicam shadowing/configuração insegura: grave `blocked` e não despache.

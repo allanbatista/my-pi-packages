@@ -17,7 +17,7 @@ Manager `write`/`edit` allowlist: selected `loop.md`, `manifest.md`, `plan.md`, 
 
 No guessing: investigate before delegating or concluding; demand concrete evidence from workers/validators; record a blocker for any premise unconfirmable via file, command, log, test, browser, or user answer. "Done" = practical validation with working evidence on the affected path, not "the code looks right".
 
-Workers/validators get minimal context only (see Context Isolation). Apply `../../references/MODEL_POLICY.md`: worker `deepseek/deepseek-v4-flash:off`; `workflow-validator` `deepseek/deepseek-v4-flash:xhigh`.
+Workers/validators get minimal context only (see Context Isolation). Apply `../../references/MODEL_POLICY.md`: no `model`/`thinking` pinned in agent files; default indication is worker `openai-codex/gpt-5.6-luna:low` (write code = low effort) and `workflow-validator` `openai-codex/gpt-5.6-luna:high` (validation = high effort); user indication (session or explicit request) prevails — pass `model`/`thinking` in the call only on explicit request.
 
 ## Workflow
 
@@ -27,14 +27,15 @@ Workers/validators get minimal context only (see Context Isolation). Apply `../.
 4. Authorship divergence/gap → persist `blocked`, return to `batista-manifest`; never fix leaf artifacts nor execute by assumption.
 5. Resuming a `running` task: verify owner, diff, persisted evidence before relaunch; do not duplicate applied work.
 6. Capture worktree baseline; update `manifest.md`/`plan.md`: task/phase `running`, owner, write set, resume point, required evidence.
-7. Launch **worker** via `Agent({ subagent_type: "worker", prompt, description })` (interface real e regras em `../../references/PI_ADAPTATION.md`; modelo/thinking pinados no frontmatter do papel), closed scope: task, write set, DoD, practical evidence, relevant slices, permitted focused tests. O child herda o cwd da sessão raiz — manager deve estar no project root, nunca no feature dir.
-8. Parallel batch = dois ou mais `Agent` com `run_in_background: true` e write sets disjuntos apenas; start all before awaiting, depois `get_subagent_result({ agent_id, wait: true })`.
-9. After each synchronous worker: compare actual diff vs baseline/write set; persist files, commands, results, evidence. `(no output)` or missing envelope is **neither failure nor retry authorization** — inspect write set/evidence, proceed to validator if the result exists. Never `get_subagent_result` by agent name (async runs with real IDs only). Child reports never promote status. From worker reports, record in the `validation.md` `Validation Progress` the per-item status (`pass|fail|pending`) and produced evidence for the items the worker produced evidence on.
-10. Launch **exactly one workflow-validator per task/attempt** via `Agent({ subagent_type: "workflow-validator", ... })`, real artifacts/evidence. Await and consume its return; never duplicate it in a batch nor relaunch just to change `output`. It inspects persisted evidence read-only. It also confers the `validation.md` `Validation Progress` item by item — verifying each item's recorded status and checked evidence — and approves each item only with explicit positive approval per `WORKFLOW_COMMON`; this gate must require explicit positive approval and absence of rejection does not promote an item. `pending`, `blocked`, silent, or ambiguous returns do not promote the task.
-11. From the validator's per-item verdicts, update the `validation.md` `Validation Progress`: `pass|fail|pending` status + produced evidence per item, and refresh the header `Updated:`. Then, on rejection or diff/write-set/path divergence → record cause, delegate the minimal fix to a new worker. Never fix directly (not one line, not a move/copy); same cause repeated without new evidence becomes a blocker.
-12. Phase close: delegate the plan's final gate to the worker; no full suites per task out of habit.
-13. Mark `done` only after validator `approved`. All phases and evidence approved → close state atomically before returning control: `Status:` of `plan.md` and `manifest.md` to `done`, `manifest.md > State > Plan: done`, resume points with no next task, all tasks/phases `done`; re-read both — any divergence keeps execution `running`.
-14. Loaded by `batista-loop` → emit no `Final Response`; return control to the loop in the same turn. Standalone → respond per `Final Response`.
+7. **Runtime canary (mandatory)**: before the first real dispatch of a run/resume, launch `Agent({ subagent_type: "worker", prompt: "Canary: sem escrever nada, reporte pwd; git rev-parse --show-toplevel; git branch --show-current; conectividade (ex.: gh auth status). Retorne DELEGATION_RESULT com evidence.", description: "canary cwd/modelo", max_turns: 3 })`. It must confirm (1) cwd == project root/worktree expected (`~/Workspaces/worktrees/<repo>-<branch>` when the plan uses a worktree), (2) effective model/thinking == expectation (user indication — session model or explicit request — or `MODEL_POLICY` default), (3) connectivity. Divergence → `blocked` with the literal restart instruction (Pi in the correct dir) and resume from checkpoint; never dispatch E2E on the wrong cwd.
+8. Launch **worker** via `Agent({ subagent_type: "worker", prompt, description, max_turns })` (interface real e regras em `../../references/PI_ADAPTATION.md`; agent files pin no `model`/`thinking` — pass them in the call only when the user explicitly requests a model/effort, otherwise the child inherits the root session model), closed scope: task, write set, DoD, practical evidence, relevant slices, permitted focused tests. Every dispatch declares explicit `max_turns` (never unlimited); broad tasks run as phases with mandatory checkpoints between them. O child herda o cwd da sessão raiz — manager deve estar no project root, nunca no feature dir.
+9. Parallel batch = dois ou mais `Agent` com `run_in_background: true` e write sets disjuntos apenas; start all before awaiting, depois `get_subagent_result({ agent_id, wait: true })`.
+10. After each synchronous worker: compare actual diff vs baseline/write set; persist files, commands, results, evidence. `(no output)` or missing envelope is **neither failure nor retry authorization** — inspect write set/evidence, proceed to validator if the result exists. Never `get_subagent_result` by agent name (async runs with real IDs only). Child reports never promote status. From worker reports, record in the `validation.md` `Validation Progress` the per-item status (`pass|fail|pending`) and produced evidence for the items the worker produced evidence on.
+11. Launch **exactly one workflow-validator per task/attempt** via `Agent({ subagent_type: "workflow-validator", ... })`, real artifacts/evidence. Await and consume its return; never duplicate it in a batch nor relaunch just to change `output`. It inspects persisted evidence read-only. It also confers the `validation.md` `Validation Progress` item by item — verifying each item's recorded status and checked evidence — and approves each item only with explicit positive approval per `WORKFLOW_COMMON`; this gate must require explicit positive approval and absence of rejection does not promote an item. `pending`, `blocked`, silent, or ambiguous returns do not promote the task.
+12. From the validator's per-item verdicts, update the `validation.md` `Validation Progress`: `pass|fail|pending` status + produced evidence per item, and refresh the header `Updated:`. Then, on rejection or diff/write-set/path divergence → record cause, delegate the minimal fix to a new worker. Never fix directly (not one line, not a move/copy); same cause repeated without new evidence becomes a blocker.
+13. Phase close: delegate the plan's final gate to the worker; no full suites per task out of habit.
+14. Mark `done` only after validator `approved`. All phases and evidence approved → close state atomically before returning control: `Status:` of `plan.md` and `manifest.md` to `done`, `manifest.md > State > Plan: done`, resume points with no next task, all tasks/phases `done`; re-read both — any divergence keeps execution `running`.
+15. Loaded by `batista-loop` → emit no `Final Response`; return control to the loop in the same turn. Standalone → respond per `Final Response`.
 
 ## Manager Boundaries
 
@@ -66,7 +67,7 @@ Validation worker:
 
 ```text
 You are the independent validator of this task/phase.
-Model: deepseek/deepseek-v4-flash:xhigh.
+Model expectation: per MODEL_POLICY — user indication or default `openai-codex/gpt-5.6-luna:high` (validation = high effort).
 Read AGENTS.md, spec.md, plan.md, validation.md (Validation Plan + Validation Progress), and the worker result.
 Do not implement fixes; do not run commands or tests (worker or phase gate owns them).
 Check the executable/observable evidence already produced: browser, API, consumer, logs, manual smoke, commands with outputs, artifacts.
@@ -80,6 +81,7 @@ Return only `DELEGATION_RESULT` with approved/rejected, evidence checked, and mi
 
 - Every implementation via worker; every acceptance via separate validator.
 - Worker and validator follow `../../references/MODEL_POLICY.md` (models/effort distinct from planning).
+- Runtime canary before the first dispatch of a run/resume; every dispatch declares explicit `max_turns`; tasks too broad for one phase are split with checkpoints (see `../../references/WORKFLOW_COMMON.md`).
 - Both are separate `Agent` children with contexto mínimo (frontmatter `prompt_mode: replace` + `skills: false`; sem `inherit_context`); never full manager history.
 - Parallel batches: spawn first, wait after; never serialize independent tasks.
 - Workers may run focused automated tests; full suites only at phase gate or explicit requirement.

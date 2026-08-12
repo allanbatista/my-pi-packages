@@ -50,19 +50,19 @@ test("validate.sh has no hardcoded harness scratch path", () => {
   assert.match(script, /SCRATCH:-/);
 });
 
-test("MODEL_POLICY defines planning inherit and execution pinning", () => {
+test("MODEL_POLICY: no pinned model/thinking; user indication prevails; defaults low/high", () => {
   const policy = fs.readFileSync(path.join(ROOT, "references/MODEL_POLICY.md"), "utf8");
   const settings = JSON.parse(fs.readFileSync(path.join(ROOT, "examples/subagents.json"), "utf8"));
-  assert.match(policy, /model: "inherit"|herdam o modelo ativo da sessão/i);
-  assert.match(policy, /deepseek\/deepseek-v4-flash/);
-  assert.match(policy, /xhigh/);
+  assert.match(policy, /herda a sessão raiz/i);
+  assert.match(policy, /openai-codex\/gpt-5.6-luna/);
+  assert.match(policy, /write code = low effort/i);
+  assert.match(policy, /validation = high effort/i);
   assert.equal(settings.maxConcurrent, 4);
-  const worker = fs.readFileSync(path.join(ROOT, "agents/worker.md"), "utf8");
-  assert.match(worker, /model: deepseek\/deepseek-v4-flash/);
-  assert.match(worker, /thinking: off/);
-  const validator = fs.readFileSync(path.join(ROOT, "agents/workflow-validator.md"), "utf8");
-  assert.match(validator, /model: deepseek\/deepseek-v4-flash/);
-  assert.match(validator, /thinking: xhigh/);
+  for (const agent of ["worker.md", "workflow-validator.md"]) {
+    const file = fs.readFileSync(path.join(ROOT, "agents", agent), "utf8");
+    assert.doesNotMatch(file, /^model:/m, `${agent} must not pin model`);
+    assert.doesNotMatch(file, /^thinking:/m, `${agent} must not pin thinking`);
+  }
 });
 
 test("PI_ADAPTATION documents the real Agent tool and reserves slash for users", () => {

@@ -2,8 +2,9 @@
 name: workflow-validator
 description: Valida execução e evidência prática sem alterar arquivos do projeto.
 tools: read, grep, find, ls
-model: deepseek/deepseek-v4-flash
-thinking: xhigh
+# Modelo/thinking NAO sao pinados aqui: o modelo indicado pelo usuario (sessao raiz ou
+# pedido explicito repassado na chamada Agent(model=..., thinking=...)) prevalece.
+# Indicacao default quando disponivel e sem indicacao contraria: openai-codex/gpt-5.6-luna + thinking: high (validation = high effort; ver references/MODEL_POLICY.md).
 extensions: false
 prompt_mode: replace
 skills: false
