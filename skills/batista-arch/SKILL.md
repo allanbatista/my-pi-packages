@@ -29,7 +29,7 @@ Closes the feature **architecture** before the technical plan, when backend is a
 5. Existing `arch.md` input → treat as review: read before deciding status.
 6. **Technical Discovery**: start from the spec `Discovery Ledger` (`D#` passed by manifest); trace components, data model, contracts, integrations, jobs/consumers, telemetry. Record spec-uncovered architecture findings in the `Architecture Ledger` (`A#`, source, evidence). If the spec ledger is insufficient for design decisions, run full discovery and escalate via `Open Questions`. Use Graphify when `graphify-out/graph.json` exists.
 7. Define **approach** vs alternatives (ADR-lite) with rationale and tradeoffs, aligned to the spec `Shared Contract`.
-8. Close: component boundaries, data model/schema, contract design (endpoints/payloads/versioning), interaction sequence, failure modes, migration and rollback, non-functionals (perf/security/scale).
+8. Close: component boundaries, data model/schema, contract design (endpoints/payloads/versioning), interaction sequence, failure modes, migration and rollback, non-functionals (perf/security/scale). For every decision, component, data element and contract, apply a minimalism check: is it necessary for an approved spec requirement, aligned with the client's requested functionality/result, and removable or simplifiable without impact? Remove or simplify excess; escalate a product gap to `batista-spec` instead of deciding it here.
 9. Traceability: link every architectural decision to a spec EARS requirement and an `A#` from Discovery.
 10. Product doubt → orchestrated: `Open Questions` + `Status: blocked`; standalone: ask.
 11. Write or update only `arch.md`.
@@ -104,6 +104,7 @@ Updated: {YYYY-MM-DD HH:MM}
 - [ ] `AGENTS.md` and `spec.md` read.
 - [ ] Approach chosen with alternatives and tradeoffs.
 - [ ] Data model and contract design closed or `none` justified.
+- [ ] Minimalism and client alignment reviewed; unnecessary architecture was removed or simplified.
 - [ ] Migration and rollback defined when state/contract changes.
 - [ ] Every backend requirement has a traceable architectural decision (`A#`).
 - [ ] Guardian approved `arch.md`.
@@ -123,6 +124,7 @@ Updated: {YYYY-MM-DD HH:MM}
 - Mandatory rubric; record each result in the `evidence` field of the canonical `DELEGATION_RESULT`:
 
 - [pass/fail] Every spec backend requirement has a supporting architectural decision.
+- [pass/fail] For each decision, component, data element and contract, the guardian explicitly answered: "Is this necessary for an approved spec requirement?", "Is it aligned with the client's requested functionality/result?", and "What can be removed or simplified without impact?" Excess is removed, simplified or explicitly blocked.
 - [pass/fail] Chosen approach has explicit alternatives and tradeoffs.
 - [pass/fail] Data model supports requirements; contract designed (not just "changes: yes").
 - [pass/fail] Migration and rollback defined when state/contract changes.

@@ -144,6 +144,18 @@ test("guardian contract is canonical and has no self-approval deadlock", () => {
   }
 });
 
+test("spec and arch guardians enforce client-aligned minimalism", () => {
+  const agent = fs.readFileSync(path.join(ROOT, "agents", "artifact-guardian.md"), "utf8");
+  const spec = fs.readFileSync(path.join(ROOT, "skills", "batista-spec", "SKILL.md"), "utf8");
+  const arch = fs.readFileSync(path.join(ROOT, "skills", "batista-arch", "SKILL.md"), "utf8");
+  assert.match(agent, /Pergunta de Minimalismo e Alinhamento/);
+  assert.match(agent, /removido ou simplificado/);
+  assert.match(spec, /fundamental and aligned with.*client's requested functionality\/result/);
+  assert.match(spec, /What can be removed or simplified without impacting the request/);
+  assert.match(arch, /necessary for an approved spec requirement/);
+  assert.match(arch, /What can be removed or simplified without impact/);
+});
+
 test("loop fails closed across sub-features and spec blocks material assumptions", () => {
   const loop = fs.readFileSync(path.join(ROOT, "skills", "batista-loop", "SKILL.md"), "utf8");
   const execute = fs.readFileSync(path.join(ROOT, "skills", "batista-execute", "SKILL.md"), "utf8");

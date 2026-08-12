@@ -27,7 +27,7 @@ When invoked by another feature-workflow skill, run as a child `delegate` with c
 8. Raise material clarifications via the taxonomy (see `Clarification Protocol`), prioritized by (Impact × Uncertainty), max 5 high-impact per round. Only a doubt that **does not change** scope, acceptance, contract, persistence, UX, security, rollout, or validation may become an explicit assumption.
 9. Resolve per mode: standalone asks in batch and waits; orchestrated fills `Clarifications Needed`, sets `Status: blocked`, returns control to the manager.
 10. Build traceability: every requirement in **EARS** form linked to a Discovery `D#` or a recorded decision; every acceptance criterion in **Given/When/Then** with a validation surface (see `Requirements Grammar`).
-11. Apply the **Minimalism Gate** to every requirement: (a) part of what the user asked (check literal instruction in `user-instructions.md`)? (b) essential to the user's task? If either is no, move to `Out of Scope` with a one-line justification. (c) At the lowest complexity meeting the acceptance criterion, or simplifiable? If so, simplify before proceeding. Always question motivation: who asked and why.
+11. Apply the **Minimalism Gate** to every requirement. Explicitly ask: (a) was it literally requested in `user-instructions.md`? (b) is it fundamental to, and aligned with, the client's requested functionality/result? (c) what can be removed or simplified without impacting the request? If (a) or (b) is no, move it to `Out of Scope` or raise a question; if (c) identifies a safe reduction, simplify before proceeding. Always question motivation: who asked and why; record `none` when no safe removal remains.
 12. Explicitly close contract, persistence, mandatory evidence, and out-of-scope before `Status: ready`.
 13. Write or update only `spec.md`. Do not write `plan.md`.
 14. Apply the **Fail-Closed Clarification Gate**. Orchestrated: record `draft` (or `blocked`) and return without running guardian; only a re-invocation with a real `approved` verdict may persist the gate and promote to `ready`. Standalone: delegate the rubric to `artifact-guardian`, apply the minimal fix, repeat until `approved`.
@@ -147,7 +147,7 @@ Updated: {YYYY-MM-DD HH:MM}
 - [ ] `AGENTS.md` and cited sources were read.
 - [ ] Every requirement is in EARS form and references a Discovery finding (`D#`) or a recorded decision.
 - [ ] Every acceptance criterion is in Given/When/Then with a validation surface.
-- [ ] Every requirement passed the Minimalism Gate: part of the request, essential for the project to work, at the lowest complexity meeting acceptance; the rest is in `Out of Scope`.
+- [ ] Every requirement passed the Minimalism Gate: literal request, fundamental and aligned with the client's requested functionality/result, removal/simplification review, and lowest complexity meeting acceptance; the rest is in `Out of Scope`.
 - [ ] `Clarifications Needed` = none, or `Status: blocked`.
 - [ ] `plan.md` can be written with no pending product decision.
 - [ ] `Shared Contract` = `closed` or `none` before the parallel spawn `batista-ux`∥`batista-arch`.
@@ -175,7 +175,7 @@ Mandatory rubric; record each result in the `evidence` field of the canonical `D
 - [pass/fail] Every acceptance criterion is in Given/When/Then with a validation surface.
 - [pass/fail] Every fact used in the spec references a Discovery finding (`D#`) with evidence.
 - [pass/fail] `Intent Classification` is justified by findings, not guesswork.
-- [pass/fail] Every requirement is part of what the user asked (literal instruction in `user-instructions.md`) and is essential to complete the user's task; nothing beyond the minimum requested entered scope (excess is in `Out of Scope`).
+- [pass/fail] For each requirement, the guardian explicitly answered: "Was this literally requested?", "Is it fundamental and aligned with the client's requested functionality/result?", and "What can be removed or simplified without impacting the request?" Any excess is in `Out of Scope` or became a question; when no safe removal exists, the evidence records `none`.
 - [pass/fail] Every requirement's motivation was questioned: who asked and why; a requirement with no literal request nor task essentiality is in `Out of Scope` or became a user question.
 - [pass/fail] Every requirement is at the lowest complexity meeting the acceptance criterion; no obvious simplification was ignored.
 - [pass/fail] Taxonomy covered: no material question left unasked; `Clarifications Needed` consistent with state (none ⇒ no open high-impact item).
