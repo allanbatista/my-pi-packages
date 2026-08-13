@@ -56,6 +56,7 @@ No guesswork: objective met only with practical evidence on the affected path. R
 | Persisted state | Next action |
 |---|---|
 | Open material clarification | `blocked`; ask user |
+| Manifest `ready` but `Scope confirmed by user` missing while spec has expansion beyond the literal request | `blocked`; present the User Scope Gate (spec `Scope Size Estimate` + plan `Size Estimate`) and ask the user |
 | Non-terminal sub-feature + manifest missing/invalid/not `ready` | load `batista-manifest/SKILL.md` inline |
 | Valid manifest + `execute` `pending|running|fail` retry-eligible | load `batista-execute/SKILL.md` inline |
 | `execute` `done` + verification pending | validate only that sub-feature, update its line |

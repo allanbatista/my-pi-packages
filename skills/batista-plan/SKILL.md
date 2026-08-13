@@ -62,6 +62,7 @@ Updated: {YYYY-MM-DD HH:MM}
 - [ ] Public/internal contracts and persistence defined or marked `none`.
 - [ ] Existing/new target files verified.
 - [ ] Impact Map complete, with evidence per surface.
+- [ ] `Size Estimate` per phase filled and consistent with the Impact Map; the Scope Budget Gate passed or the plan is `blocked` with `Escalation: manifest`.
 - [ ] `validation.md` defined as the source of the validation harness/evidence (single source of truth) once authored by `batista-validation`.
 - [ ] Guardian approved the plan against spec and applicable solutions (`batista-ux`/`batista-arch`).
 
@@ -70,6 +71,15 @@ Updated: {YYYY-MM-DD HH:MM}
 | Surface | Evidence | Why it matters | Files/Owners | Change? | Validation | Risk/Notes |
 |---|---|---|---|---|---|---|
 | {backend/frontend/job/infra/API/browser/etc.} | {file, command, log, test, browser or decision} | {impact on requirement} | {paths/owners} | {yes/no/pending} | {concrete check} | {risk or blocker} |
+
+## Size Estimate
+
+| Phase | New product files | New test files | Est. product lines | New surfaces | Vs literal request |
+|---|---|---|---|---|---|
+| {Phase N} | {n} | {n} | {n} | {APIs/tables/jobs/screens/packages/workflows} | {same magnitude | expansion} |
+| **Total** | {n} | {n} | {n} | {count} | {verdict} |
+
+Scope Budget Gate (mandatory before `ready`): est. product lines > 2,000 OR new surfaces > 3 OR new product files > 8 AND the spec lacks user-confirmed expansion → blocker `Escalation: manifest` (user scope confirmation). Never `ready` with an open budget blocker.
 
 ## Phase 0: Preflight
 
@@ -164,6 +174,7 @@ Mandatory rubric; record each result in the `evidence` field of the canonical `D
 - [pass/fail] Frontend tasks derive from `ux.md`; backend tasks from `arch.md` (or spec when solution N/A).
 - [pass/fail] `batista-ux`↔`batista-arch`↔`Shared Contract` conflicts resolved in the plan or escalated with explicit `Escalation`.
 - [pass/fail] Write sets, DAG, batches and sync points are explicit and safe.
+- [pass/fail] `Size Estimate` is filled per phase and consistent with the Impact Map and the spec `Scope Size Estimate`; when the Scope Budget Gate trips and the spec lacks user-confirmed expansion, the plan must be `blocked` with `Escalation: manifest` — a `ready` plan that tripped the budget without user confirmation is a fail.
 - [pass/fail] `validation.md` is defined (or `not-applicable`) as the single source of truth for the harness/evidence, and its own `artifact-guardian` holds `approved` (concrete commands/checks live in the `validation.md` guardian rubric, not here).
 
 Any `fail` forces `status: rejected`. Copy `evidence`, `questions`, `blockers` and `resume` to `Guardian Review`; fix `plan.md` when the answer is available or register blocker with `Escalation` when decision/evidence is missing. Use `Status: ready`/`done` only with guardian `approved`.
@@ -172,7 +183,8 @@ Any `fail` forces `status: rejected`. Copy `evidence`, `questions`, `blockers` a
 
 - Allowed statuses: `draft`, `ready`, `blocked`, `running`, `done`, `fail`.
 - Never plan files/commands/harness/dependencies/parallelism by assumption; confirm in repo or register blocker.
-- Never mark `plan.md` executable without a complete `Impact Map`.
+- Never mark `plan.md` executable without a complete `Impact Map` and a complete `Size Estimate`.
+- Scope Budget Gate is mandatory: est. product lines > 2,000 OR new surfaces > 3 OR new product files > 8, without user-confirmed expansion in the spec, blocks the plan (`Escalation: manifest`). The user, not a guardian, confirms expansion.
 - Every task/phase must reference a mapped surface; surface without evidence becomes blocker/pending.
 - Prefer parallelizable plans when safe: split tasks by disjoint write set, independent contract and own validation.
 - Do not serialize independent tasks for convenience; record an explicit parallel batch.

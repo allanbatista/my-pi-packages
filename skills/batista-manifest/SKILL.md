@@ -27,7 +27,8 @@ No guessing: investigate first, cite concrete evidence, record premises unconfir
 8. Each applicable solution: `Author → Guardian Handshake`; `batista-ux` ∥ `batista-arch` may share one call if write sets are disjoint. Pass the spec's `Discovery Ledger` (`D#`). Product/contract questions return to spec.
 9. Plan only when: spec + applicable solutions `ready` with guardian `approved`, non-applicable solutions explicitly `not-applicable`, shared contract closed.
 10. `batista-plan`: `Author → Guardian Handshake`. Product/contract blocker reopens the smallest source skill; manager never edits the leaf artifact.
-11. `batista-validation`: write `validation.md` (Validation Plan before any validation; `Validation Progress` item a item) — `Author → Guardian Handshake`. Only when plan is `ready` with guardian `approved`. Product/contract blocker reopens the smallest source skill; manager never edits the leaf artifact.
+10b. **User Scope Gate** (mandatory when the spec has expansion beyond the literal request): after plan `ready` + guardian `approved`, present to the user the spec `Scope Size Estimate` + plan `Size Estimate` and the Scope Budget verdict, and ask for explicit scope confirmation before any validation/execution. Record `Scope confirmed by user: {timestamp}` in the manifest. Standalone: ask directly and wait. Loaded by `batista-loop`: relay the gate to the user and block until answered; guardian approval is not user confirmation.
+11. `batista-validation`: write `validation.md` (Validation Plan before any validation; `Validation Progress` item a item) — `Author → Guardian Handshake`. Only when plan is `ready` with guardian `approved` AND (no expansion OR `Scope confirmed by user` recorded). Product/contract blocker reopens the smallest source skill; manager never edits the leaf artifact.
 12. Re-read all artifacts; mark `ready` only with states/gates/guardians persisted and zero material questions.
 13. Loaded by `batista-loop` → no `Final Response`; return control to the loop's next step in the same turn. Standalone → respond per `Final Response`.
 
@@ -38,6 +39,7 @@ No guessing: investigate first, cite concrete evidence, record premises unconfir
 | Spec missing/draft/blocked/rejected | `batista-spec` |
 | Spec ready; applicable UX/Arch incomplete | `batista-ux`/`batista-arch` |
 | Solutions ready; plan incomplete | `batista-plan` |
+| Plan ready+approved; user scope gate open | manifest `blocked`; ask the user |
 | Plan ready+approved; validation missing/draft | `batista-validation` |
 | Material question open | manifest `blocked`; ask the user |
 | All ready and approved | manifest `ready`; return to `batista-loop` |
@@ -99,6 +101,7 @@ Iterations used: {0}
 - Arch: missing | not-applicable | draft | ready | blocked
 - Plan: missing | draft | ready | blocked | running | done | fail
 - Validation: missing | not-applicable | draft | ready | blocked
+- Scope confirmed by user: {none | not-required — no expansion | {timestamp}}
 - Spec Guardian: missing | pending | approved | rejected
 - UX Guardian: missing | not-applicable | pending | approved | rejected
 - Arch Guardian: missing | not-applicable | pending | approved | rejected
@@ -136,6 +139,7 @@ Iterations used: {0}
 - Apply the `Solution Gate` with surfaces > intent precedence; record `not-applicable` in the manifest when the skill creates no file.
 - `not-applicable` in the manifest satisfies the solution gate; `missing` after the solution step is a blocker.
 - Spec, applicable ux/arch, plan and validation guardians are always mandatory and independent (validation guardian required when a `validation.md` applies).
+- **User Scope Gate** is mandatory on any spec expansion beyond the literal request: never dispatch `batista-validation` or execution without `Scope confirmed by user` recorded in the manifest. Guardian approval never replaces user confirmation.
 - **Iteration budget**: increment `Iterations used` on every rejection or author re-invocation; after 3 attempts without new evidence, force `Status: blocked` and report.
 - Spec changes invalidate UX/Arch/Plan/Validation and their guardians; UX/Arch changes invalidate Plan/Validation and their guardians; plan (or spec) substantive changes invalidate `validation.md` (draft + guardian `pending`) and its guardian. Persist the resets before the next dispatch.
 - Durable outcomes (convention, architecture decision, repeated procedure) → project (`AGENTS.md`, project-local skills, `docs/adr`); ephemeral stays in `.features/{...}/`.

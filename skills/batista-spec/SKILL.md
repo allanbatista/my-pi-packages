@@ -28,6 +28,7 @@ When invoked by another feature-workflow skill, run as a child `delegate` with c
 9. Resolve per mode: standalone asks in batch and waits; orchestrated fills `Clarifications Needed`, sets `Status: blocked`, returns control to the manager.
 10. Build traceability: every requirement in **EARS** form linked to a Discovery `D#` or a recorded decision; every acceptance criterion in **Given/When/Then** with a validation surface (see `Requirements Grammar`).
 11. Apply the **Minimalism Gate** to every requirement. Explicitly ask: (a) was it literally requested in `user-instructions.md`? (b) is it fundamental to, and aligned with, the client's requested functionality/result? (c) what can be removed or simplified without impacting the request? If (a) or (b) is no, move it to `Out of Scope` or raise a question; if (c) identifies a safe reduction, simplify before proceeding. Always question motivation: who asked and why; record `none` when no safe removal remains.
+11b. Fill the **Scope Size Estimate** from the requirements and Discovery: count NEW surfaces the feature creates beyond the literal request (APIs/routes, tables/collections, jobs/consumers/queues, screens/pages, packages, workflows) and estimate files/lines (product vs tests vs docs/CI). Compare with the literal request magnitude. **Any expansion beyond the literal request requires user confirmation recorded in `Questions and Decisions` (origin: user) — a guardian approval is not enough.** Without it, move the expansion to `Clarifications Needed` and set `Status: blocked`.
 12. Explicitly close contract, persistence, mandatory evidence, and out-of-scope before `Status: ready`.
 13. Write or update only `spec.md`. Do not write `plan.md`.
 14. Apply the **Fail-Closed Clarification Gate**. Orchestrated: record `draft` (or `blocked`) and return without running guardian; only a re-invocation with a real `approved` verdict may persist the gate and promote to `ready`. Standalone: delegate the rubric to `artifact-guardian`, apply the minimal fix, repeat until `approved`.
@@ -96,6 +97,14 @@ Updated: {YYYY-MM-DD HH:MM}
 
 - {Included}
 
+## Scope Size Estimate
+
+- New surfaces beyond the literal request: {count + list — APIs/routes, tables/collections, jobs/consumers/queues, screens/pages, packages, workflows}
+- Estimated files: {product: n, tests: n, docs/CI: n}
+- Estimated lines: {product: n, tests: n}
+- Vs literal request: {same magnitude | Nx expansion}
+- User confirmed expansion: {yes — decision C# origin: user | no → Clarifications Needed}
+
 ## Out of Scope
 
 - {Excluded}
@@ -148,6 +157,7 @@ Updated: {YYYY-MM-DD HH:MM}
 - [ ] Every requirement is in EARS form and references a Discovery finding (`D#`) or a recorded decision.
 - [ ] Every acceptance criterion is in Given/When/Then with a validation surface.
 - [ ] Every requirement passed the Minimalism Gate: literal request, fundamental and aligned with the client's requested functionality/result, removal/simplification review, and lowest complexity meeting acceptance; the rest is in `Out of Scope`.
+- [ ] `Scope Size Estimate` filled; every expansion beyond the literal request is confirmed by the user (`Questions and Decisions`, origin: user) or recorded in `Clarifications Needed` — guardian approval alone never closes an expansion.
 - [ ] `Clarifications Needed` = none, or `Status: blocked`.
 - [ ] `plan.md` can be written with no pending product decision.
 - [ ] `Shared Contract` = `closed` or `none` before the parallel spawn `batista-ux`∥`batista-arch`.
@@ -178,6 +188,7 @@ Mandatory rubric; record each result in the `evidence` field of the canonical `D
 - [pass/fail] For each requirement, the guardian explicitly answered: "Was this literally requested?", "Is it fundamental and aligned with the client's requested functionality/result?", and "What can be removed or simplified without impacting the request?" Any excess is in `Out of Scope` or became a question; when no safe removal exists, the evidence records `none`.
 - [pass/fail] Every requirement's motivation was questioned: who asked and why; a requirement with no literal request nor task essentiality is in `Out of Scope` or became a user question.
 - [pass/fail] Every requirement is at the lowest complexity meeting the acceptance criterion; no obvious simplification was ignored.
+- [pass/fail] `Scope Size Estimate` matches the requirements; every expansion beyond the literal request has a user confirmation (`Questions and Decisions`, origin: user) or an open `Clarifications Needed` — an expansion closed only by guardian/assumption is a fail.
 - [pass/fail] Taxonomy covered: no material question left unasked; `Clarifications Needed` consistent with state (none ⇒ no open high-impact item).
 - [pass/fail] No material decision closed by assumption; every material answer references user, recorded decision, or `D#` evidence.
 - [pass/fail] Contract, persistence, validation, and out-of-scope closed or `none` justified.
@@ -199,6 +210,7 @@ Any `fail` forces `status: rejected`. Treat `evidence`, `questions`, `blockers`,
 - Even if the user says "fix", "implement", or "execute", create/refine `spec.md` and stop; no product patches.
 - Start with the smallest scope faithful to the request; do not turn a localized fix into an end-to-end feature without evidence or an explicit decision.
 - Any requirement beyond the minimum to complete the task goes to `Out of Scope`, even if useful; it returns only with an explicit user request or decision (check the literal instruction). A requirement simplifiable without losing acceptance must be simplified. Always question motivation.
+- Scope expansion beyond the literal request (new APIs/tables/jobs/screens/packages/workflows not mentioned by the user) is a material decision: ask the user or record `Clarifications Needed`. Guardian approval is not user confirmation.
 - If real intent is ambiguous between point fix and end-to-end feature, record `pending` in `Intent Classification` and ask before `Status: ready`.
 - `Status: ready` only when `plan.md` can be written without pending product decisions and the guardian approves.
 - No `Status: ready` if contract, persistence, harness, affected user, or out-of-scope is ambiguous.
