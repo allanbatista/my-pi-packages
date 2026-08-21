@@ -44,6 +44,7 @@ test("package.json is a valid pi package", () => {
   assert.ok(pkg.keywords.includes("pi-package"));
   assert.deepEqual(pkg.pi.skills, ["./skills"]);
   assert.deepEqual(pkg.pi.subagents.agents, ["./agents"]);
+  assert.deepEqual(pkg.pi.extensions, ["./extensions/prompt-cache-isolation.js"]);
 });
 
 test("validate.sh has no hardcoded harness scratch path", () => {

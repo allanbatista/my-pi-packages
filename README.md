@@ -64,7 +64,30 @@ cp agents/*.md ~/.pi/agent/agents/
 
 ## Extensões
 
-- `extensions/`: diretório convencional de extensões do Pi (carrega arquivos `.ts`/`.js`). Atualmente contém apenas `package.json` (marcador ESM); **este pacote não envia extensões** — o workflow depende da extensão externa `@tintinweb/pi-subagents` (tools `Agent`/`get_subagent_result`/`steer_subagent`, comando `/agents`) e dos papéis custom deste pacote em `agents/` (instalados em `~/.pi/agent/agents/` ou `.pi/agents/`). Settings operacionais da extensão: `examples/subagents.json` para `~/.pi/agent/subagents.json` (global) ou `.pi/subagents.json` (projeto).
+- `extensions/`: diretório convencional de extensões do Pi (carrega arquivos `.ts`/`.js`).
+- `extensions/prompt-cache-isolation.js`: adiciona `prompt_cache_key` por sessão ao body de requests `openai-completions` dos providers configurados. Não há provider implícito; configure-os em `promptCacheIsolation.providers`.
+
+Instale o pacote para que Pi/OMP carreguem a extension declarada em `pi.extensions`:
+
+```bash
+pi install /home/allanbatista/Workspaces/allanbatista/my-pi-packages
+```
+
+Configure os providers no projeto em `.pi/settings.json` (Pi) ou `.omp/settings.json` (OMP), ou globalmente em `~/.pi/agent/settings.json` e `~/.omp/agent/settings.json`:
+
+```json
+{
+  "promptCacheIsolation": {
+    "providers": ["batista", "antigravity"]
+  }
+}
+```
+
+Use `"enabled": false` para desativar no settings de maior prioridade. A precedência é projeto Pi → projeto OMP → global Pi → global OMP → `PI_PROMPT_CACHE_ISOLATION_PROVIDERS`.
+
+Para um teste isolado, use `pi --extension` ou `omp --extension` com o arquivo da extension.
+
+A chave é baseada no `sessionId` do Pi, portanto cada subagent recebe uma chave própria desde o primeiro request e a conserva nos turnos seguintes. Cada request elegível também registra `provider`, `sessionId`, `promptCacheKey` e `applied` no log do OMP (`~/.omp/logs/omp.*.log`). A extension altera somente `body.prompt_cache_key`; ela não adiciona headers HTTP como `x-session-id`. O workflow continua dependendo da extensão externa `@tintinweb/pi-subagents` (tools `Agent`/`get_subagent_result`/`steer_subagent`, comando `/agents`) e dos papéis custom deste pacote em `agents/` (instalados em `~/.pi/agent/agents/` ou `.pi/agents/`). Settings operacionais da extensão: `examples/subagents.json` para `~/.pi/agent/subagents.json` (global) ou `.pi/subagents.json` (projeto).
 
 ## Skills
 
