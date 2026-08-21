@@ -18,12 +18,14 @@ const WORKFLOW = [
 const EXPECTED = [
   ...WORKFLOW,
   "batista-discord-webhook-messages",
+  "batista-manager-orchestrator",
   "batista-memory",
   "batista-ship-pr-to-deploy",
   "batista-websearch",
+  "batista-worktree",
 ];
-const EXPECTED_AGENTS = ["artifact-guardian.md", "delegate.md", "reviewer.md", "worker.md", "workflow-validator.md"];
-const READONLY_ROLE_AGENTS = ["artifact-guardian.md", "reviewer.md", "workflow-validator.md"];
+const EXPECTED_AGENTS = ["artifact-guardian.md", "batista-engineer.md", "code-reviewer.md", "delegate.md", "reviewer.md", "worker.md", "workflow-validator.md"];
+const READONLY_ROLE_AGENTS = ["artifact-guardian.md", "code-reviewer.md", "reviewer.md", "workflow-validator.md"];
 
 function readFrontmatter(skillPath) {
   const content = fs.readFileSync(skillPath, "utf8");

@@ -1,7 +1,7 @@
 {
   "name": "my-pi-packages",
   "version": "0.1.0",
-  "description": "Feature workflow skills (batista-loop, batista-manifest, batista-spec, batista-ux, batista-arch, batista-plan, batista-validation, batista-execute, batista-incident), memory playbook, ship PR to deploy, web search via OpenRouter e mensagens Discord para Pi.",
+  "description": "Feature workflow skills (batista-loop, batista-manifest, batista-spec, batista-ux, batista-arch, batista-plan, batista-validation, batista-execute, batista-incident), memory playbook, ship PR to deploy, web search via OpenRouter, mensagens Discord e worktree com SQLite para Pi.",
   "private": true,
   "keywords": ["pi-package"],
   "pi": {
@@ -11,7 +11,7 @@
     }
   },
   "scripts": {
-    "test": "node --test test/package-structure.test.js test/pi-invocation.test.js",
+    "test": "node --test test/package-structure.test.js test/pi-invocation.test.js test/wt-script.test.js",
     "validate": "./scripts/validate.sh",
     "test:pi": "PI_REQUIRE_CLI=1 PI_RUN_LIVE_CANARIES=1 node --test test/pi-invocation.test.js",
     "test:e2e": "PI_REQUIRE_CLI=1 PI_RUN_LIVE_CANARIES=1 PI_RUN_LOOP_E2E=1 node --test --test-name-pattern='continues from execute pending|resumes after completed|recovers from a rejected root outcome' test/pi-invocation.test.js"

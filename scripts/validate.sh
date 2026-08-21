@@ -21,7 +21,7 @@ log_line() {
   fi
 }
 
-EXPECTED_SKILLS=(batista-arch batista-execute batista-incident batista-loop batista-manifest batista-plan batista-spec batista-ux batista-validation batista-discord-webhook-messages batista-memory batista-ship-pr-to-deploy batista-websearch)
+EXPECTED_SKILLS=(batista-arch batista-execute batista-incident batista-loop batista-manager-orchestrator batista-manifest batista-plan batista-spec batista-ux batista-validation batista-discord-webhook-messages batista-memory batista-ship-pr-to-deploy batista-websearch batista-worktree)
 
 log_section "Structure check" structure-check
 node -e "
@@ -52,8 +52,8 @@ done
 
 IFS=$'\n' sorted_found=($(printf '%s\n' "${found[@]}" | sort))
 IFS=$'\n' sorted_expected=($(printf '%s\n' "${EXPECTED_SKILLS[@]}" | sort))
-if [ "${#found[@]}" -ne 13 ]; then
-  log_line "FAIL: expected 13 skills, found ${#found[@]}: ${found[*]}" structure-check
+if [ "${#found[@]}" -ne 15 ]; then
+  log_line "FAIL: expected 15 skills, found ${#found[@]}: ${found[*]}" structure-check
   exit 1
 fi
 for i in "${!sorted_expected[@]}"; do
@@ -62,7 +62,7 @@ for i in "${!sorted_expected[@]}"; do
     exit 1
   fi
 done
-log_line "All 13 skills present with valid frontmatter" structure-check
+log_line "All 15 skills present with valid frontmatter" structure-check
 
 log_section "skills-ref validate" skills-validate
 for skill in "${EXPECTED_SKILLS[@]}"; do
@@ -105,19 +105,37 @@ done
 log_line "No agent drift (model/thinking ausentes nos agent files)" agents-drift
 
 log_section "Codex residue check" codex-residue
-if rg -n '\$my-feature-workflow|\.codex-plugin|agents/openai\.yaml' "$ROOT" \
-  --glob '!scripts/validate.sh' \
-  --glob '!test/*' \
-  --glob '!AGENTS.md' 2>/dev/null; then
-  log_line "FAIL: Codex residue found" codex-residue
-  exit 1
+if command -v rg >/dev/null 2>&1; then
+  if rg -n '\$my-feature-workflow|\.codex-plugin|agents/openai\.yaml' "$ROOT" \
+    --glob '!scripts/validate.sh' \
+    --glob '!test/*' \
+    --glob '!AGENTS.md' 2>/dev/null; then
+    log_line "FAIL: Codex residue found" codex-residue
+    exit 1
+  fi
+else
+  if grep -r -E '\$my-feature-workflow|\.codex-plugin|agents/openai\.yaml' "$ROOT" \
+    --exclude='validate.sh' \
+    --exclude-dir='test' \
+    --exclude='AGENTS.md' \
+    --exclude-dir='.git' \
+    --exclude-dir='node_modules' 2>/dev/null; then
+    log_line "FAIL: Codex residue found" codex-residue
+    exit 1
+  fi
 fi
 log_line "No Codex residue in shipped artifacts" codex-residue
 
 log_section "Docs evidence" docs-evidence
-rg -n 'pi package|/skill:batista-loop|pi install|pi -e' "$ROOT/AGENTS.md" "$ROOT/.memory/RULES_AND_DEFINITION.md" | while IFS= read -r line; do
-  log_line "$line" docs-evidence
-done
+if command -v rg >/dev/null 2>&1; then
+  rg -n 'pi package|/skill:batista-loop|pi install|pi -e' "$ROOT/AGENTS.md" "$ROOT/.memory/RULES_AND_DEFINITION.md" | while IFS= read -r line; do
+    log_line "$line" docs-evidence
+  done
+else
+  grep -n -E 'pi package|/skill:batista-loop|pi install|pi -e' "$ROOT/AGENTS.md" "$ROOT/.memory/RULES_AND_DEFINITION.md" | while IFS= read -r line; do
+    log_line "$line" docs-evidence
+  done
+fi
 
 echo ""
 echo "Validation complete."
