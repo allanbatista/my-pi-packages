@@ -10,7 +10,14 @@
       "agents": ["./agents"]
     },
     "extensions": [
-      "./extensions/prompt-cache-isolation.js"
+      "./extensions/prompt-cache-isolation.js",
+      "./extensions/agent-metadata.js"
+    ]
+  },
+  "omp": {
+    "extensions": [
+      "./extensions/prompt-cache-isolation.js",
+      "./extensions/agent-metadata.js"
     ]
   },
   "scripts": {
