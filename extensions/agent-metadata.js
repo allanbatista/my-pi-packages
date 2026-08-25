@@ -16,7 +16,48 @@ function nonEmptyString(value) {
 
 function sessionIdFromPath(value) {
 	const path = nonEmptyString(value);
-	return path ? basename(path).replace(/\.jsonl$/, "") : undefined;
+	if (!path) return undefined;
+	const clean = basename(path).replace(/\.jsonl$/, "");
+	const match = clean.match(/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i);
+	return match ? match[1] : clean;
+}
+
+export function resolveParentSessionId(sessionManager) {
+	const header = sessionManager?.getHeader?.();
+	if (header?.parentSession) {
+		return sessionIdFromPath(header.parentSession);
+	}
+
+	const sessionFile = sessionManager?.getSessionFile?.();
+	if (sessionFile && typeof sessionFile === "string") {
+		const parentDir = dirname(sessionFile);
+		const parentJsonl = `${parentDir}.jsonl`;
+		if (existsSync(parentJsonl)) {
+			try {
+				const firstLine = readFileSync(parentJsonl, "utf8").split("\n")[0];
+				const parentHeader = JSON.parse(firstLine);
+				if (parentHeader?.id) return String(parentHeader.id);
+			} catch {}
+			return sessionIdFromPath(basename(parentDir));
+		}
+	}
+
+	return undefined;
+}
+
+export function resolveAgentRole(sessionManager) {
+	const parentId = resolveParentSessionId(sessionManager);
+	if (parentId) return "sub";
+
+	const sessionFile = sessionManager?.getSessionFile?.();
+	if (sessionFile && typeof sessionFile === "string") {
+		const parentDir = dirname(sessionFile);
+		const parentJsonl = `${parentDir}.jsonl`;
+		if (existsSync(parentJsonl)) return "sub";
+		if (parentDir.includes("omp-task") || parentDir.includes("omp-eval")) return "sub";
+	}
+
+	return "main";
 }
 
 function findPackageInfoFromPath(targetPath) {
@@ -109,10 +150,14 @@ export function buildAgentMetadata(context, options = {}) {
 			},
 		);
 	const timezone = options.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? options.env?.TZ;
+	const parentSessionId = options.parentSessionId ?? resolveParentSessionId(sessionManager);
+	const agentRole = options.agentRole ?? resolveAgentRole(sessionManager);
+	const sessionTitle = sessionManager?.getSessionName?.() ?? header?.title;
 	const entries = [
 		["session-id", sessionManager?.getSessionId?.()],
-		["parent-session-id", sessionIdFromPath(header?.parentSession)],
-		["session-title", sessionManager?.getSessionName?.()],
+		["parent-session-id", parentSessionId],
+		["agent-role", agentRole],
+		["session-title", sessionTitle],
 		["session-created-at", header?.timestamp],
 		["os", options.os ?? platform()],
 		["os-version", options.osVersion ?? release()],

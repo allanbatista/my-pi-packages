@@ -66,7 +66,7 @@ cp agents/*.md ~/.pi/agent/agents/
 
 - `extensions/`: diretório convencional de extensões do Pi (carrega arquivos `.ts`/`.js`).
 - `extensions/prompt-cache-isolation.js`: adiciona `prompt_cache_key` por sessão ao body de requests `openai-completions` dos providers configurados. Não há provider implícito; configure-os em `promptCacheIsolation.providers`.
-- `extensions/agent-metadata.js`: adiciona `_agent_metadata` a cada payload de provider, compatível com Pi e OMP. Cada item tem `{key, value}` e inclui sessão, agente, sistema operacional, hostname, timezone, request e modelo.
+- `extensions/agent-metadata.js`: adiciona `_agent_metadata` a cada payload de provider, compatível com Pi e OMP. Cada item tem `{key, value}` e inclui sessão, sessão pai (se subagent), papel do agente (`main` ou `sub`), título/nome da sessão, agente, versão, sistema operacional, hostname, timezone, request e modelo.
 
 Instale o pacote para que Pi/OMP carreguem as extensions declaradas em `pi.extensions` e `omp.extensions`:
 

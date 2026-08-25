@@ -32,6 +32,7 @@ test("builds the standard metadata, including hostname", () => {
 	assert.deepEqual(Object.fromEntries(metadata.map(item => [item.key, item.value])), {
 		"session-id": "session-child",
 		"parent-session-id": "session-parent",
+		"agent-role": "sub",
 		"session-title": "Feature work",
 		"session-created-at": "2026-08-22T12:00:00.000Z",
 		os: "linux",
@@ -47,6 +48,24 @@ test("builds the standard metadata, including hostname", () => {
 		api: "openai-completions",
 		mode: "tui",
 	});
+});
+
+test("identifies main agent role when no parent session exists", () => {
+	const mainContext = {
+		sessionManager: {
+			getSessionId: () => "main-session",
+			getSessionName: () => "Root task",
+			getHeader: () => ({ timestamp: "2026-08-22T12:00:00.000Z" }),
+		},
+	};
+	const metadata = buildAgentMetadata(mainContext, {
+		env: { PI_AGENT_NAME: "pi", PI_AGENT_VERSION: "1.2.3" },
+		proc: null,
+		now: new Date(0),
+	});
+	assert.equal(metadata.find(item => item.key === "agent-role")?.value, "main");
+	assert.equal(metadata.find(item => item.key === "parent-session-id"), undefined);
+	assert.equal(metadata.find(item => item.key === "session-title")?.value, "Root task");
 });
 
 test("merges metadata without mutating the payload", () => {
