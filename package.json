@@ -21,7 +21,7 @@
     ]
   },
   "scripts": {
-    "test": "node --test test/package-structure.test.js test/pi-invocation.test.js test/prompt-cache-isolation.test.mjs test/wt-script.test.js",
+    "test": "node --test test/package-structure.test.js test/agent-metadata.test.mjs test/pi-invocation.test.js test/prompt-cache-isolation.test.mjs test/wt-script.test.js",
     "validate": "./scripts/validate.sh",
     "test:pi": "PI_REQUIRE_CLI=1 PI_RUN_LIVE_CANARIES=1 node --test test/pi-invocation.test.js",
     "test:e2e": "PI_REQUIRE_CLI=1 PI_RUN_LIVE_CANARIES=1 PI_RUN_LOOP_E2E=1 node --test --test-name-pattern='continues from execute pending|resumes after completed|recovers from a rejected root outcome' test/pi-invocation.test.js"

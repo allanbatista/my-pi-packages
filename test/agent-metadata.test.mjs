@@ -62,15 +62,43 @@ test("merges metadata without mutating the payload", () => {
 	]);
 });
 
-test("omits unavailable optional values and identifies OMP", () => {
-	const metadata = buildAgentMetadata({ sessionManager: { getSessionId: () => "s" } }, { env: { OMP_VERSION: "17.0.0" }, now: new Date(0) });
+test("omits unavailable optional values and identifies OMP via env", () => {
+	const metadata = buildAgentMetadata(
+		{ sessionManager: { getSessionId: () => "s" } },
+		{ env: { OMP_VERSION: "17.0.0" }, proc: null, now: new Date(0) },
+	);
 	assert.deepEqual(metadata.filter(item => ["session-id", "agent-name", "agent-version", "requested-at"].includes(item.key)), [
 		{ key: "session-id", value: "s" },
 		{ key: "agent-name", value: "omp" },
 		{ key: "agent-version", value: "17.0.0" },
 		{ key: "requested-at", value: "1970-01-01T00:00:00.000Z" },
 	]);
-	assert.deepEqual(getAgentIdentity({ OMP_VERSION: "17.0.0" }), { name: "omp", version: "17.0.0" });
+	assert.deepEqual(getAgentIdentity({ env: { OMP_VERSION: "17.0.0" }, proc: null }), { name: "omp", version: "17.0.0" });
+});
+
+test("detects OMP agent name and version from pi.pi export", () => {
+	const identity = getAgentIdentity({ env: {}, pi: { pi: { VERSION: "18.0.4" } }, proc: null });
+	assert.deepEqual(identity, { name: "omp", version: "18.0.4" });
+});
+
+test("detects OMP agent name and version from process title and path", () => {
+	const fakeOmpProc = {
+		title: "omp",
+		argv: ["bun", "/tmp/omp-linux-x64", "-p"],
+		execPath: "/tmp/omp-linux-x64",
+	};
+	const identity = getAgentIdentity({ env: {}, proc: fakeOmpProc });
+	assert.equal(identity.name, "omp");
+});
+
+test("detects Pi agent name and version from process and package", () => {
+	const fakePiProc = {
+		title: "pi",
+		argv: ["node", "/usr/local/bin/pi"],
+		execPath: "/usr/local/bin/node",
+	};
+	const identity = getAgentIdentity({ env: {}, proc: fakePiProc });
+	assert.equal(identity.name, "pi");
 });
 
 test("registers the common Pi/OMP provider hook and handles invalid payloads", () => {

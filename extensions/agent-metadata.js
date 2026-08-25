@@ -1,5 +1,6 @@
+import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { hostname as getHostname, platform, release } from "node:os";
-import { basename } from "node:path";
+import { basename, dirname, join } from "node:path";
 
 const METADATA_FIELD = "_agent_metadata";
 
@@ -18,14 +19,78 @@ function sessionIdFromPath(value) {
 	return path ? basename(path).replace(/\.jsonl$/, "") : undefined;
 }
 
-export function getAgentIdentity(env = process.env) {
-	const name = nonEmptyString(env.PI_AGENT_NAME) ?? nonEmptyString(env.OMP_AGENT_NAME) ?? (env.OMP_VERSION ? "omp" : "pi");
-	const version =
+function findPackageInfoFromPath(targetPath) {
+	if (!targetPath || typeof targetPath !== "string") return undefined;
+	try {
+		let resolved = targetPath;
+		try {
+			resolved = realpathSync(targetPath);
+		} catch {}
+		let dir = dirname(resolved);
+		while (dir && dir !== dirname(dir)) {
+			const pkgPath = join(dir, "package.json");
+			if (existsSync(pkgPath)) {
+				try {
+					const content = readFileSync(pkgPath, "utf8");
+					const pkg = JSON.parse(content);
+					if (pkg.name && pkg.version && (pkg.name.includes("coding-agent") || pkg.name.includes("pi") || pkg.name.includes("omp"))) {
+						return { name: pkg.name, version: pkg.version };
+					}
+				} catch {}
+			}
+			dir = dirname(dir);
+		}
+	} catch {}
+	return undefined;
+}
+
+export function getAgentIdentity(optionsOrEnv = process.env, piInstance, proc = process) {
+	const isExplicitOptions =
+		optionsOrEnv && typeof optionsOrEnv === "object" && ("env" in optionsOrEnv || "pi" in optionsOrEnv || "proc" in optionsOrEnv);
+	const options = isExplicitOptions ? optionsOrEnv : { env: optionsOrEnv, pi: piInstance, proc };
+	const env = options.env ?? (optionsOrEnv && !isExplicitOptions ? optionsOrEnv : process.env) ?? {};
+	const pi = options.pi ?? piInstance;
+	const p = options.proc ?? (optionsOrEnv && !isExplicitOptions ? proc : process);
+	const envName = nonEmptyString(env.PI_AGENT_NAME) ?? nonEmptyString(env.OMP_AGENT_NAME);
+	const envVersion =
 		nonEmptyString(env.PI_AGENT_VERSION) ??
 		nonEmptyString(env.OMP_AGENT_VERSION) ??
 		nonEmptyString(env.PI_VERSION) ??
-		nonEmptyString(env.OMP_VERSION) ??
-		"unknown";
+		nonEmptyString(env.OMP_VERSION);
+
+	const piSdkVersion = nonEmptyString(pi?.pi?.VERSION);
+
+	const isOmpProcess =
+		Boolean(env.OMP_VERSION || env.OMP_AGENT_NAME || piSdkVersion) ||
+		(typeof p?.title === "string" && p.title.toLowerCase() === "omp") ||
+		(typeof p?.argv?.[0] === "string" && /(^|[/\\])omp([.-]|$)/i.test(p.argv[0])) ||
+		(typeof p?.argv?.[1] === "string" && /(^|[/\\])omp([.-]|$)/i.test(p.argv[1])) ||
+		(typeof p?.execPath === "string" && /(^|[/\\])omp([.-]|$)|oh-my-pi/i.test(p.execPath));
+
+	let detectedPackage;
+	if (p) {
+		const candidatePaths = [p.argv?.[1], p.execPath, p.argv?.[0]].filter(Boolean);
+		for (const candidate of candidatePaths) {
+			const info = findPackageInfoFromPath(candidate);
+			if (info?.version) {
+				detectedPackage = info;
+				break;
+			}
+		}
+	}
+
+	let name = envName;
+	if (!name) {
+		if (isOmpProcess) {
+			name = "omp";
+		} else if (detectedPackage?.name?.includes("omp") || detectedPackage?.name?.includes("oh-my-pi")) {
+			name = "omp";
+		} else {
+			name = "pi";
+		}
+	}
+
+	const version = envVersion ?? piSdkVersion ?? detectedPackage?.version ?? "unknown";
 	return { name, version };
 }
 
@@ -34,7 +99,15 @@ export function buildAgentMetadata(context, options = {}) {
 	const header = sessionManager?.getHeader?.();
 	const model = context?.model;
 	const now = options.now instanceof Date ? options.now : new Date();
-	const identity = getAgentIdentity(options.env);
+	const identity =
+		options.identity ??
+		getAgentIdentity(
+			options.identityOptions ?? {
+				env: options.env,
+				pi: options.pi,
+				...(options.proc !== undefined ? { proc: options.proc } : {}),
+			},
+		);
 	const timezone = options.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? options.env?.TZ;
 	const entries = [
 		["session-id", sessionManager?.getSessionId?.()],
@@ -77,13 +150,16 @@ export function addAgentMetadata(payload, metadata) {
 	return { ...payload, [METADATA_FIELD]: [...merged.values()] };
 }
 
-export function createAgentMetadataHandler(now = () => new Date()) {
+export function createAgentMetadataHandler(optionsOrNow = () => new Date(), extraOptions = {}) {
+	const getNow = typeof optionsOrNow === "function" ? optionsOrNow : () => (optionsOrNow?.now instanceof Date ? optionsOrNow.now : new Date());
+	const baseOptions = typeof optionsOrNow === "function" ? extraOptions : optionsOrNow;
+
 	return (event, context) => {
-		const metadata = buildAgentMetadata(context, { now: now() });
+		const metadata = buildAgentMetadata(context, { ...baseOptions, now: getNow() });
 		return addAgentMetadata(event?.payload, metadata);
 	};
 }
 
 export default function agentMetadataExtension(pi) {
-	pi.on("before_provider_request", createAgentMetadataHandler());
+	pi.on("before_provider_request", createAgentMetadataHandler({ pi }));
 }
