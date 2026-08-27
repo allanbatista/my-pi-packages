@@ -1,39 +1,155 @@
 ---
 name: batista-validation
-description: Elaborates the `validation.md` of a feature in `.features/{YYYY-MM-DD}_{HHMM}-{short-desc}/validation.md`, formulating the `Validation Plan` before any validation is performed and tracking `Validation Progress` item by item. Use `/skill:batista-validation` when the user asks for a validation plan, what needs to be validated/tested, validation progress, evidence, or review of an existing `validation.md`.
+description: Elabora e orquestra o plano e o progresso de validação de uma feature em `.features/{YYYY-MM-DD}_{HHMM}-{short-desc}/validation.md`. Quando executada de forma independente (standalone), monta o checklist de validações (o que será validado, o que precisa ser feito e o que precisa ser confirmado para passar com sucesso, cobrindo API, E2E incluindo frontend e testes automatizados), delega a execução prática da validação para um subagent worker, delega a checagem independente de sucesso para o subagent workflow-validator e executa o loop de correção e reteste até aprovação total. Quando orquestrada por batista-manifest, atua como child delegate formulando o validation.md. Use `/skill:batista-validation` quando o usuário solicitar plano de validação, checklist de testes, execução de validações de API/E2E, conferência de evidências ou revisão de validation.md.
 ---
 
 # Feature Validation
 
 ## Runtime & Delegation
 
-Read and follow `../../references/WORKFLOW_COMMON.md` for Pi runtime, delegation, isolation, state reconciliation and checkpoints.
+Leia e siga `../../references/WORKFLOW_COMMON.md` (runtime Pi, delegação, isolamento, reconciliação de estado e checkpoints), `../../references/PI_ADAPTATION.md` (interface real da tool `Agent` de `@tintinweb/pi-subagents` v0.14.x) e `../../references/MODEL_POLICY.md`.
 
-Scope: the feature's `validation.md` workflow doc only — never product code, tests, configs, migrations or any file outside the feature folder.
+### Modos de Operação
 
-No guessing: investigate before concluding, cite concrete evidence, register as blocker any premise unconfirmable via file, command, log, test, browser or user answer.
+1. **Modo Orquestrado (Child de `batista-manifest`):**
+   - Roda como child `delegate` com contexto mínimo (fresh) via `Agent({ subagent_type: "delegate", ... })`.
+   - Escopo: formulação exclusiva do artefato de planejamento `validation.md` da feature (nunca edita código de produto nem roda validações inline).
+   - Retorna apenas o envelope canônico `DELEGATION_RESULT` para o manager.
 
-Invoked by another feature-workflow skill? Run as child `delegate`, contexto mínimo (fresh) (see `../../references/PI_ADAPTATION.md`), receiving only request, project root, feature dir and needed docs (`spec.md`/`plan.md`). Orquestrado: escreve somente `validation.md` da feature e retorna apenas `DELEGATION_RESULT`; nunca simula worker/validator inline nem usa mecanismo de chamada entre skills, nunca conversa com o usuário.
+2. **Modo Independente / Standalone (Invocação direta pelo usuário via `/skill:batista-validation`):**
+   - Esta sessão na raiz atua como **Manager de Validação**: nunca implementa código diretamente nem atesta seu próprio trabalho.
+   - **Monta o checklist de validações** estruturado no `Validation Plan` em `validation.md` (ou display de checklist), definindo com rigor:
+     - **O que será validado:** identificação do alvo, fluxo, endpoint, componente, tela ou requisito da spec (`R#`).
+     - **O que precisa ser feito:** método concreto, passos de execução, scripts, comandos CLI, chamadas de API ou navegação E2E/UI.
+     - **O que precisa ser confirmado para passar com sucesso:** critérios de aceite objetivos, saída observável esperada, exit code `0`, status HTTP (ex: 200/201), payloads validados, estado visual no frontend e ausência de erros.
+   - **Cobertura mandatória:** validação por **API**, validação **E2E (incluindo Frontend)** e testes automatizados focados.
+   - **Delegação da execução:** despacha subagent `worker` para executar os passos práticos da validação e coletar evidências observáveis reais.
+   - **Delegação da checagem independente:** despacha subagent `workflow-validator` (estritamente read-only) para auditar as evidências produzidas e emitir aprovação positiva explícita item a item (`pass`/`fail`).
+   - **Loop de correção e reteste:** se qualquer item falhar ou o validador rejeitar, despacha `worker` para corrigir a falha, re-executa a validação do item afetado e submete novamente ao `workflow-validator` até convergência total.
+
+### Fronteira de Escrita e Segurança (Fail-Closed)
+
+- **Manager de Validação (sessão raiz):** edita apenas `validation.md` (status, progresso, evidências registradas, resume point e `Updated:`). Jamais edita código de produto, testes ou configurações diretamente.
+- **Worker (`worker`):** subagent com tools de escrita (`read, bash, edit, write, grep, find, ls`) responsável por executar comandos, testes, requests, fluxos E2E e aplicar correções de código quando houver falhas.
+- **Validador (`workflow-validator`):** subagent estritamente read-only (`tools: read, grep, find, ls`, `acceptanceRole: read-only`, `extensions: false`). Jamais edita arquivos ou executa comandos de mutação.
+- Sem adivinhação: toda conclusão deve ser sustentada por evidência concreta (stdout/stderr observável, exit code, log, response de API, DOM/screenshot de frontend). Sem evidência reproduzível = blocker.
+
+---
+
+## Preflight e Runtime Canary
+
+Antes do primeiro dispatch de subagent no modo standalone:
+
+1. **Preflight de agents:** confirme as tools `Agent`, `get_subagent_result` e `steer_subagent` no harness. Confirme a presença e integridade dos arquivos `worker.md`, `workflow-validator.md` e `artifact-guardian.md` em `~/.pi/agent/agents/` ou `.pi/agents/`.
+2. **Runtime Canary (obrigatório):** execute um canary read-only antes de iniciar as validações:
+   ```text
+   Agent({
+     subagent_type: "worker",
+     prompt: "Canary: sem escrever nada, reporte pwd; git rev-parse --show-toplevel; git branch --show-current; conectividade. Retorne DELEGATION_RESULT com evidence.",
+     description: "canary validação",
+     max_turns: 3
+   })
+   ```
+   Confirme (1) cwd == project root / worktree esperado, (2) modelo/thinking efetivo conforme `MODEL_POLICY.md`, (3) conectividade para API e E2E. Divergência → `blocked`.
+
+---
 
 ## Workflow
 
-1. Read project `AGENTS.md`.
-2. Determine mode: **standalone** (direct invocation) or **orchestrated** (child de `batista-manifest`). If input is a feature dir or file, read existing artifacts before deciding status.
-3. The `validation.md` is only authored **after** `spec.md` **and** `plan.md` are `ready` with their guardians `approved`. If either is `draft`, `blocked`, `running` or `done`/`fail` without an approved guardian, register blocker and return to the manager; do not formulate a plan against an unapproved spec/plan.
-4. Read `spec.md` (requirements `R#` and acceptance criteria Given/When/Then) and `plan.md` (Impact Map, phases, tasks, DoD, `Validation Harness`, required evidence). These are the sources of every validation item.
-5. Review existing state: review `validation.md` when it exists — check `Status`, `Validation Plan` completeness, `Validation Progress` statuses/evidence, and guardian gate. Never accept an inherited `ready`/`done` status unchecked.
-6. **Formulate the `Validation Plan` BEFORE any validation is performed.** No validation evidence may be produced before the plan exists. Every item `V#` derives from an Impact Map row or a plan task, linking to the spec requirement/acceptance criterion it validates.
-7. Each item `V#` must carry: description; bound requirement/acceptance criterion (`R#`); concrete method/commands; expected evidence (observable output + exit code); and the phase/task that produces the evidence.
-8. Write the `Validation Progress` with one record per item (`V#`), all starting `pending`, with the execution manager (not this skill) later updating status (`pending|pass|fail`) and produced evidence, and the `workflow-validator` conferring each item before promotion.
-9. For punctual fixes (fix puntual): keep the `Validation Plan` lean — 3–5 items — but it remains mandatory.
-10. If contract, sources (`spec.md`/`plan.md`), Impact Map or target files are ambiguous, register blocker in `validation.md` with `Escalation: spec | plan | manifest` and return to the manager; never create a validation plan by guessing.
-11. Create/update only `validation.md`.
-12. Orchestrated: record `draft` (or `blocked`) and return without guardian; only a re-invocation with real verdict `approved` persists the gate and promotes to `ready`. Standalone: delegate the rubrica to `artifact-guardian`.
-13. Standalone: if guardian rejects, apply the smallest needed fix in `validation.md` or register blocker and re-validate. Never conclude with guardian pending or rejected.
-14. Update `Updated:` before and after each status/evidence change.
-15. Orchestrated: return only the `DELEGATION_RESULT` (see `../../references/WORKFLOW_COMMON.md`); else respond per `Final Response`.
+### 1. Descoberta e Determinação do Modo
+1. Leia o `AGENTS.md` do projeto.
+2. Identifique o modo de execução: **standalone** (invocado diretamente pelo usuário) ou **orquestrado** (child `delegate` invocado pelo `batista-manifest`).
+3. Localize a pasta da feature em `.features/{YYYY-MM-DD}_{HHMM}-{short-desc}/` ou o escopo indicado pelo usuário. Se já existirem `spec.md`, `plan.md` e `validation.md`, leia todos os artefatos existentes.
+4. No modo orquestrado, o `validation.md` só é formulado **após** `spec.md` e `plan.md` estarem `ready` com seus guardians `approved`.
 
-## Template
+### 2. Formulação do Checklist / Validation Plan
+Monte ou atualize o `Validation Plan` em `validation.md` **antes** de qualquer execução de validação. Cada item `V#` deve cobrir uma superfície ou requisito da feature/escopo e conter obrigatoriamente os três pilares:
+
+1. **O que será validado:**
+   - Descrição clara do comportamento, endpoint, componente visual, fluxo de usuário ou regra de negócio sendo validada.
+   - Vínculo direto com o requisito EARS (`R#`) e critério de aceite (Dado/Quando/Então) da spec.
+   - Superfície técnica afetada (ex: `API`, `Frontend/E2E`, `CLI`, `Database`, `Integration`).
+
+2. **O que precisa ser feito:**
+   - Roteiro passo a passo e comandos executáveis exatos.
+   - Para **Validação por API:** comandos `curl`/scripts com método HTTP, URL/endpoint, headers (autenticação, Content-Type), payload de request JSON, query params e parâmetros de rota.
+   - Para **Validação E2E (incluindo Frontend):** passos do fluxo de interface (abertura de rota/URL, renderização de elementos UI, preenchimento de inputs, cliques em botões, disparo de ações assíncronas, navegação entre telas, validação de responsividade e comportamento visual).
+   - Para **Testes Automatizados:** comando exato de teste focado (ex.: `npm test -- ...`, `pytest ...`, `cargo test ...`).
+
+3. **O que precisa ser confirmado para passar com sucesso:**
+   - Critérios de aceite objetivos e mensuráveis.
+   - Saída observável esperada: exit code `0`, HTTP Status Code esperado (ex: `200 OK`, `201 Created`, `400 Bad Request` em caso de erro esperado).
+   - Assertividade no payload retornado (campos, tipos e valores obrigatórios).
+   - Estado visual e DOM no frontend (componentes visíveis, mensagens de sucesso/erro renderizadas, estado reativo atualizado, ausência de erros no console do navegador).
+   - Integridade de persistência (dados gravados corretamente no banco/armazenamento).
+
+### 3. Guardião do Plano de Validação (Artifact Guardian)
+- No modo standalone, antes de iniciar a execução dos testes, submeta o `validation.md` ao `artifact-guardian`:
+  ```text
+  Agent({
+    subagent_type: "artifact-guardian",
+    prompt: "Audite o validation.md em {path} aplicando a rubrica de validação. Verifique se todos os itens V# possuem: o que será validado, o que precisa ser feito (método/comandos concretos) e o que precisa ser confirmado para passar (evidência esperada observável), cobrindo API e E2E/front. Retorne DELEGATION_RESULT.",
+    description: "guardian validation.md",
+    max_turns: 3
+  })
+  ```
+- Se o guardian rejeitar (`status: rejected`), aplique o menor ajuste necessário no `validation.md` até obter `approved`.
+
+### 4. Delegação da Execução da Validação para o Subagent `worker`
+Para cada item `V#` (ou lote de itens independentes):
+1. Atualize o `Validation Progress` em `validation.md` com status `running`.
+2. Dispare o subagent `worker` com escopo fechado para executar a validação prática:
+   ```text
+   Agent({
+     subagent_type: "worker",
+     prompt: "Você é o worker responsável por executar a validação prática do item {V#}.\nLeia validation.md e execute estritamente os passos do método:\n- O que fazer: {passos/comandos de API, E2E/front ou testes}\n- O que confirmar: {critérios de sucesso e saída esperada}\nColete a evidência observável completa (stdout/stderr cru, exit codes, responses de API, logs de execução, estados de UI/DOM).\nNão edite código de produto durante a execução do teste.\nRetorne DELEGATION_RESULT com a evidência detalhada e arquivos afetados.",
+     description: "executar validação {V#}",
+     max_turns: 10
+   })
+   ```
+3. Registre no `validation.md` (`Validation Progress`) a evidência prática bruta produzida pelo worker e marque o status preliminar (`pending` para conferência do validador).
+
+### 5. Delegação da Checagem Independente para o Subagent `workflow-validator`
+Para cada validação executada:
+1. Dispare exatamente um subagent `workflow-validator` (read-only):
+   ```text
+   Agent({
+     subagent_type: "workflow-validator",
+     prompt: "Você é o validador independente da validação do item {V#}.\nLeia AGENTS.md, spec.md, plan.md, validation.md e a evidência produzida pelo worker.\nVocê é estritamente read-only: não altere arquivos nem execute comandos.\nConfira item a item se a evidência prática comprova que todos os critérios de sucesso ('o que precisa ser confirmado') foram satisfeitos para API e E2E/front.\nExija saída observável real, exit codes, status HTTP e estados de UI comprovados.\nConceda aprovação positiva explícita ('pass') somente se comprovado; ausência de erro não é aprovação.\nRetorne DELEGATION_RESULT com approved/rejected, itens conferidos e causa mínima se rejeitado.",
+     description: "checar validação {V#}",
+     max_turns: 5
+   })
+   ```
+2. Analise o retorno do validador:
+   - **Aprovado (`approved` / `pass`):** registre a conferência positiva na tabela `Validation Progress` do `validation.md` e promova o item para `pass`.
+   - **Rejeitado (`rejected` / `fail`):** registre o motivo da falha, aponte a discrepância e promova o item para `fail`, iniciando o loop de correção.
+
+### 6. Loop de Correção e Reteste (Fix & Re-validation)
+Sempre que um item `V#` falhar ou for rejeitado pelo `workflow-validator`:
+1. **Registro da falha:** anote no `validation.md` a causa raiz, a discrepância observada e a correção necessária.
+2. **Delegação da correção para o `worker`:**
+   ```text
+   Agent({
+     subagent_type: "worker",
+     prompt: "Você é o worker de correção da falha no item {V#}.\nMotivo da rejeição pelo validador: {diagnóstico/causa}\nWrite set permitido: {arquivos de código/teste afetados}\nImplemente o menor diff seguro para corrigir o problema e garanta que o código atenda aos critérios esperados.\nRetorne DELEGATION_RESULT com os arquivos alterados e a justificativa da correção.",
+     description: "corrigir falha {V#}",
+     max_turns: 15
+   })
+   ```
+3. **Re-execução da validação:** despache novamente o `worker` de validação para re-executar os testes, chamadas de API e fluxos E2E/front do item afetado, coletando nova evidência prática pós-correção.
+4. **Re-checagem independente:** despache novamente o `workflow-validator` para auditar a nova evidência.
+5. **Convergência:** repita até que o item obtenha `pass` confirmado pelo validador.
+6. **Guardrail Anti-thrash:** se a mesma falha persistir por 3 iterações sem novo avanço de evidência, registre `Status: blocked` com a pergunta/escalação necessária no `validation.md` e solicite direcionamento do usuário.
+
+### 7. Fechamento e Sincronização
+1. Atualize o cabeçalho `Status:` do `validation.md` para `done` (se todos os itens forem `pass` com conferência aprovada) ou `fail`/`blocked`.
+2. Atualize o timestamp `Updated: {YYYY-MM-DD HH:MM}`.
+3. No modo standalone, apresente o relatório final consolidado ao usuário.
+4. No modo orquestrado, retorne o `DELEGATION_RESULT` canônico ao manager chamador.
+
+---
+
+## Template de `validation.md`
 
 ```markdown
 # {Feature} — Plano e Progresso de Validação
@@ -43,106 +159,146 @@ Spec: ./spec.md
 Plan: ./plan.md
 Updated: {YYYY-MM-DD HH:MM}
 
-> `Validation Plan` formulado **antes** de qualquer validação; `Validation Progress` item a item.
-> Nenhuma validação foi executada até a data/hora acima; todos os itens estão `pending`.
+> `Validation Plan` formulado **antes** de qualquer validação; `Validation Progress` rastreado item a item.
+> Cada item contém: o que será validado, o que precisa ser feito e o que precisa ser confirmado para passar.
 
 ## Validation Plan
 
-Itens `V#` derivados do Impact Map e das tasks do `plan.md`, cobrindo **todas** as alterações da feature. Cada item vincula requisito/acceptance criterion da spec (R#), método/comandos concretos, evidência esperada (saída observável + exit code) e a fase/task que produz a evidência.
+Itens `V#` derivados dos requisitos da spec e tasks do plano, cobrindo validações de API, E2E (incluindo Frontend) e testes automatizados.
 
-### V1 — {Nome do item}
+### V1 — {Nome do item / Funcionalidade}
 
-- **Descrição:** {o que é validado e por que}
-- **Requisito/AC:** {R#} ({AC Given/When/Then quando aplicável})
-- **Método/comandos:**
-  - `{comando concreto}`
-  - `{comando concreto}`
-- **Evidência esperada:** {saída observável + exit code esperado}
-- **Fase/task produtora:** {Phase/task do plan.md}
+- **O que será validado:** {descrição do comportamento/funcionalidade, componente, endpoint ou fluxo afetado}
+- **Requisito/AC:** {R#} ({AC Given/When/Then})
+- **Superfície:** API | Frontend/E2E | CLI | Integration
+- **O que precisa ser feito:**
+  - Passo 1: `{comando concreto / chamada de API / ação no front}`
+  - Passo 2: `{comando concreto / verificação de estado}`
+- **O que precisa ser confirmado para passar com sucesso:**
+  - Saída observável: `{saída esperada no terminal / log}`
+  - Exit code esperado: `0`
+  - Status HTTP / Resposta API: `{ex: 200 OK com payload schema { id, status: "active" }}`
+  - Estado visual / Frontend: `{ex: componente renderizado com texto X, sem erros no console}`
+  - Persistência: `{ex: registro gravado na tabela Y com status Z}`
+- **Fase/task produtora:** {Phase/task do plan.md ou standalone}
+
+### V2 — {Nome do item de API}
+
+- **O que será validado:** Validação de endpoint de API `{METHOD /path}` sob condições normais e casos de erro.
+- **Requisito/AC:** {R#}
+- **Superfície:** API
+- **O que precisa ser feito:**
+  - `curl -s -X POST http://localhost:PORT/api/v1/... -H "Content-Type: application/json" -d '{"key":"value"}'`
+- **O que precisa ser confirmado para passar com sucesso:**
+  - HTTP `200 OK` (ou `201 Created`), JSON contendo campos obrigatórios, exit code `0`.
+
+### V3 — {Nome do item E2E / Frontend}
+
+- **O que será validado:** Fluxo de ponta a ponta na interface do usuário (Frontend UI + integração Backend).
+- **Requisito/AC:** {R#}
+- **Superfície:** Frontend/E2E
+- **O que precisa ser feito:**
+  - Navegar até `{URL/rota}`, interagir com `{elementos/botões}`, preencher formulário `{dados}`, submeter.
+- **O que precisa ser confirmado para passar com sucesso:**
+  - Renderização visual correta, mensagem de sucesso visível na UI, dados refletidos na tela e na API, sem erros no console.
 
 ## Validation Progress
 
-Um registro por item `V#`. O **manager de execução** (`batista-execute`) atualiza `Status`/`Evidência produzida` a partir de relatórios do worker e veredictos do `workflow-validator`; o **`workflow-validator`** confere cada item (status + evidência) com aprovação positiva explícita antes de qualquer `pass`.
+Rastreamento item a item. O subagent `worker` produz as evidências práticas e o subagent independente `workflow-validator` audita e confere cada item antes de promover para `pass`.
 
-| Item | Status | Evidência produzida | Conferido pelo workflow-validator |
-|---|---|---|---|
-| V1 — {Nome} | pending | pending | pendente |
+| Item | Superfície | Status | Evidência prática produzida | Conferido pelo workflow-validator |
+|---|---|---|---|---|
+| V1 — {Nome} | Integration | pending | pending | pendente |
+| V2 — {Nome} | API | pending | pending | pendente |
+| V3 — {Nome} | Frontend/E2E | pending | pending | pendente |
+
+## Registro de Correções e Retestes (Fix & Re-validation Log)
+
+| Item | Falha identificada | Correção aplicada (Worker) | Novo reteste | Veredicto Validator |
+|---|---|---|---|---|
+| - | Nenhuma falha até o momento | - | - | - |
 
 ## Regras de Promoção e Invalidação
 
-- **Promoção:** um item só vira `pass` com evidência prática registrada (saída observável + exit code) e conferência positiva item a item do `workflow-validator`.
-- **Bloqueio:** itens `pending`/`fail` bloqueiam `converged` (Root Completion Gate do loop) e merge; item `fail` dispara correção via worker e revalidação.
-- **Cascata (C2/D6):** mudança substantiva em `spec.md` ou `plan.md` rebaixa este documento para `draft` e o guardian para `pending`, e **todos** os itens `pass` anteriores voltam a `pending` (evidência antiga deixa de contar; aprovação vale só para a revisão lida) até revalidação.
-- **Atualização:** a cada mudança de status/evidência, atualiza `Updated:` no cabeçalho e reflete no `Validation Progress`.
-- **Limite de escrita:** este arquivo é editado somente pelo manager de execução/loop (allowlist); nunca entra em write set de workers paralelos (arquivo único compartilhado).
+- **Promoção:** um item só vira `pass` com evidência prática registrada (saída observável + exit code / HTTP / estado UI) e conferência positiva explícita do `workflow-validator`.
+- **Falha e Correção:** qualquer item `fail` ou rejeitado dispara correção via `worker` e novo ciclo de reteste/validação.
+- **Bloqueio:** itens `pending`/`fail` bloqueiam `Status: done`, `converged` e merge.
+- **Cascata (C2/D6):** mudança substantiva em `spec.md` ou `plan.md` rebaixa `validation.md` para `draft` e o guardian para `pending`, resetando itens `pass` anteriores para `pending`.
+- **Limite de escrita:** este arquivo é editado somente pelo manager de validação/execução; nunca entra no write set direto de workers paralelos.
 ```
+
+---
 
 ## Artifact Guardian
 
-Standalone runs `artifact-guardian` after updating `validation.md`; orchestrated leaves the guardian to the manager after receiving the artifact.
+O `artifact-guardian` é invocado no modo standalone após a formulação de `validation.md` (e no modo orquestrado pelo manager). É estritamente read-only (`tools: read, grep, find, ls`).
 
-Guardian never edits files. It validates adherence to spec (requirements/acceptance) and plan (Impact Map, tasks, DoD, harness) and the completeness of `Validation Plan`/`Validation Progress` without guessing.
+### Rubrica Obrigatória
 
-Mandatory rubric — concrete harness, no generic placeholders; record each result in the `evidence` field of the canonical `DELEGATION_RESULT`:
+Registre cada critério como `pass/fail` no campo `evidence` do `DELEGATION_RESULT`:
 
-- [pass/fail] `Validation Plan` is formulated for **all** changes covered by the Impact Map/tasks; every item `V#` links a requirement/acceptance criterion (`R#`).
-- [pass/fail] Each item `V#` cites concrete method/commands and expected evidence (observable output + exit code), not generic placeholders.
-- [pass/fail] `Validation Progress` has one record per item `V#`, each `pending` (or correctly `pass`/`fail` with produced evidence conferido pelo `workflow-validator`).
-- [pass/fail] All changes are covered by at least one item — nothing changed goes unvalidated.
-- [pass/fail] `Status`/`Updated:` consistent; guardian gate recorded; no `pass` promoted without an explicit positive `workflow-validator` verdict.
+- [pass/fail] `Validation Plan` formulado antes de executar as validações, cobrindo todas as superfícies da feature/escopo.
+- [pass/fail] Cada item `V#` detalha com clareza os 3 pilares: (1) o que será validado (com vínculo a `R#`), (2) o que precisa ser feito (método/comandos concretos, requests de API ou passos E2E) e (3) o que precisa ser confirmado para passar (saída observável, exit code, HTTP status, estado visual).
+- [pass/fail] Cobertura expressa de **API** e **E2E (incluindo Frontend)** quando aplicáveis ao escopo.
+- [pass/fail] `Validation Progress` contém um registro por item `V#`, rastreando evidências práticas e status de conferência pelo `workflow-validator`.
+- [pass/fail] `Status` e `Updated:` consistentes; nenhum `pass` sem veredito explícito positivo do validador.
 
-Any `fail` forces `status: rejected`. Copy `evidence`, `questions`, `blockers` and `resume` to `Guardian Review`; fix `validation.md` when the answer is available or register blocker with `Escalation` when decision/evidence is missing. Use `Status: ready`/`done` only with guardian `approved`.
+Qualquer `fail` exige `status: rejected`. O manager aplica o ajuste mínimo em `validation.md` e revalida com o guardian.
 
-## Rules
+---
 
-- Allowed statuses: `draft`, `ready`, `running`, `done`, `fail`, `blocked`.
-- Mandatory for every feature, including punctual fix (fix puntual — enxuto, 3–5 itens). Sempre.
-- Never validate before the `Validation Plan` exists; never formulate a plan against an unapproved `spec.md`/`plan.md`.
-- Every item `V#` must reference a mapped surface/task; item without method/commands or expected evidence becomes blocker/pending.
-- All changes must be covered by an item — evidência que cobre todas as alterações.
-- Invalidation em cascata: mudança substantiva em `spec.md`/`plan.md` → `validation.md` `draft` + guardian `pending` + itens `pass` → `pending`.
-- Aprovação vale só para a revisão lida; cada revalidação reflete-se em `Updated:`.
-- This skill writes only `validation.md` (and `Updated:`/status); execution updates produtoras e conferência são do manager/`workflow-validator`, não desta skill.
-- Orquestrado (child delegate): contexto mínimo, retorna apenas `DELEGATION_RESULT`; sem conversa com o usuário; sem mecanismo de chamada entre skills (slash commands nunca invocam outra skill).
-- Never mark `done` if any item is `pending`/`fail`, evidence missing, guardian pending/rejected, or plan/spec changed substantively.
-- On receiving an existing `validation.md`, treat as review: fix/refine before concluding; never accept inherited ready status unchecked.
-- No full suites per item: evidência focada por item; suíte ampla no gate final do plan.
-- Done requires practical working evidence, not diff reading or code review.
-- No guessing: review the repo and spec/plan before writing; register blocker when a premise is unconfirmable.
+## Regras
+
+- Status permitidos: `draft`, `ready`, `running`, `done`, `fail`, `blocked`.
+- Separação de papéis: Manager nunca edita produto nem executa testes diretamente; Worker executa validações práticas e correções; Workflow-Validator audita evidências de forma independente.
+- Formulário prévio obrigatório: nunca execute validações sem o `Validation Plan` estruturado.
+- Validação completa: abrange API, E2E (incluindo Frontend) e testes automatizados pertinentes.
+- Evidência real obrigatória: "parece certo", leitura de diff ou resumo genérico não são evidências. Exija stdout/stderr cru, exit codes, responses de API e confirmação de estado de tela.
+- Qualquer falha detectada durante a validação **deve ser corrigida pelo worker e retestada** até aprovação pelo validador.
+- Sem promoção por silêncio: o `workflow-validator` deve aprovar positivamente cada item de forma inequívoca.
+- No modo orquestrado: retorna apenas `DELEGATION_RESULT` e não executa validação inline.
+
+---
 
 ## Skill Extraction
 
-Repetitive validation recipes become project skills, not boilerplate copied into `validation.md`.
+Receitas de validação repetitivas tornam-se skills de projeto:
+- **Gatilho:** mesma sequência de validação/comandos repetida em ≥ 2–3 itens ou features.
+- **Ação:** planejar task de extração para `{project}/skills/{skill-name}/` com guardian de validação.
+- Roda apenas no worktree principal, após merge, uma extração por vez.
 
-- Trigger: the same recipe (sequence of commands/validation) appears in ≥ 2–3 items or previous features. Record the candidate as a note in `validation.md`.
-- Action: plan an extraction task delegating to a subagent (project-skill conventions) implementing in `{project}/skills/{skill-name}/`, with validation guardian. Subsequent features call the skill instead of re-deriving.
-- Runs **only** on the main worktree, after merging parallel features, one at a time. Exclusive write set: `{project}/skills/{skill-name}/`.
-- Guardrail (YAGNI): one-off does not become a skill. Extract only with real repetition and a stable procedure.
+---
 
-## Checkpoint (mandatory)
+## Checkpoint (obrigatório)
 
-Before any guardian, parallel batch or turn handoff, record in `validation.md`: `Updated:`, resume point, statuses, blockers, latest evidence. Never trigger a guardian with a stale `validation.md`.
+Antes de qualquer chamada de subagent, guardian ou encerramento de turno, registre em `validation.md`: `Updated:`, ponto de retomada, status dos itens, evidências coletadas e blockers.
 
-## State & Memory
+---
 
-- File is the source of truth, not context. Write the delta to `validation.md` (status, progress, evidence, updated) before proceeding (write-before-forget).
-- Context holds only: feature dir, current item, open blockers, next action. Everything else is a pointer (path + resume point) re-read on demand.
-- Before handing off/compacting: ensure real resume point/status in file. Compact = project into pointers, never invent. A summary never upgrades status. On divergence, the file wins; re-read.
+## Estado e Memória
 
-## Context Isolation
+- O arquivo `validation.md` é a fonte da verdade, não o contexto efêmero da sessão. Escreva deltas antes de prosseguir (write-before-forget).
+- O contexto retém apenas: diretório da feature, item atual em validação, blockers e próxima ação.
+- Divergência entre contexto e arquivo: o arquivo sempre vence.
 
-- With a manager, accept orchestrated invocation as child `delegate`, contexto mínimo (fresh) (see Runtime & Delegation).
-- Pass only minimal artifacts: request, paths, `AGENTS.md`, `spec.md`, `plan.md`.
-- Orchestrated mode: no guardian, no user conversation; return the `DELEGATION_RESULT` (step 15).
+---
 
-## Final Response
+## Isolamento de Contexto
 
-Reply with:
+- Subagents (`worker`, `workflow-validator`, `artifact-guardian`, `delegate`) recebem apenas o contexto mínimo necessário para sua tarefa específica.
+- Nunca repasse conversas inteiras ou históricos de sessões passadas.
 
-- `Summary`: validation goal and status of `validation.md`.
-- `Validation Plan`: items `V#` with bound requirements, concrete methods/commands and expected evidence.
-- `Validation Progress`: statuses per item and who promotes each (`workflow-validator`).
-- `Open items`: blockers, unapproved spec/plan, or `none`.
-- `Evidence`: files read/updated and confirmed facts supporting the plan.
+---
 
-Orchestrated mode: replace the human answer with the `DELEGATION_RESULT`.
+## Resposta Final
+
+No encerramento em **modo standalone**, responda com:
+
+- **Sumário da Validação:** objetivo da validação e status consolidado (`done` | `fail` | `blocked`).
+- **Checklist de Validações Executadas:** itens `V#` detalhando o que foi validado, passos executados e confirmações obtidas (API, E2E/Frontend, Testes).
+- **Evidências Práticas:** comandos executados, exit codes, responses de API e validações visuais de UI registradas.
+- **Relatório de Correções e Retestes:** problemas encontrados, correções aplicadas pelo worker e revalidações aprovadas pelo workflow-validator.
+- **Veredito do Validador Independente:** confirmação explícita do `workflow-validator` atestando o sucesso de cada item.
+- **Itens Abertos / Bloqueios:** blockers pendentes ou `nenhum`.
+
+No **modo orquestrado**, substitua a resposta humana pelo envelope canônico `DELEGATION_RESULT`.
