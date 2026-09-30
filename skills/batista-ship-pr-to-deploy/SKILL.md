@@ -1,6 +1,6 @@
 ---
 name: batista-ship-pr-to-deploy
-description: "Ship local changes end to end: create commit and pull request, delegate independent code review to a subagent commenting directly on the PR, fix and resolve all threads, track and fix CI, merge, publish version tag, monitor the deploy, and publish release notes. Use `/skill:batista-ship-pr-to-deploy` when the user asks for a complete or autonomous delivery from commit to deploy, or combines PR, CR, CI, merge, version and deploy in the same request."
+description: "Ship local changes end to end: create commit and pull request, delegate independent code review to a subagent commenting directly on the PR, fix and resolve all threads, track and fix CI, merge, publish version tag with standard professional release notes, monitor the deploy, and publish announcements. Use `/skill:batista-ship-pr-to-deploy` when the user asks for a complete or autonomous delivery from commit to deploy, or combines PR, CR, CI, merge, version and deploy in the same request."
 ---
 
 # Ship PR to deploy
@@ -85,13 +85,22 @@ Merge only when, for the same SHA:
 
 If the base requires update, update without discarding work and repeat review and CI. Use the repo's strategy and merge queue when mandatory; never admin bypass. Confirm `state=MERGED` and capture the exact merge SHA.
 
-### 6. Publish version tag
+### 6. Publish version tag and GitHub release
 
 1. Fetch only the version namespace (`rtk git fetch origin 'refs/tags/v*:refs/tags/v*'`); reuse a tag already pointing exactly at the merge SHA. Never fetch or alter mutable operational tags like `*-latest`.
 2. Follow the repo tag convention; if none: SemVer, `v` prefix, start `v1.0.0`, bump PATCH per merge.
 3. Create an annotated tag on the exact merge SHA, message `Release <tag>`; publish only that tag to `origin`.
 4. Confirm the remote tag resolves to the merge SHA. Never move, overwrite or force-publish.
 5. If another merge takes the version before push, remove only the conflicting local tag, re-fetch tags, compute the next version and retry once. A new collision is a blocker.
+6. Create or update the formal GitHub Release (`gh release create <tag>`) with a standard, professional release description:
+   - **Title**: `<tag> — <editorial concise summary>` (e.g. `v1.2.0 — Structured audit logging and export`).
+   - **Description format**:
+     - **Overview / Summary**: clear executive summary in professional language describing user-facing value and what changed.
+     - **What's New / Highlights (`### ✨ What's New`)**: key features and new capabilities.
+     - **Improvements (`### 📈 Improvements`)**: enhanced workflows, performance, or behavior.
+     - **Bug Fixes (`### 🐛 Fixes`)**: resolved issues and their practical impact.
+     - **Technical & Operational Notes (`### 🔧 Technical & Operational Details`)**: merged PR, commit SHA, affected components, migrations, or required operational steps.
+   - Omit empty sections; never use raw commit lists, unformatted diffs, or internal placeholders as the final release notes.
 
 ### 7. Track deploy
 
@@ -103,7 +112,12 @@ If the base requires update, update without discarding work and repeat review an
 
 ### 8. Publish release note
 
-After deploy completes or is proven not applicable, use `/skill:batista-discord-webhook-messages` (script `skills/batista-discord-webhook-messages/scripts/discord_message.py`) in channel `releases`. Lead with features, improvements and fixes in product language; technical details last; always include the published tag in `**Version:** \`<tag>\``. Deploy blocked → stay on `pull-requests`, publish no release.
+After deploy completes or is proven not applicable, publish the standard release note using `/skill:batista-discord-webhook-messages` (script `skills/batista-discord-webhook-messages/scripts/discord_message.py`) in channel `releases`. Follow the professional release standard:
+1. Use an editorial, benefit-oriented `--thread-name` (e.g. `--thread-name "Structured audit logging and export"`).
+2. Lead with features, improvements and fixes in clear product language; technical details last.
+3. Mandatory fields: include `**Version:** \`<tag>\``, merged PR/commit, and validation/smoke evidence.
+4. Align content with the GitHub release notes so announcements and repository releases remain consistent.
+Deploy blocked → stay on `pull-requests`, publish no release.
 
 ## Terminal state
 
