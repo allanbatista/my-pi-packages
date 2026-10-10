@@ -39,9 +39,11 @@ Workers/validators get minimal context only (see Context Isolation). Apply `../.
 
 ## Apoio consultivo do JEV
 
+Quando a consulta abaixo for necessária, use o [catálogo e contrato comum](../batista-jev/references/workflow.md), checks `alignment`, `claim_support`, `investigation_stage`, `repeated_failure`. Preserve IDs de requisito, tarefa e validação nos vínculos aplicáveis; registre referências e encaminhamento no artefato autorizado.
+
 Após inspecionar o diff e as evidências do worker, o manager pode ler [../batista-jev/SKILL.md](../batista-jev/SKILL.md) quando houver dúvida semântica sobre aderência ou relato. Envie a task aprovada, trechos relevantes do diff, critérios e evidência bruta.
 
-- Use Noul: a alteração corresponde à task? Introduz escopo não aprovado? Alguma afirmação de conclusão extrapola a prova produzida?
+- Avalie: a alteração corresponde à task? Introduz escopo não aprovado? Alguma afirmação de conclusão extrapola a prova produzida?
 - Registre o sinal apenas nos documentos permitidos. Paths/write sets, execução dos testes e status continuam verificados diretamente; uma probabilidade não comprova corretude do código.
 - Preserve exatamente um validator por tentativa e a ordem worker → validator. Não despache um child extra para consultar JEV, não amplie permissões read-only e não substitua o aceite independente.
 

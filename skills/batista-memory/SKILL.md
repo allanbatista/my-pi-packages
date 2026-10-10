@@ -1,6 +1,6 @@
 ---
 name: batista-memory
-description: Playbook for creating and updating technical memory of entities, components, contract files, and their relationships in `memory/<dominio>/`. Use as `/skill:batista-memory` when the agent creates, changes, removes, or documents an entity/model/API/UI/consumer/job/skill/domain file, or when a change affects a relationship between components and the domain `memory/` folder needs updating.
+description: Playbook for creating and updating technical memory of entities, components, contract files, and their relationships in `memory/{dominio}/`. Use as `/skill:batista-memory` when the agent creates, changes, removes, or documents an entity/model/API/UI/consumer/job/skill/domain file, or when a change affects a relationship between components and the domain `memory/` folder needs updating.
 ---
 
 # Entity Memory Playbook
@@ -47,7 +47,9 @@ Keep memory short, navigable, and traceable to current code so the next agent un
 
 ## Apoio consultivo do JEV
 
-Quando uma descrição ou relação de domínio deixar dúvida semântica, leia [../batista-jev/SKILL.md](../batista-jev/SKILL.md) antes de concluir a memória. Envie a afirmação candidata e os trechos atuais de modelos, serviços, contratos ou fluxos que a sustentariam; use Noul por afirmação: as fontes demonstram essa responsabilidade/relação? Há contradição com o código atual?
+Quando a consulta abaixo for necessária, use o [catálogo e contrato comum](../batista-jev/references/workflow.md), checks `claim_support`. Preserve IDs de requisito, tarefa e validação nos vínculos aplicáveis; registre referências e encaminhamento no artefato autorizado.
+
+Quando uma descrição ou relação de domínio deixar dúvida semântica, leia [../batista-jev/SKILL.md](../batista-jev/SKILL.md) antes de concluir a memória. Envie a afirmação candidata e os trechos atuais de modelos, serviços, contratos ou fluxos que a sustentariam; use `claim_support` por afirmação: as fontes demonstram essa responsabilidade/relação? Há contradição com o código atual?
 
 Confirme lacunas nas fontes e remova especulação. Verifique paths diretamente; JEV não comprova comportamento produtivo nem supera o código como fonte da verdade. Registre o sinal no retorno da tarefa, sem transformar probabilidades em fatos duráveis ou ampliar a memória autorizada.
 

@@ -38,9 +38,11 @@ Closes the feature **architecture** before the technical plan, when backend is a
 
 ## Apoio consultivo do JEV
 
+Quando a consulta abaixo for necessária, use o [catálogo e contrato comum](../batista-jev/references/workflow.md), checks `alignment`, `traceability`, `complementary_risk`. Preserve IDs de requisito, tarefa e validação nos vínculos aplicáveis; registre referências e encaminhamento no artefato autorizado.
+
 Quando minimalismo, cobertura ou compatibilidade da solução deixarem dúvida semântica, leia [../batista-jev/SKILL.md](../batista-jev/SKILL.md) antes do guardian. Envie requisitos aprovados, restrições, Shared Contract, proposta/alternativas e os `A#` relevantes.
 
-- Use Noul por decisão/componente: é necessário para um requisito aprovado? Respeita o contrato? Há requisito sem solução, contradição ou modo de falha relevante sem tratamento?
+- Avalie por decisão/componente: é necessário para um requisito aprovado? Respeita o contrato? Há requisito sem solução, contradição ou modo de falha relevante sem tratamento?
 - Compare alternativas por critérios explícitos; o julgamento não demonstra viabilidade, segurança ou performance sem evidência técnica.
 - Trate o sinal como apoio à revisão e registre a divergência. Decisões de produto voltam à spec; a escolha técnica e o aceite independente mantêm suas responsabilidades.
 

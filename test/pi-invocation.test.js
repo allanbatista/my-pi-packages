@@ -418,7 +418,7 @@ test(
   { skip: liveSkip },
   () => {
     const trace = runPi(
-      "Inspect the Agent tool description/schema (it lists the available subagent types). Confirm which of these agent types exist: worker, delegate, workflow-validator, artifact-guardian. Reply done.",
+      "Inspecione a descrição/schema da ferramenta Agent, que lista os tipos disponíveis. Execute exatamente uma chamada real Agent com subagent_type worker, description confirmar presença do worker, max_turns 2, sem model/thinking, sem background e sem isolamento. O prompt do child deve ser: Task de inspeção somente leitura; write set vazio. Não escreva, edite, faça commit, execute testes ou altere qualquer arquivo/configuração. Confirme sua presença como worker e o cwd herdado, usando somente ls se necessário; retorne evidência textual. Consuma o retorno da chamada antes de responder. Então confirme quais destes quatro papéis existem na descrição/schema: worker, delegate, workflow-validator, artifact-guardian. Inclua o resultado observado do worker e responda done.",
       ROOT,
       180_000,
       "read,Agent"

@@ -36,10 +36,12 @@ When invoked by another feature-workflow skill, run as a child `delegate` with c
 
 ## Apoio consultivo do JEV
 
+Quando a consulta abaixo for necessária, use o [catálogo e contrato comum](../batista-jev/references/workflow.md), checks `alignment`, `claim_support`. Preserve IDs de requisito, tarefa e validação nos vínculos aplicáveis; registre referências e encaminhamento no artefato autorizado.
+
 Quando a revisão de intenção, minimalismo ou critérios deixar dúvida semântica, leia [../batista-jev/SKILL.md](../batista-jev/SKILL.md) antes de submeter a spec ao guardian. Envie a instrução literal, os requisitos candidatos, decisões registradas e os `D#` relevantes.
 
-- Use Noul por requisito: corresponde ao pedido ou a uma necessidade fundamental comprovada? Há expansão não autorizada? O critério define um resultado observável?
-- Use Choice para comparar `focused/localized`, `end-to-end` e `unclear`, somente quando a classificação da intenção continuar ambígua após discovery.
+- Avalie por requisito: corresponde ao pedido ou a uma necessidade fundamental comprovada? Há expansão não autorizada? O critério define um resultado observável?
+- Compare para comparar `focused/localized`, `end-to-end` e `unclear`, somente quando a classificação da intenção continuar ambígua após discovery.
 - Registre os sinais no artefato permitido. Dúvida material continua em `Clarifications Needed`; JEV não responde pelo usuário nem aprova a spec.
 
 ## Fail-Closed Clarification Gate

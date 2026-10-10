@@ -33,9 +33,11 @@ No guessing: investigate first, cite concrete evidence, record premises unconfir
 13. Loaded by `batista-loop` → no `Final Response`; return control to the loop's next step in the same turn. Standalone → respond per `Final Response`.
 ### Apoio consultivo do JEV
 
+Quando a consulta abaixo for necessária, use o [catálogo e contrato comum](../batista-jev/references/workflow.md), checks `alignment`, `traceability`, `investigation_stage`. Preserve IDs de requisito, tarefa e validação nos vínculos aplicáveis; registre referências e encaminhamento no artefato autorizado.
+
 Quando artefatos válidos estruturalmente apresentarem possível divergência semântica, leia [../batista-jev/SKILL.md](../batista-jev/SKILL.md) durante a reconciliação, antes do próximo handshake. Envie somente os trechos conflitantes, requisito e decisões de origem.
 
-- Use Noul: os documentos descrevem o mesmo comportamento/contrato? Uma solução ou tarefa altera escopo aprovado?
+- Avalie: os documentos descrevem o mesmo comportamento/contrato? Uma solução ou tarefa altera escopo aprovado?
 - Use o sinal para investigar e encaminhar a lacuna ao menor artefato responsável; o manager não corrige a folha nem resolve decisão do usuário por probabilidade.
 - Resume Dispatch, precedência das superfícies, statuses e invalidações permanecem determinísticos. Registre o sinal no manifesto sem promover gates; guardian e User Scope Gate continuam obrigatórios.
 

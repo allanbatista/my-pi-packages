@@ -43,7 +43,9 @@ rtk proxy python3 skills/batista-websearch/scripts/websearch.py \
 
 ## Apoio consultivo do JEV
 
-Quando o suporte de uma afirmação nos resultados deixar dúvida semântica, leia [../batista-jev/SKILL.md](../batista-jev/SKILL.md) após a busca e antes de publicar a resposta. Envie pergunta original, afirmações candidatas e trechos recuperados com URL/data; use Noul por afirmação: está sustentada pelo trecho citado? Há contradição?
+Quando a consulta abaixo for necessária, use o [catálogo e contrato comum](../batista-jev/references/workflow.md), checks `claim_support`. Preserve IDs de requisito, tarefa e validação nos vínculos aplicáveis; registre referências e encaminhamento no artefato autorizado.
+
+Quando o suporte de uma afirmação nos resultados deixar dúvida semântica, leia [../batista-jev/SKILL.md](../batista-jev/SKILL.md) após a busca e antes de publicar a resposta. Envie pergunta original, afirmações candidatas e trechos recuperados com URL/data; use `claim_support` por afirmação: está sustentada pelo trecho citado? Há contradição?
 
 Trate afirmações sem suporte suficiente como pendentes e confira a fonte ou refine a busca. JEV não pesquisa a web, valida autenticidade/atualidade da fonte nem preenche fatos ausentes. Registre o sinal no retorno autorizado; mantenha citações diretas e não publique confiança como comprovação factual.
 

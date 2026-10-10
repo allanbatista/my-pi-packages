@@ -125,9 +125,11 @@ Never iterate silently or declare `converged` without evidence. Each iteration m
 
 ### Apoio consultivo do JEV
 
+Quando a consulta abaixo for necessária, use o [catálogo e contrato comum](../batista-jev/references/workflow.md), checks `traceability`, `investigation_stage`, `repeated_failure`. Preserve IDs de requisito, tarefa e validação nos vínculos aplicáveis; registre referências e encaminhamento no artefato autorizado.
+
 Quando um gap confirmado tiver causa/camada ambígua ou parecer repetição descrita com outras palavras, leia [../batista-jev/SKILL.md](../batista-jev/SKILL.md) durante o diagnóstico, antes de reabrir a correção. Envie objetivo, evidência da falha e as entradas relevantes do Convergence Ledger.
 
-- Use Noul para comparar pares de falhas: descrevem o mesmo gap e causa? Use Choice entre `spec`, `ux`, `arch`, `plan`, `implementation`, `integration` e `unclear` para sugerir a camada a investigar.
+- Use `repeated_failure` para comparar manifestações documentadas e `investigation_stage` para sugerir a etapa a investigar; a semelhança não comprova causa comum.
 - Registre o sinal em `loop.md`; confirme a causa nas fontes. Ceiling, contagem de iterações, Anti-thrash e Root Completion Gate mantêm suas regras, sem alteração por JEV.
 - Execute consultas e registros antes do Pre-Guardian Checkpoint. Nenhuma chamada ao helper entre a releitura final e o guardian; preserve worker → validator → guardian e nunca introduza um child extra ou substitua E2E/Outcome Guardian.
 ### Anti-thrash

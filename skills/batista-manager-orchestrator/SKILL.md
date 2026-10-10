@@ -65,7 +65,9 @@ task(
 
 ## Apoio consultivo do JEV
 
-Quando a pendência continuar semanticamente ambígua após investigação, leia [../batista-jev/SKILL.md](../batista-jev/SKILL.md). Envie objetivo, task, contrato, achados e evidências; use Choice entre `requirement`, `contract`, `implementation`, `environment` e `unclear` para sugerir o encaminhamento.
+Quando a consulta abaixo for necessária, use o [catálogo e contrato comum](../batista-jev/references/workflow.md), checks `alignment`, `traceability`, `investigation_stage`, `repeated_failure`. Preserve IDs de requisito, tarefa e validação nos vínculos aplicáveis; registre referências e encaminhamento no artefato autorizado.
 
-Use Noul para investigar se o diff corresponde à task ou se o relato excede a prova. Registre os sinais no artefato de workflow autorizado; não transforme a classificação em causa confirmada. Preserve o write set, os gates e o dispatch independente de validação/revisão; JEV não autoriza o manager a corrigir produto ou aceitar seu próprio trabalho.
+Quando a pendência continuar semanticamente ambígua após investigação, leia [../batista-jev/SKILL.md](../batista-jev/SKILL.md). Envie objetivo, task, contrato, achados e evidências; use `investigation_stage` para sugerir a etapa a investigar.
+
+Avalie para investigar se o diff corresponde à task ou se o relato excede a prova. Registre os sinais no artefato de workflow autorizado; não transforme a classificação em causa confirmada. Preserve o write set, os gates e o dispatch independente de validação/revisão; JEV não autoriza o manager a corrigir produto ou aceitar seu próprio trabalho.
 

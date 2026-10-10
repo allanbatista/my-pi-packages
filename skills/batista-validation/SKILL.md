@@ -85,9 +85,11 @@ Monte ou atualize o `Validation Plan` em `validation.md` **antes** de qualquer e
 
 ### Apoio consultivo do JEV
 
-Quando houver dúvida semântica sobre cobertura ou suficiência do roteiro, o autor/manager lê [../batista-jev/SKILL.md](../batista-jev/SKILL.md) antes do guardian do plano. Envie os requisitos/AC, itens `V#`, passos e resultados esperados; use Noul por critério: o roteiro exercita o comportamento e observa o resultado final exigido, inclusive erros relevantes?
+Quando a consulta abaixo for necessária, use o [catálogo e contrato comum](../batista-jev/references/workflow.md), checks `traceability`, `claim_support`, `complementary_risk`. Preserve IDs de requisito, tarefa e validação nos vínculos aplicáveis; registre referências e encaminhamento no artefato autorizado.
 
-Depois da coleta prática, o manager pode usar Noul para identificar afirmações do relatório que extrapolem as evidências brutas, registrando o sinal consultivo em `validation.md`. O `workflow-validator` continua sem executar comandos ou chamar o helper; verifica as evidências de forma independente. JEV não executa E2E nem promove um item a `pass`; em fluxo controlado por `loop`, preserve a ordem dos children e o checkpoint raiz.
+Quando houver dúvida semântica sobre cobertura ou suficiência do roteiro, o autor/manager lê [../batista-jev/SKILL.md](../batista-jev/SKILL.md) antes do guardian do plano. Envie os requisitos/AC, itens `V#`, passos e resultados esperados; avalie por critério: o roteiro exercita o comportamento e observa o resultado final exigido, inclusive erros relevantes?
+
+Depois da coleta prática, o manager pode usar `claim_support` por alegação para identificar afirmações do relatório que extrapolem as evidências brutas, registrando o sinal consultivo em `validation.md`. O `workflow-validator` continua sem executar comandos ou chamar o helper; verifica as evidências de forma independente. JEV não executa E2E nem promove um item a `pass`; em fluxo controlado por `loop`, preserve a ordem dos children e o checkpoint raiz.
 ### 3. Guardião do Plano de Validação (Artifact Guardian)
 - No modo standalone, antes de iniciar a execução dos testes, submeta o `validation.md` ao `artifact-guardian`:
   ```text

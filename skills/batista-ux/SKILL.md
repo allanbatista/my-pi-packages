@@ -36,9 +36,11 @@ description: Creates, reviews and maintains only the `ux.md` usability document 
 
 ## Apoio consultivo do JEV
 
+Quando a consulta abaixo for necessária, use o [catálogo e contrato comum](../batista-jev/references/workflow.md), checks `alignment`, `traceability`. Preserve IDs de requisito, tarefa e validação nos vínculos aplicáveis; registre referências e encaminhamento no artefato autorizado.
+
 Quando a cobertura textual de um fluxo deixar dúvida semântica, leia [../batista-jev/SKILL.md](../batista-jev/SKILL.md) antes do guardian. Envie o requisito, Shared Contract, passos, inventário de estados e os `U#` relevantes.
 
-- Use Noul por requisito: o fluxo permite concluir a tarefa? Define feedback e recuperação para os estados aplicáveis? A descrição contradiz o contrato ou adiciona decisão de produto?
+- Avalie por requisito: o fluxo permite concluir a tarefa? Define feedback e recuperação para os estados aplicáveis? A descrição contradiz o contrato ou adiciona decisão de produto?
 - Examine separadamente a definição textual de teclado, foco e rótulos. JEV não inspeciona pixels nem comprova acessibilidade ou funcionamento da interface.
 - Registre lacunas para revisão; decisões de produto continuam bloqueadas e a validação visual continua no Browser. O guardian permanece independente.
 

@@ -62,10 +62,12 @@ Despache outro subagent investigador para cruzar **logs ↔ código ↔ testes �
 
 ## Apoio consultivo do JEV
 
+Quando a consulta abaixo for necessária, use o [catálogo e contrato comum](../batista-jev/references/workflow.md), checks `claim_support`, `investigation_stage`, `repeated_failure`. Preserve IDs de requisito, tarefa e validação nos vínculos aplicáveis; registre referências e encaminhamento no artefato autorizado.
+
 Quando a triagem ou investigação deixar dúvida semântica, o manager/investigador com ferramentas compatíveis lê [../batista-jev/SKILL.md](../batista-jev/SKILL.md), antes de planejar a correção. Envie trechos sanitizados dos logs, janela/ambiente, mudanças relevantes e hipóteses.
 
-- Use Choice para classificar famílias de erro entre `regression`, `configuration`, `infrastructure`, `dependency` e `unclear`; contagens e correlação de IDs continuam calculadas nas fontes.
-- Use Noul por hipótese: há observação que a contradiz? A conclusão afirma mais que logs/código/histórico demonstram?
+- Use `investigation_stage` para sugerir a etapa a investigar; famílias de erro continuam hipóteses apoiadas nas fontes; contagens e correlação de IDs continuam calculadas nas fontes.
+- Com `claim_support`, avalie por hipótese: há observação que a contradiz? A conclusão afirma mais que logs/código/histórico demonstram?
 - Registre o sinal no incidente e investigue as discrepâncias. Classificação não confirma causalidade, não autoriza mudança produtiva ou rollback e não substitui reprodução, monitoramento pós-deploy ou aceite independente.
 
 ## Correção: plano enxuto + validation.md (d)
