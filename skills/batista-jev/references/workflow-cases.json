@@ -1,0 +1,142 @@
+[
+  {
+    "label": "supported",
+    "case": {
+      "checks": [
+        "claim_support"
+      ],
+      "state": {
+        "claim": "Arquivo final contém ok.",
+        "evidence": "Teste E1 observou arquivo final com conteúdo ok."
+      },
+      "evidence_refs": [
+        "fixture:E1"
+      ]
+    }
+  },
+  {
+    "label": "contradicted",
+    "case": {
+      "checks": [
+        "claim_support"
+      ],
+      "state": {
+        "claim": "Arquivo final contém ok.",
+        "evidence": "Teste E1 observou arquivo final com conteúdo bad."
+      },
+      "evidence_refs": [
+        "fixture:E1"
+      ]
+    }
+  },
+  {
+    "label": "insufficient_evidence",
+    "case": {
+      "checks": [
+        "claim_support"
+      ],
+      "state": {
+        "claim": "Arquivo final contém ok.",
+        "evidence": "Apenas healthcheck disponível; arquivo final não inspecionado."
+      },
+      "evidence_refs": [
+        "fixture:E1"
+      ]
+    }
+  },
+  {
+    "label": "covered",
+    "case": {
+      "checks": [
+        "traceability"
+      ],
+      "state": {
+        "requirement": "R1: arquivo final contém ok.",
+        "links": [
+          "R1 → Task 1.1: escrever ok → V1: ler arquivo final e comparar com ok."
+        ]
+      },
+      "evidence_refs": [
+        "fixture:R1",
+        "fixture:V1"
+      ]
+    }
+  },
+  {
+    "label": "gap",
+    "case": {
+      "checks": [
+        "traceability"
+      ],
+      "state": {
+        "requirement": "R1: arquivo final contém ok.",
+        "links": [
+          "R1 → Task 1.1: escrever ok → V1: consultar healthcheck."
+        ]
+      },
+      "evidence_refs": [
+        "fixture:R1",
+        "fixture:V1"
+      ]
+    }
+  },
+  {
+    "label": "repeated",
+    "case": {
+      "checks": [
+        "repeated_failure",
+        "investigation_stage"
+      ],
+      "state": {
+        "gap": "Arquivo continua bad após correção.",
+        "history": [
+          "Tentativa 1: arquivo final bad.",
+          "Tentativa 2 após corrigir escrita: arquivo final bad."
+        ],
+        "evidence": [
+          "Leitura do arquivo final bad; requisito pede ok."
+        ]
+      },
+      "evidence_refs": [
+        "fixture:attempt-1",
+        "fixture:attempt-2"
+      ]
+    }
+  },
+  {
+    "label": 0,
+    "case": {
+      "checks": [
+        "complementary_risk"
+      ],
+      "state": {
+        "change": "Escrita local reversível isolada.",
+        "evidence": [
+          "Teste obrigatório observou arquivo final ok."
+        ],
+        "tests": [
+          "Obrigatório V1: ler arquivo final.",
+          "Complementar C1: erro de permissão."
+        ]
+      },
+      "evidence_refs": [
+        "fixture:V1"
+      ]
+    }
+  },
+  {
+    "label": true,
+    "case": {
+      "checks": [
+        "alignment"
+      ],
+      "state": {
+        "request": "Criar arquivo local com texto ok.",
+        "candidate": "Criar arquivo local com texto ok."
+      },
+      "evidence_refs": [
+        "fixture:user-request"
+      ]
+    }
+  }
+]

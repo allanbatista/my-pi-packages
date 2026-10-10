@@ -59,6 +59,10 @@ python3 "$JEV_SKILL_DIR/scripts/jev.py" --request request.json --model typesafe/
 - Falta de chave, erro ou incerteza tornam a consulta indisponível/inconclusiva; não aprovam nem rejeitam o trabalho por si. Siga os checks existentes quando suficientes; lacuna material de decisão ou evidência mantém o bloqueio original. Não crie um gate obrigatório por depender desta consulta opcional.
 - Registre pergunta/critério, referências avaliadas, ID/modelo, probabilidades e custo, identificando o resultado como sinal consultivo. Resolva divergências nas fontes; JEV não promove `ready`, `pass`, `done`, merge ou deploy.
 
+## Catálogo do workflow
+
+Para checks reutilizáveis, orçamento de chamadas e registro sanitizado, leia [references/workflow.md](references/workflow.md). Use `scripts/workflow.py` para preparar/agrupar o catálogo ou consultar com ledger autorizado; preserve indicação explícita de modelo JEV.
+
 ## Fontes
 
 Documentação consultada em 2026-10-07. Verifique os contratos atuais antes de alterar endpoint ou modelo:

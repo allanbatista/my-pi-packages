@@ -1,0 +1,113 @@
+{
+  "version": "1.0.0",
+  "checks": {
+    "alignment": {
+      "question": {
+        "type": "noul",
+        "instructions": "O item em `candidate` corresponde ao pedido e às restrições em `request`, sem expansão não autorizada?",
+        "criteria": {
+          "true": "Pedido ou necessidade fundamental explicitamente sustentada.",
+          "false": "Expansão ou contradição com o pedido."
+        }
+      },
+      "required_evidence": [
+        "request",
+        "candidate"
+      ],
+      "uncertainty": "Obter evidência ou revisão; resultado consultivo não altera status.",
+      "followup": "Revisar as fontes e registrar encaminhamento pelo consumidor."
+    },
+    "traceability": {
+      "question": {
+        "type": "choice",
+        "instructions": "A cadeia requisito → tarefa → validação em `links` cobre semanticamente o resultado de `requirement`?",
+        "criteria": {
+          "covered": "Tarefa implementa o requisito e validação observa seu resultado final.",
+          "gap": "Há lacuna ou contradição concreta na cadeia.",
+          "insufficient_evidence": "Descrições ou vínculos não permitem julgar."
+        }
+      },
+      "required_evidence": [
+        "requirement",
+        "links"
+      ],
+      "uncertainty": "Obter evidência ou revisão; resultado consultivo não altera status.",
+      "followup": "Revisar as fontes e registrar encaminhamento pelo consumidor."
+    },
+    "claim_support": {
+      "question": {
+        "type": "choice",
+        "instructions": "A alegação em `claim` está sustentada pelas evidências fornecidas em `evidence`?",
+        "criteria": {
+          "supported": "Evidência direta sustenta toda a alegação.",
+          "contradicted": "Evidência direta contradiz a alegação.",
+          "insufficient_evidence": "Ausência, ambiguidade ou cobertura parcial; plausibilidade não basta."
+        }
+      },
+      "required_evidence": [
+        "claim",
+        "evidence"
+      ],
+      "uncertainty": "Obter evidência ou revisão; resultado consultivo não altera status.",
+      "followup": "Revisar as fontes e registrar encaminhamento pelo consumidor."
+    },
+    "investigation_stage": {
+      "question": {
+        "type": "choice",
+        "instructions": "Qual etapa deve ser investigada primeiro para a lacuna em `gap`, considerando `history` e `evidence`? Não confirme causalidade.",
+        "criteria": {
+          "spec": "Intenção ou critério ambíguo.",
+          "design": "Contrato/arquitetura/UX incoerente.",
+          "plan": "Decomposição ou cobertura das tarefas.",
+          "implementation": "Comportamento implementado divergente.",
+          "validation": "Roteiro ou evidência de validação insuficiente.",
+          "environment": "Pré-requisito/ambiente externo.",
+          "unclear": "Evidência não distingue etapas."
+        }
+      },
+      "required_evidence": [
+        "gap",
+        "history",
+        "evidence"
+      ],
+      "uncertainty": "Obter evidência ou revisão; resultado consultivo não altera status.",
+      "followup": "Revisar as fontes e registrar encaminhamento pelo consumidor."
+    },
+    "repeated_failure": {
+      "question": {
+        "type": "choice",
+        "instructions": "O histórico em `history` apresenta recorrência da mesma falha observada em `gap` após correções?",
+        "criteria": {
+          "repeated": "Mesma manifestação documentada em tentativas distintas.",
+          "different": "Manifestações documentadas distintas.",
+          "insufficient_evidence": "Histórico insuficiente para comparar."
+        }
+      },
+      "required_evidence": [
+        "gap",
+        "history"
+      ],
+      "uncertainty": "Obter evidência ou revisão; resultado consultivo não altera status.",
+      "followup": "Revisar as fontes e registrar encaminhamento pelo consumidor."
+    },
+    "complementary_risk": {
+      "question": {
+        "type": "score",
+        "instructions": "Qual o risco residual descrito em `change` e `evidence` para priorizar exclusivamente testes complementares em `tests`? Não remova testes obrigatórios.",
+        "criteria": [
+          "0: baixo — efeito localizado, reversível e coberto por evidência direta.",
+          "1: moderado — fronteira ou erro relevante com cobertura parcial.",
+          "2: alto — concorrência, dados ou contrato crítico com lacuna de evidência.",
+          "3: muito alto — impacto amplo/irreversível ou várias fronteiras críticas sem cobertura."
+        ]
+      },
+      "required_evidence": [
+        "change",
+        "evidence",
+        "tests"
+      ],
+      "uncertainty": "Obter evidência ou revisão; resultado consultivo não altera status.",
+      "followup": "Revisar as fontes e registrar encaminhamento pelo consumidor."
+    }
+  }
+}
