@@ -18,7 +18,7 @@ O wrapper não é requisito da autoria. Write sets fechados (por exemplo, soment
 
 A execução exige autorização paga e revisão de sanitização (`--sanitized` é declaração, não detector de segredos). Envie somente contexto autorizado mínimo; referências também não podem conter segredos, tokens ou URLs privadas assinadas. O ledger guarda perguntas, referências, hash do pedido, resposta, modelo efetivo, probabilidades/custo e encaminhamento genérico; não guarda `state` bruto. Atualize o encaminhamento concreto no artefato autorizado da skill. Erro conserva a reserva com resultado `unavailable`; não grava corpo remoto nem exceção. Sem write set compatível, use preparo offline e o retorno autorizado, sem criar ledger fora do escopo.
 
-`insufficient_evidence`, `unclear`, distribuições ambíguas ou falta da API pedem evidência/revisão; não alteram status. Noul/Score preservam distribuição, legenda e confiança, sem limiar universal. Etapa sugerida e recorrência não confirmam causa: confira logs/código/reprodução. JEV não promove `ready`, `pass`, `done`, merge ou deploy; reviewers/validators permanecem independentes e read-only. Worktree continua determinístico.
+`insufficient_evidence`, `unclear`, distribuições ambíguas ou falta da API pedem evidência/revisão; não alteram status. Preserve as respostas tipadas completas, sem limiar universal: Noul retorna P(sim); Choice/Score incluem probabilidades e confiança; Score inclui também legenda. Etapa sugerida e recorrência não confirmam causa: confira logs/código/reprodução. JEV não promove `ready`, `pass`, `done`, merge ou deploy; reviewers/validators permanecem independentes e read-only. Worktree continua determinístico.
 
 ## Piloto mensurável
 
