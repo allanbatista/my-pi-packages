@@ -34,6 +34,14 @@ When invoked by another feature-workflow skill, run as a child `delegate` with c
 14. Apply the **Fail-Closed Clarification Gate**. Orchestrated: record `draft` (or `blocked`) and return without running guardian; only a re-invocation with a real `approved` verdict may persist the gate and promote to `ready`. Standalone: delegate the rubric to `artifact-guardian`, apply the minimal fix, repeat until `approved`.
 15. Respond per `Final Response`; orchestrated returns only the `Delegation Result` from `../../references/WORKFLOW_COMMON.md`.
 
+## Apoio consultivo do JEV
+
+Quando a revisão de intenção, minimalismo ou critérios deixar dúvida semântica, leia [../batista-jev/SKILL.md](../batista-jev/SKILL.md) antes de submeter a spec ao guardian. Envie a instrução literal, os requisitos candidatos, decisões registradas e os `D#` relevantes.
+
+- Use Noul por requisito: corresponde ao pedido ou a uma necessidade fundamental comprovada? Há expansão não autorizada? O critério define um resultado observável?
+- Use Choice para comparar `focused/localized`, `end-to-end` e `unclear`, somente quando a classificação da intenção continuar ambígua após discovery.
+- Registre os sinais no artefato permitido. Dúvida material continua em `Clarifications Needed`; JEV não responde pelo usuário nem aprova a spec.
+
 ## Fail-Closed Clarification Gate
 
 Before guardian or `Status: ready`, look for material decisions with `A: TBD`, `pending`, or origin `explicit assumption`. Convert each into `Clarifications Needed`, record `Status: blocked`, and return the questions. Do not run guardian or continue to UX/Arch/Plan while any occurrence exists.

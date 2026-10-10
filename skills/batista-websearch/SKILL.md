@@ -41,6 +41,12 @@ rtk proxy python3 skills/batista-websearch/scripts/websearch.py \
   --query "OpenRouter exa price per request" --engine exa --json
 ```
 
+## Apoio consultivo do JEV
+
+Quando o suporte de uma afirmação nos resultados deixar dúvida semântica, leia [../batista-jev/SKILL.md](../batista-jev/SKILL.md) após a busca e antes de publicar a resposta. Envie pergunta original, afirmações candidatas e trechos recuperados com URL/data; use Noul por afirmação: está sustentada pelo trecho citado? Há contradição?
+
+Trate afirmações sem suporte suficiente como pendentes e confira a fonte ou refine a busca. JEV não pesquisa a web, valida autenticidade/atualidade da fonte nem preenche fatos ausentes. Registre o sinal no retorno autorizado; mantenha citações diretas e não publique confiança como comprovação factual.
+
 ## Pricing
 
 - **Exa** (default for models without native search, including the default DeepSeek): `$0.005` per request, up to 10 results; extra result `$0.001` each.

@@ -45,6 +45,12 @@ Keep memory short, navigable, and traceable to current code so the next agent un
    - Remove placeholders, template typos, speculation.
    - Prefer simple Mermaid for core relationships.
 
+## Apoio consultivo do JEV
+
+Quando uma descrição ou relação de domínio deixar dúvida semântica, leia [../batista-jev/SKILL.md](../batista-jev/SKILL.md) antes de concluir a memória. Envie a afirmação candidata e os trechos atuais de modelos, serviços, contratos ou fluxos que a sustentariam; use Noul por afirmação: as fontes demonstram essa responsabilidade/relação? Há contradição com o código atual?
+
+Confirme lacunas nas fontes e remova especulação. Verifique paths diretamente; JEV não comprova comportamento produtivo nem supera o código como fonte da verdade. Registre o sinal no retorno da tarefa, sem transformar probabilidades em fatos duráveis ou ampliar a memória autorizada.
+
 ## Minimal validation
 
 Run focused checks before finishing:

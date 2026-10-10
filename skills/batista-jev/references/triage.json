@@ -1,0 +1,36 @@
+{
+  "model": "typesafe/jev-1.13",
+  "state": {
+    "ticket": {
+      "message": "Recebi duas cobranças pelo mesmo pedido. Quero o estorno da cobrança duplicada. Não há problema de acesso à conta."
+    }
+  },
+  "questions": {
+    "topic": {
+      "type": "choice",
+      "instructions": "Qual é o assunto principal de `ticket.message`?",
+      "criteria": {
+        "billing": "Cobranças, pagamentos, faturas ou estornos.",
+        "account": "Acesso à conta, senha ou perfil.",
+        "other": "Assunto que não pertence às categorias anteriores."
+      }
+    },
+    "refund_requested": {
+      "type": "noul",
+      "instructions": "O cliente em `ticket.message` pede devolução de dinheiro?",
+      "criteria": {
+        "true": "Há um pedido explícito de estorno ou reembolso.",
+        "false": "Não há pedido de devolução de dinheiro."
+      }
+    },
+    "refund_explicitness": {
+      "type": "score",
+      "instructions": "Quão explícito é o pedido de estorno em `ticket.message`?",
+      "criteria": [
+        "Não há pedido de estorno.",
+        "O estorno está implícito, mas não é pedido diretamente.",
+        "O cliente pede diretamente o estorno."
+      ]
+    }
+  }
+}

@@ -63,3 +63,9 @@ task(
 - Se o reviewer apontar problemas, despache uma nova tarefa de ajuste para o `engineer`.
 - Reporte para o usuário de forma sucinta: status, decisões tomadas e próximo passo.
 
+## Apoio consultivo do JEV
+
+Quando a pendência continuar semanticamente ambígua após investigação, leia [../batista-jev/SKILL.md](../batista-jev/SKILL.md). Envie objetivo, task, contrato, achados e evidências; use Choice entre `requirement`, `contract`, `implementation`, `environment` e `unclear` para sugerir o encaminhamento.
+
+Use Noul para investigar se o diff corresponde à task ou se o relato excede a prova. Registre os sinais no artefato de workflow autorizado; não transforme a classificação em causa confirmada. Preserve o write set, os gates e o dispatch independente de validação/revisão; JEV não autoriza o manager a corrigir produto ou aceitar seu próprio trabalho.
+

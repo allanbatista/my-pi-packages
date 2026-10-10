@@ -34,6 +34,14 @@ description: Creates, reviews and maintains only the `ux.md` usability document 
 11. Orchestrated: save `draft` (or `blocked`) and return without guardian; only a re-invocation with a real verdict `approved` may persist the gate and promote to `ready`. Standalone: delegate the rubric to `artifact-guardian`, apply the minimal fix and repeat until `approved`.
 12. Respond per `Final Response`; orchestrated: return only the `Delegation Result` from `../../references/WORKFLOW_COMMON.md`.
 
+## Apoio consultivo do JEV
+
+Quando a cobertura textual de um fluxo deixar dúvida semântica, leia [../batista-jev/SKILL.md](../batista-jev/SKILL.md) antes do guardian. Envie o requisito, Shared Contract, passos, inventário de estados e os `U#` relevantes.
+
+- Use Noul por requisito: o fluxo permite concluir a tarefa? Define feedback e recuperação para os estados aplicáveis? A descrição contradiz o contrato ou adiciona decisão de produto?
+- Examine separadamente a definição textual de teclado, foco e rótulos. JEV não inspeciona pixels nem comprova acessibilidade ou funcionamento da interface.
+- Registre lacunas para revisão; decisões de produto continuam bloqueadas e a validação visual continua no Browser. O guardian permanece independente.
+
 ## Template
 
 ```markdown

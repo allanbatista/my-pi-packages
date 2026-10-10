@@ -60,6 +60,14 @@ Despache outro subagent investigador para cruzar **logs ↔ código ↔ testes �
 - Registre no `incident.md`: **hipótese** de causa raiz + **confirmação** com evidência (qual trecho de código, qual deploy/PR, qual config mudou e por que isso explica os erros por mensagem/frequência).
 - Causa raiz não confirmável → `blocked` com a investigação pendente; nunca propale correção por chute.
 
+## Apoio consultivo do JEV
+
+Quando a triagem ou investigação deixar dúvida semântica, o manager/investigador com ferramentas compatíveis lê [../batista-jev/SKILL.md](../batista-jev/SKILL.md), antes de planejar a correção. Envie trechos sanitizados dos logs, janela/ambiente, mudanças relevantes e hipóteses.
+
+- Use Choice para classificar famílias de erro entre `regression`, `configuration`, `infrastructure`, `dependency` e `unclear`; contagens e correlação de IDs continuam calculadas nas fontes.
+- Use Noul por hipótese: há observação que a contradiz? A conclusão afirma mais que logs/código/histórico demonstram?
+- Registre o sinal no incidente e investigue as discrepâncias. Classificação não confirma causalidade, não autoriza mudança produtiva ou rollback e não substitui reprodução, monitoramento pós-deploy ou aceite independente.
+
 ## Correção: plano enxuto + validation.md (d)
 
 Antes de qualquer correção implementada:

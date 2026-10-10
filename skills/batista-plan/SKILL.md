@@ -35,6 +35,14 @@ Invoked by another feature-workflow skill? Run as child `delegate`, contexto mí
 16. Update status before and after each task during execution.
 17. Orchestrated: return only the `Delegation Result` (see `../../references/WORKFLOW_COMMON.md`); else respond per `Final Response`.
 
+## Apoio consultivo do JEV
+
+Quando a reconciliação de soluções ou cobertura de tarefas deixar dúvida semântica, leia [../batista-jev/SKILL.md](../batista-jev/SKILL.md) antes do guardian. Envie os requisitos aprovados, trechos de UX/Arch, Shared Contract, Impact Map e tarefas candidatas.
+
+- Use Noul por requisito: há tarefa que entrega seu resultado? A tarefa adiciona escopo não aprovado? A solução contradiz UX, Arch ou o contrato compartilhado?
+- Use o resultado para investigar a divergência e escalar ao artefato responsável; não para inventar uma decisão pendente.
+- DAG, interseção de write sets, paths, contagens e Scope Budget Gate continuam com checks determinísticos. JEV não aprova o plano nem autoriza paralelismo ou expansão.
+
 ## Template
 
 ```markdown

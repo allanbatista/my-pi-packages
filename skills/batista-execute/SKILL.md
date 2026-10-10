@@ -37,6 +37,14 @@ Workers/validators get minimal context only (see Context Isolation). Apply `../.
 14. Mark `done` only after validator `approved`. All phases and evidence approved → close state atomically before returning control: `Status:` of `plan.md` and `manifest.md` to `done`, `manifest.md > State > Plan: done`, resume points with no next task, all tasks/phases `done`; re-read both — any divergence keeps execution `running`.
 15. Loaded by `batista-loop` → emit no `Final Response`; return control to the loop in the same turn. Standalone → respond per `Final Response`.
 
+## Apoio consultivo do JEV
+
+Após inspecionar o diff e as evidências do worker, o manager pode ler [../batista-jev/SKILL.md](../batista-jev/SKILL.md) quando houver dúvida semântica sobre aderência ou relato. Envie a task aprovada, trechos relevantes do diff, critérios e evidência bruta.
+
+- Use Noul: a alteração corresponde à task? Introduz escopo não aprovado? Alguma afirmação de conclusão extrapola a prova produzida?
+- Registre o sinal apenas nos documentos permitidos. Paths/write sets, execução dos testes e status continuam verificados diretamente; uma probabilidade não comprova corretude do código.
+- Preserve exatamente um validator por tentativa e a ordem worker → validator. Não despache um child extra para consultar JEV, não amplie permissões read-only e não substitua o aceite independente.
+
 ## Manager Boundaries
 
 - May edit `manifest.md`/`plan.md`/`validation.md` (status, blockers, evidence, loop ledger, resume point; validation records per-item status/evidence/progress in `validation.md`).

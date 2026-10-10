@@ -26,6 +26,7 @@ const EXPECTED_SKILLS = [
   "batista-ship-pr-to-deploy",
   "batista-websearch",
   "batista-worktree",
+  "batista-jev",
 ];
 
 function piAvailable() {

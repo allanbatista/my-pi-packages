@@ -8,3 +8,5 @@
 - Estado do workflow vive nos artefatos em `.features/{...}/`; o arquivo vence o contexto e resumos não fazem upgrade de status.
 - `user-instructions.md` (instruções literais do usuário) é artefato da feature e vive em `.features/{...}/user-instructions.md`, nunca na raiz do projeto.
 - Guardians aplicam uma pergunta explícita de minimalismo e alinhamento: o item foi pedido, é fundamental e está alinhado ao resultado do cliente, e o que pode ser removido ou simplificado sem impacto. A spec avalia requisitos; a arch avalia decisões técnicas contra a spec. Excesso vira `Out of Scope`/pergunta ou é simplificado.
+- `batista-jev` consulta OpenRouter Decisions com perguntas tipadas e probabilidades; erros ou incerteza não aprovam ações, e o julgamento não substitui autorização nem validação determinística.
+- As skills usam `batista-jev` como apoio consultivo em dúvidas semânticas de aderência, cobertura, contradição e classificação, por leitura do `../batista-jev/SKILL.md`; preservam permissões, write sets, checkpoints, budgets e aceite independente. A consulta não promove statuses nem cria um gate obrigatório.

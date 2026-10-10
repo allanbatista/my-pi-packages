@@ -23,6 +23,7 @@ const EXPECTED = [
   "batista-ship-pr-to-deploy",
   "batista-websearch",
   "batista-worktree",
+  "batista-jev",
 ];
 const EXPECTED_AGENTS = ["artifact-guardian.md", "batista-engineer.md", "code-reviewer.md", "delegate.md", "reviewer.md", "worker.md", "workflow-validator.md"];
 const READONLY_ROLE_AGENTS = ["artifact-guardian.md", "code-reviewer.md", "reviewer.md", "workflow-validator.md"];

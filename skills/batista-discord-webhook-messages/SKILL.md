@@ -152,4 +152,8 @@ rtk proxy python3 skills/batista-discord-webhook-messages/scripts/discord_messag
 
 Require explicit confirmation before deleting. Never attach secrets or files outside the user's scope. No automatic mentions; mention deliberately only via `send --mention-user-id`, `send --mention-everyone` or `ask --user-id`.
 
+## Apoio consultivo do JEV
+
+Uma dúvida semântica concreta no texto pode usar [../batista-jev/SKILL.md](../batista-jev/SKILL.md) dentro da autorização de processamento externo. O sinal não confirma merge, tag, deploy, smoke, canal ou envio. Não crie gate obrigatório nem publique análise adicional.
+
 Sources: https://docs.discord.com/developers/resources/channel, https://docs.discord.com/developers/resources/message, https://docs.discord.com/developers/resources/poll and https://docs.discord.com/developers/reference#uploading-files
